@@ -43,6 +43,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import { reportSchema } from "@/lib/schemas"
 import type { Report } from "@/lib/types"
+import { cn } from "@/lib/utils"
 
 const statusConfig = {
   Approved: { icon: CheckCircle, color: "bg-green-500" },
