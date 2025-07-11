@@ -10,7 +10,7 @@ function isValidDepartment(department: string): department is Department {
 }
 
 
-export default function ReportPage({ params }: { params: { department: string } }) {
+export default async function ReportPage({ params }: { params: { department: string } }) {
   const departmentName = params.department.charAt(0).toUpperCase() + params.department.slice(1);
   
   if (!isValidDepartment(departmentName)) {
