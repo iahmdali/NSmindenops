@@ -51,6 +51,9 @@ export function DepartmentReportForm({ department }: DepartmentReportFormProps) 
       operatorName: "",
       shift: 1,
       comments: "",
+      materialId: "",
+      tasksCompleted: 0,
+      downtime: 0,
     },
   });
 
