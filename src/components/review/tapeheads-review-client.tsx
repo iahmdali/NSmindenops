@@ -1,20 +1,11 @@
-
 "use client"
 
 import * as React from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm, useFieldArray } from "react-hook-form"
+import { useForm, useFieldArray, useWatch } from "react-hook-form"
 import * as z from "zod"
 import { format } from "date-fns"
-import { MoreHorizontal, CheckCircle, AlertCircle, Clock, PlusCircle, Trash2 } from "lucide-react"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+import { MoreHorizontal, CheckCircle, AlertCircle, Clock, PlusCircle, Trash2, AlertTriangle, Edit } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,7 +33,6 @@ import {
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
-import { reportSchema } from "@/lib/schemas"
 import type { Report } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import {
@@ -53,17 +43,11 @@ import {
   SelectValue,
 } from "../ui/select"
 import { Checkbox } from "../ui/checkbox"
-import { Card } from "../ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
 import { Separator } from "../ui/separator"
-
-const statusConfig = {
-  Approved: { icon: CheckCircle, color: "bg-green-500" },
-  Submitted: { icon: Clock, color: "bg-blue-500" },
-  "Requires Attention": { icon: AlertCircle, color: "bg-yellow-500" },
-}
+import { Label } from "../ui/label"
 
 const tapeheadsOperatorSchema = z.object({
-  // Adding fields from the operator form for editing
   date: z.date(),
   shift: z.coerce.number(),
   shift_lead_name: z.string(),
@@ -82,11 +66,21 @@ const tapeheadsOperatorSchema = z.object({
     duration_minutes: z.coerce.number(),
   })).optional(),
   had_spin_out: z.boolean().default(false),
+  spin_out_duration_minutes: z.coerce.number().optional(),
   checklist_items: z.object({
     smooth_fuse_full: z.boolean().default(false),
     blades_glasses: z.boolean().default(false),
+    paperwork_up_to_date: z.boolean().default(false),
+    debrief_new_operator: z.boolean().default(false),
+    electric_scissor: z.boolean().default(false),
+    tubes_at_end_of_table: z.boolean().default(false),
     spray_tracks_on_bridge: z.boolean().default(false),
+    sharpie_pens: z.boolean().default(false),
+    broom: z.boolean().default(false),
+    cleaned_work_station: z.boolean().default(false),
     meter_stick: z.boolean().default(false),
+    two_irons: z.boolean().default(false),
+    th_isle_trash_empty: z.boolean().default(false),
   }).default({}),
   leadComments: z.string().optional(),
 });
@@ -97,10 +91,11 @@ export function TapeheadsReviewClient({ submissions }: { submissions: Report[] }
   const [selectedReport, setSelectedReport] = React.useState<Report | null>(null)
   const { toast } = useToast()
 
-  // Use the new detailed schema
   const form = useForm<z.infer<typeof tapeheadsOperatorSchema>>({
     resolver: zodResolver(tapeheadsOperatorSchema),
   });
+  
+  const hadSpinOut = useWatch({ control: form.control, name: 'had_spin_out' });
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
@@ -111,6 +106,7 @@ export function TapeheadsReviewClient({ submissions }: { submissions: Report[] }
     if (selectedReport) {
       form.reset({
         ...selectedReport,
+        operator_name: selectedReport.operatorName,
         date: new Date(selectedReport.date),
         shift: Number(selectedReport.shift),
         issues: selectedReport.issues || [],
@@ -141,60 +137,75 @@ export function TapeheadsReviewClient({ submissions }: { submissions: Report[] }
     })
   }
 
+  const getTotalProblemDuration = (report: Report) => {
+    return report.issues?.reduce((acc, issue) => acc + (issue.duration_minutes || 0), 0) || 0;
+  }
+
   return (
     <>
-      <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Status</TableHead>
-              <TableHead>Operator</TableHead>
-              <TableHead>Shift</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Total Meters</TableHead>
-              <TableHead>Issues</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {submissions.map((report) => {
-              const StatusIcon = statusConfig[report.status].icon
-              const statusColor = statusConfig[report.status].color
-              return (
-                <TableRow key={report.id}>
-                  <TableCell>
-                    <Badge variant="outline" className="flex items-center gap-2 pl-2">
-                       <span className={cn("h-2 w-2 rounded-full", statusColor)}></span>
-                       {report.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{report.operatorName}</TableCell>
-                  <TableCell>{report.shift}</TableCell>
-                  <TableCell>{format(new Date(report.date), "PPP")}</TableCell>
-                  <TableCell>{report.total_meters || 'N/A'}</TableCell>
-                  <TableCell>{report.issues?.length || 0}</TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <span className="sr-only">Open menu</span>
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleReview(report)}>
-                          Review / Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>Approve</DropdownMenuItem>
-                        <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(report.id)}>Delete</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              )
-            })}
-          </TableBody>
-        </Table>
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold">Operator Entries ({submissions.length} entries)</h2>
+        {submissions.map((report) => (
+          <Card key={report.id}>
+            <CardHeader className="flex flex-row items-center justify-between p-4 border-b">
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary">{report.th_number}</Badge>
+                <span className="font-semibold">{report.operatorName}</span>
+                <Badge variant={report.end_of_shift_status === 'Completed' ? 'default' : 'secondary'}>{report.end_of_shift_status}</Badge>
+                {report.had_spin_out && <Badge variant="destructive">Spin Out</Badge>}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => handleReview(report)}><Edit className="mr-2"/>Edit</Button>
+                <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDelete(report.id)}><Trash2 className="mr-2"/>Delete</Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-4 space-y-4">
+              <div className="grid grid-cols-4 gap-4 text-sm">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Total Meters</Label>
+                  <p className="font-medium">{report.total_meters}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Total Tapes</Label>
+                  <p className="font-medium">{report.total_tapes}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Material</Label>
+                  <p className="font-medium">{report.material_type}</p>
+                </div>
+                 <div>
+                  <Label className="text-xs text-muted-foreground">End Status</Label>
+                  <p className="font-medium">{report.end_of_shift_status}</p>
+                </div>
+              </div>
+              {(report.issues && report.issues.length > 0) || report.had_spin_out ? (
+                <div className="p-3 rounded-md bg-muted/50">
+                   <h4 className="flex items-center text-sm font-semibold mb-2">
+                      <AlertTriangle className="mr-2 text-yellow-600"/>
+                      Problems/Downtime ({getTotalProblemDuration(report) + (report.spin_out_duration_minutes || 0)} min total)
+                    </h4>
+                    <ul className="space-y-2 text-sm">
+                      {report.issues?.map((issue, index) => (
+                        <li key={index} className="flex justify-between items-center p-2 bg-background rounded">
+                          <span>{issue.problem_reason}</span>
+                          <Badge variant="secondary">{issue.duration_minutes} min</Badge>
+                        </li>
+                      ))}
+                      {report.had_spin_out && (
+                         <li className="flex justify-between items-center p-2 bg-red-100 dark:bg-red-900/30 rounded">
+                           <div className="flex items-center">
+                            <Checkbox checked className="mr-2" disabled/>
+                            <span className="font-medium text-red-700 dark:text-red-300">Spin Out Occurred</span>
+                           </div>
+                           <Badge variant="destructive">{report.spin_out_duration_minutes} min</Badge>
+                         </li>
+                      )}
+                    </ul>
+                </div>
+              ) : null}
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>
@@ -239,8 +250,12 @@ export function TapeheadsReviewClient({ submissions }: { submissions: Report[] }
               <h4 className="text-md font-semibold">Checklist</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField control={form.control} name="had_spin_out" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>Had Spin Out?</FormLabel></FormItem>)} />
+                {hadSpinOut && (
+                  <FormField control={form.control} name="spin_out_duration_minutes" render={({ field }) => (<FormItem><FormLabel>Spin Out Duration (min)</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)} />
+                )}
                 <FormField control={form.control} name="checklist_items.smooth_fuse_full" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>Smooth Fuse Full</FormLabel></FormItem>)} />
                 <FormField control={form.control} name="checklist_items.blades_glasses" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>Blades Glasses</FormLabel></FormItem>)} />
+                <FormField control={form.control} name="checklist_items.paperwork_up_to_date" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>Paperwork Up To Date</FormLabel></FormItem>)} />
               </div>
 
               <Separator className="my-4" />

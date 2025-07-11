@@ -1,11 +1,10 @@
-
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm, useFieldArray, useWatch } from "react-hook-form"
 import * as z from "zod"
-import { PlusCircle, Trash2, CalendarIcon, ClockIcon } from "lucide-react"
-import { differenceInHours, differenceInMinutes, format } from "date-fns";
+import { PlusCircle, Trash2 } from "lucide-react"
+import React from "react";
 
 import { Button } from "@/components/ui/button"
 import {
@@ -25,13 +24,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
 import { DatePicker } from "@/components/ui/date-picker"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import React from "react";
 
 const tapeheadsOperatorSchema = z.object({
   date: z.date(),
@@ -52,11 +49,21 @@ const tapeheadsOperatorSchema = z.object({
     duration_minutes: z.coerce.number().min(0),
   })).optional(),
   had_spin_out: z.boolean().default(false),
+  spin_out_duration_minutes: z.coerce.number().optional(),
   checklist_items: z.object({
     smooth_fuse_full: z.boolean().default(false),
     blades_glasses: z.boolean().default(false),
+    paperwork_up_to_date: z.boolean().default(false),
+    debrief_new_operator: z.boolean().default(false),
+    electric_scissor: z.boolean().default(false),
+    tubes_at_end_of_table: z.boolean().default(false),
     spray_tracks_on_bridge: z.boolean().default(false),
+    sharpie_pens: z.boolean().default(false),
+    broom: z.boolean().default(false),
+    cleaned_work_station: z.boolean().default(false),
     meter_stick: z.boolean().default(false),
+    two_irons: z.boolean().default(false),
+    th_isle_trash_empty: z.boolean().default(false),
   }).default({}),
 });
 
@@ -87,12 +94,8 @@ export function TapeheadsOperatorForm() {
       total_tapes: 0,
       issues: [],
       had_spin_out: false,
-      checklist_items: {
-        smooth_fuse_full: false,
-        blades_glasses: false,
-        spray_tracks_on_bridge: false,
-        meter_stick: false,
-      },
+      spin_out_duration_minutes: 0,
+      checklist_items: {},
     },
   });
 
@@ -101,11 +104,8 @@ export function TapeheadsOperatorForm() {
     name: "issues",
   });
   
-  const status = useWatch({
-    control: form.control,
-    name: 'end_of_shift_status'
-  });
-
+  const status = useWatch({ control: form.control, name: 'end_of_shift_status' });
+  const hadSpinOut = useWatch({ control: form.control, name: 'had_spin_out' });
   const startTimeStr = useWatch({ control: form.control, name: 'shift_start_time' });
   const endTimeStr = useWatch({ control: form.control, name: 'shift_end_time' });
   const totalMeters = useWatch({ control: form.control, name: 'total_meters' });
@@ -209,12 +209,26 @@ export function TapeheadsOperatorForm() {
             
             <Separator />
             <SectionHeader title="End of Shift Checklist"/>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <FormField control={form.control} name="had_spin_out" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4 col-span-full"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal text-base">Had Spin Out?</FormLabel></FormItem>)} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
+                <FormField control={form.control} name="had_spin_out" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4 col-span-1"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal text-base">Had Spin Out?</FormLabel></FormItem>)} />
+                {hadSpinOut && (
+                    <FormField control={form.control} name="spin_out_duration_minutes" render={({ field }) => (<FormItem className="col-span-1"><FormLabel>Spin Out Duration (minutes)</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(+e.target.value)} /></FormControl><FormMessage /></FormItem>)}/>
+                )}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 <FormField control={form.control} name="checklist_items.smooth_fuse_full" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Smooth Fuse Full</FormLabel></FormItem>)} />
                 <FormField control={form.control} name="checklist_items.blades_glasses" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Blades Glasses</FormLabel></FormItem>)} />
+                <FormField control={form.control} name="checklist_items.paperwork_up_to_date" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Paperwork Up To Date</FormLabel></FormItem>)} />
+                <FormField control={form.control} name="checklist_items.debrief_new_operator" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Debrief New Operator</FormLabel></FormItem>)} />
+                <FormField control={form.control} name="checklist_items.electric_scissor" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Electric Scissor</FormLabel></FormItem>)} />
+                <FormField control={form.control} name="checklist_items.tubes_at_end_of_table" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Tubes At End Of Table</FormLabel></FormItem>)} />
                 <FormField control={form.control} name="checklist_items.spray_tracks_on_bridge" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Spray Tracks On Bridge</FormLabel></FormItem>)} />
+                <FormField control={form.control} name="checklist_items.sharpie_pens" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Sharpie Pens</FormLabel></FormItem>)} />
+                <FormField control={form.control} name="checklist_items.broom" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Broom</FormLabel></FormItem>)} />
+                <FormField control={form.control} name="checklist_items.cleaned_work_station" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Cleaned Work Station</FormLabel></FormItem>)} />
                 <FormField control={form.control} name="checklist_items.meter_stick" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Meter Stick</FormLabel></FormItem>)} />
+                <FormField control={form.control} name="checklist_items.two_irons" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Two Irons</FormLabel></FormItem>)} />
+                <FormField control={form.control} name="checklist_items.th_isle_trash_empty" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">TH Aisle Trash Empty</FormLabel></FormItem>)} />
             </div>
 
             <div className="flex justify-end gap-2 pt-8">
