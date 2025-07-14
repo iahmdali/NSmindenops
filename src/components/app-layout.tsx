@@ -43,6 +43,7 @@ import {
   Paintbrush,
   ChevronDown,
   ClipboardList,
+  AreaChart,
 } from "lucide-react";
 import { Logo } from "@/components/icons";
 import { cn } from "@/lib/utils";
@@ -54,6 +55,15 @@ const departments = [
   { name: 'Films', href: '/report/films', icon: Film },
   { name: 'Graphics', href: '/report/graphics', icon: Paintbrush },
 ];
+
+const analyticsDepartments = [
+  { name: 'Pregger', href: '/analytics/pregger', icon: Building2 },
+  { name: 'Tapeheads', href: '/analytics/tapeheads', icon: Users },
+  { name: 'Gantry', href: '/analytics/gantry', icon: GanttChartSquare },
+  { name: 'Films', href: '/analytics/films', icon: Film },
+  { name: 'Graphics', href: '/analytics/graphics', icon: Paintbrush },
+];
+
 
 function UserNav() {
   return (
@@ -89,10 +99,14 @@ function MainSidebar() {
   const pathname = usePathname();
   const { open, setOpen, state } = useSidebar();
   const [isReportsOpen, setReportsOpen] = React.useState(false);
+  const [isAnalyticsOpen, setAnalyticsOpen] = React.useState(false);
   
   React.useEffect(() => {
     if (pathname.startsWith('/report')) {
       setReportsOpen(true);
+    }
+    if (pathname.startsWith('/analytics')) {
+      setAnalyticsOpen(true);
     }
   }, [pathname]);
 
@@ -137,6 +151,38 @@ function MainSidebar() {
             {isReportsOpen && (
               <SidebarMenuSub>
                 {departments.map((dept) => (
+                  <SidebarMenuSubItem key={dept.name}>
+                    <SidebarMenuSubButton
+                      asChild
+                      isActive={pathname === dept.href}
+                    >
+                      <Link href={dept.href}>
+                        <dept.icon />
+                        <span>{dept.name}</span>
+                      </Link>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                ))}
+              </SidebarMenuSub>
+            )}
+          </SidebarMenuItem>
+           <SidebarMenuItem>
+            <SidebarMenuButton
+              onClick={() => setAnalyticsOpen(!isAnalyticsOpen)}
+              isActive={pathname.startsWith("/analytics")}
+            >
+              <AreaChart />
+              <span>Analytics</span>
+              <ChevronDown
+                className={cn(
+                  "ml-auto h-4 w-4 transition-transform duration-200",
+                  isAnalyticsOpen && "rotate-180"
+                )}
+              />
+            </SidebarMenuButton>
+            {isAnalyticsOpen && (
+              <SidebarMenuSub>
+                {analyticsDepartments.map((dept) => (
                   <SidebarMenuSubItem key={dept.name}>
                     <SidebarMenuSubButton
                       asChild
