@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -18,6 +19,7 @@ import { Target, Gauge, Clock, Zap, AlertTriangle } from "lucide-react"
 import type { Report } from "@/lib/types"
 import { tapeheadsSubmissions } from "@/lib/data"
 import { Badge } from "../ui/badge"
+import { PageHeader } from "../page-header"
 
 const downtimeReasonsConfig = {
     "Machine Jam": { label: 'Machine Jam', color: 'hsl(var(--chart-1))' },
