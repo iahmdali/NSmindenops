@@ -1,39 +1,4 @@
-import type { DepartmentData, Report } from '@/lib/types';
-
-export const analyticsData: DepartmentData[] = [
-  {
-    label: 'Pregger',
-    data: [
-      { name: 'Shift 1', total: Math.floor(Math.random() * 5000) },
-      { name: 'Shift 2', total: Math.floor(Math.random() * 5000) },
-      { name: 'Shift 3', total: Math.floor(Math.random() * 5000) },
-    ],
-  },
-  {
-    label: 'Tapeheads',
-    data: [
-      { name: 'Shift 1', total: Math.floor(Math.random() * 5000) },
-      { name: 'Shift 2', total: Math.floor(Math.random() * 5000) },
-      { name: 'Shift 3', total: Math.floor(Math.random() * 5000) },
-    ],
-  },
-  {
-    label: 'Gantry',
-    data: [
-      { name: 'Shift 1', total: Math.floor(Math.random() * 5000) },
-      { name: 'Shift 2', total: Math.floor(Math.random() * 5000) },
-      { name: 'Shift 3', total: Math.floor(Math.random() * 5000) },
-    ],
-  },
-  {
-    label: 'Films',
-    data: [{ name: 'Full Day', total: Math.floor(Math.random() * 5000) }],
-  },
-  {
-    label: 'Graphics',
-    data: [{ name: 'Full Day', total: Math.floor(Math.random() * 5000) }],
-  },
-];
+import type { Report } from '@/lib/types';
 
 export const tapeheadsSubmissions: Report[] = [
   {
@@ -71,6 +36,7 @@ export const tapeheadsSubmissions: Report[] = [
     total_tapes: 12,
     issues: [{ problem_reason: "Machine B jam", duration_minutes: 60 }],
     had_spin_out: true,
+    spin_out_duration_minutes: 30,
     checklist_items: { smooth_fuse_full: true, blades_glasses: false, spray_tracks_on_bridge: true, meter_stick: true },
     leadComments: 'Please provide more details on the machine issue.'
   },

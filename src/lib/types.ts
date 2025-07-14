@@ -8,7 +8,7 @@ export interface ShiftData {
 }
 
 export interface DepartmentData {
-  label: string;
+  label: Department;
   data: ShiftData[];
 }
 
