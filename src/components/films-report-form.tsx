@@ -16,12 +16,10 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { DatePicker } from "@/components/ui/date-picker"
 import { useToast } from "@/hooks/use-toast"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { ImageUpload } from "./image-upload"
-import { Separator } from "./ui/separator"
 
 const sailEntrySchema = z.object({
   sail_number: z.string().min(1, "Sail number is required."),
@@ -33,14 +31,17 @@ const gantrySailsSchema = z.object({
   finished: z.array(sailEntrySchema).optional(),
 });
 
+const crewMemberSchema = z.object({ 
+    name: z.string().min(1, "Name is required."),
+    start_time: z.string().min(1, "Start time is required."),
+    end_time: z.string().min(1, "End time is required."),
+    notes: z.string().optional(),
+});
+
 const filmsReportSchema = z.object({
   report_date: z.date({ required_error: 'A date for the report is required.' }),
-  morning_briefing: z.string().optional(),
-  weekly_topic: z.string().optional(),
-  on_shift_crew: z.array(z.object({ name: z.string().min(1, "Name is required.") })).optional(),
-  joining_crew: z.array(z.object({ name: z.string().min(1, "Name is required.") })).optional(),
-  oops_notes: z.string().optional(),
-  six_minutes_of_safety: z.string().optional(),
+  on_shift_crew: z.array(crewMemberSchema).optional(),
+  joining_crew: z.array(crewMemberSchema).optional(),
   gantries: z.object({
     gantry_4: gantrySailsSchema,
     gantry_5: gantrySailsSchema,
@@ -55,12 +56,8 @@ type FilmsReportFormValues = z.infer<typeof filmsReportSchema>;
 
 const defaultValues: Partial<FilmsReportFormValues> = {
   report_date: new Date(),
-  morning_briefing: "",
-  weekly_topic: "",
   on_shift_crew: [],
   joining_crew: [],
-  oops_notes: "",
-  six_minutes_of_safety: "",
   gantries: {
     gantry_4: { started: [], finished: [] },
     gantry_5: { started: [], finished: [] },
@@ -90,14 +87,25 @@ function CrewList({ name, control, title }: { name: "on_shift_crew" | "joining_c
         <div className="space-y-4">
             <h4 className="font-semibold">{title}</h4>
             {fields.map((field, index) => (
-                 <div key={field.id} className="flex items-center gap-2">
+                 <div key={field.id} className="flex flex-col gap-2 p-4 border rounded-md relative">
                     <FormField control={control} name={`${name}.${index}.name`} render={({ field }) => (
-                        <FormItem className="flex-1"><FormControl><Input placeholder="Crew member name" {...field} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>Name</FormLabel><FormControl><Input placeholder="Crew member name" {...field} /></FormControl><FormMessage /></FormItem>
                     )}/>
-                     <Button type="button" variant="ghost" size="icon" className="text-destructive shrink-0" onClick={() => remove(index)}><Trash2 className="size-4" /></Button>
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField control={control} name={`${name}.${index}.start_time`} render={({ field }) => (
+                            <FormItem><FormLabel>Start Time</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>
+                        )}/>
+                        <FormField control={control} name={`${name}.${index}.end_time`} render={({ field }) => (
+                            <FormItem><FormLabel>End Time</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>
+                        )}/>
+                    </div>
+                     <FormField control={control} name={`${name}.${index}.notes`} render={({ field }) => (
+                        <FormItem><FormLabel>Notes (Optional)</FormLabel><FormControl><Input placeholder="e.g., left early" {...field} /></FormControl><FormMessage /></FormItem>
+                    )}/>
+                    <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive shrink-0" onClick={() => remove(index)}><Trash2 className="size-4" /></Button>
                 </div>
             ))}
-            <Button type="button" variant="outline" size="sm" onClick={() => append({ name: '' })}><PlusCircle className="mr-2 h-4 w-4" />Add Crew</Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => append({ name: '', start_time: '', end_time: '', notes: '' })}><PlusCircle className="mr-2 h-4 w-4" />Add Crew</Button>
         </div>
     )
 }
@@ -172,11 +180,6 @@ export function FilmsReportForm() {
             </CardContent>
         </Card>
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <Section title="Morning Briefing"><FormField control={form.control} name="morning_briefing" render={({ field }) => (<FormItem><FormControl><Textarea rows={5} {...field} /></FormControl><FormMessage /></FormItem>)} /></Section>
-            <Section title="Weekly Topic"><FormField control={form.control} name="weekly_topic" render={({ field }) => (<FormItem><FormControl><Textarea rows={5} {...field} /></FormControl><FormMessage /></FormItem>)}/></Section>
-        </div>
-
         <Section title="Crew Members">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <CrewList name="on_shift_crew" control={form.control} title="On-Shift Crew" />
@@ -184,11 +187,6 @@ export function FilmsReportForm() {
             </div>
         </Section>
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <Section title="OOPS Report"><FormField control={form.control} name="oops_notes" render={({ field }) => (<FormItem><FormControl><Textarea rows={5} {...field} /></FormControl><FormMessage /></FormItem>)} /></Section>
-            <Section title="6 Minutes of Safety"><FormField control={form.control} name="six_minutes_of_safety" render={({ field }) => (<FormItem><FormControl><Textarea rows={5} {...field} /></FormControl><FormMessage /></FormItem>)}/></Section>
-        </div>
-
         <Section title="Sails Started / Finished" description="Track sail production for each gantry.">
             <div className="space-y-4">
                 <GantrySails gantryName="gantries.gantry_4" control={form.control} />
@@ -224,3 +222,5 @@ export function FilmsReportForm() {
     </Form>
   )
 }
+
+    
