@@ -32,6 +32,9 @@ const downtimeReasonsConfig = {
     other: { label: 'Other', color: 'hsl(var(--chart-4))' },
 } satisfies ChartConfig;
 
+const CustomLegend = () => {
+  return <p className="text-xs text-center text-muted-foreground">Hover over chart to see details</p>;
+};
 
 export function PreggerAnalytics() {
   const [data, setData] = React.useState<PreggerReport[]>(preggerReportsData);
@@ -203,7 +206,7 @@ export function PreggerAnalytics() {
                                         <Cell key={`cell-${entry.name}`} fill={`var(--color-${entry.name})`} />
                                     ))}
                                 </Pie>
-                                <Legend content={<p className="text-xs text-center text-muted-foreground">Hover over chart to see details</p>} />
+                                <Legend content={<CustomLegend />} />
                             </PieChart>
                         </ChartContainer>
                     </CardContent>
