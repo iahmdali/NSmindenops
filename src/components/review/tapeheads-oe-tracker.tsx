@@ -25,13 +25,22 @@ const generateSectionIds = (oeNumber: string, sections: number): string[] => {
     if (!oeNumber || oeNumber.length < 3 || sections <= 0) return [];
 
     const lastThree = oeNumber.slice(-3);
-    if (isNaN(parseInt(lastThree))) return [];
+    if (isNaN(parseInt(lastThree, 10))) return [];
 
     const lastDigit = lastThree.slice(-1);
-    const ids = [`00${lastDigit}`];
+    const ids: string[] = [];
 
-    for (let i = 0; i < sections - 1; i++) {
-        ids.push(`${i + 1}0${lastDigit}`);
+    // First section is always '00' + lastDigit
+    ids.push(`00${lastDigit}`);
+
+    if (sections > 1) {
+        // Second section is always '10' + lastDigit
+        ids.push(`10${lastDigit}`);
+    }
+
+    // Subsequent sections start from 11, 12, etc.
+    for (let i = 2; i < sections; i++) {
+        ids.push(`${10 + i - 1}${lastDigit}`);
     }
 
     return ids;
