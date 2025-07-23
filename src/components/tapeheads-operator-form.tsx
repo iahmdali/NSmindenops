@@ -1,3 +1,4 @@
+
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -90,6 +91,8 @@ export function TapeheadsOperatorForm() {
       operator_name: "",
       material_type: "Carbon",
       end_of_shift_status: "Completed",
+      shift_start_time: '',
+      shift_end_time: '',
       total_meters: 0,
       total_tapes: 0,
       issues: [],
