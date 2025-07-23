@@ -88,6 +88,7 @@ export default function TapeheadsReviewPage() {
         submissions={submissions} 
         generatedSummary={summary}
         onGenerateSummary={handleGenerateSummary}
+        onGeneratedSummaryChange={setSummary}
         isGeneratingSummary={isGenerating}
         oeEntries={oeEntries}
         onOeEntriesChange={setOeEntries}

@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -15,6 +16,7 @@ interface SummaryProps {
   submissions: Report[];
   generatedSummary: string;
   onGenerateSummary: () => void;
+  onGeneratedSummaryChange: (value: string) => void;
   isGeneratingSummary: boolean;
   oeEntries: OeEntry[];
   onOeEntriesChange: (entries: OeEntry[]) => void;
@@ -23,7 +25,8 @@ interface SummaryProps {
 export function TapeheadsReviewSummary({ 
   submissions, 
   generatedSummary, 
-  onGenerateSummary, 
+  onGenerateSummary,
+  onGeneratedSummaryChange, 
   isGeneratingSummary,
   oeEntries,
   onOeEntriesChange,
@@ -135,7 +138,13 @@ export function TapeheadsReviewSummary({
                 {isGeneratingSummary ? "Generating..." : "Generate with AI"}
               </Button>
             </div>
-            <Textarea id="op-summary" value={generatedSummary} placeholder="Click 'Generate with AI' to create a summary of the shift's activities." className="min-h-[100px]"/>
+            <Textarea 
+              id="op-summary" 
+              value={generatedSummary} 
+              onChange={(e) => onGeneratedSummaryChange(e.target.value)}
+              placeholder="Click 'Generate with AI' to create a summary of the shift's activities." 
+              className="min-h-[100px]"
+            />
         </div>
          <div className="space-y-2">
             <Label htmlFor="lead-name">Shift Lead Name</Label>
