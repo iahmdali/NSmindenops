@@ -152,22 +152,22 @@ export function TapeheadsOperatorForm() {
               <FormField control={form.control} name="date" render={({ field }) => (<FormItem><FormLabel>Date</FormLabel><FormControl><DatePicker value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>)}/>
               <FormField control={form.control} name="shift" render={({ field }) => (<FormItem><FormLabel>Shift</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent><SelectItem value="1">Shift 1</SelectItem><SelectItem value="2">Shift 2</SelectItem><SelectItem value="3">Shift 3</SelectItem></SelectContent></Select><FormMessage /></FormItem>)}/>
               <FormField control={form.control} name="shift_lead_name" render={({ field }) => (<FormItem><FormLabel>Shift Lead Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)}/>
-              <FormField control={form.control} name="th_number" render={({ field }) => (<FormItem><FormLabel>TH Number</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent>{[...Array(7)].map((_, i) => (<SelectItem key={i} value={`TH-${i+1}`}>{`TH-${i+1}`}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)}/>
+              <FormField control={form.control} name="th_number" render={({ field }) => (<FormItem><FormLabel>TH Number</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent>{[...Array(10)].map((_, i) => (<SelectItem key={i} value={`TH-${i+1}`}>{`TH-${i+1}`}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)}/>
               <FormField control={form.control} name="operator_name" render={({ field }) => (<FormItem><FormLabel>Operator Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)}/>
             </div>
 
             <Separator />
             <SectionHeader title="Work & Output" />
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <FormField control={form.control} name="material_type" render={({ field }) => (<FormItem><FormLabel>Material Type</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent><SelectItem value="Carbon">Carbon</SelectItem><SelectItem value="Fiber">Fiber</SelectItem><SelectItem value="Kevlar">Kevlar</SelectItem><SelectItem value="Polyester">Polyester</SelectItem><SelectItem value="Hybrid">Hybrid</SelectItem></SelectContent></Select><FormMessage /></FormItem>)}/>
-                <FormField control={form.control} name="total_meters" render={({ field }) => (<FormItem><FormLabel>Total Meters</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(+e.target.value)} /></FormControl><FormMessage /></FormItem>)}/>
-                <FormField control={form.control} name="total_tapes" render={({ field }) => (<FormItem><FormLabel>Total Tapes</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(+e.target.value)}/></FormControl><FormMessage /></FormItem>)}/>
+                <FormField control={form.control} name="material_type" render={({ field }) => (<FormItem><FormLabel>Material Type</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent><SelectItem value="Carbon">Carbon</SelectItem><SelectItem value="Aramid">Aramid</SelectItem><SelectItem value="Kevlar">Kevlar</SelectItem><SelectItem value="Polyester">Polyester</SelectItem><SelectItem value="Hybrid">Hybrid</SelectItem></SelectContent></Select><FormMessage /></FormItem>)}/>
+                <FormField control={form.control} name="total_meters" render={({ field }) => (<FormItem><FormLabel>Meters Produced</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(+e.target.value)} /></FormControl><FormMessage /></FormItem>)}/>
+                <FormField control={form.control} name="total_tapes" render={({ field }) => (<FormItem><FormLabel>Tapes Used</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(+e.target.value)}/></FormControl><FormMessage /></FormItem>)}/>
              </div>
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-end">
                 <FormField control={form.control} name="end_of_shift_status" render={({ field }) => (<FormItem><FormLabel>End of Shift Status</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent><SelectItem value="In Progress">In Progress</SelectItem><SelectItem value="Completed">Completed</SelectItem></SelectContent></Select><FormMessage /></FormItem>)}/>
                 {status === 'In Progress' && (
                   <>
-                    <FormField control={form.control} name="order_entry" render={({ field }) => (<FormItem><FormLabel>Order Entry (OE)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)}/>
+                    <FormField control={form.control} name="order_entry" render={({ field }) => (<FormItem><FormLabel>OE (Output Estimate)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)}/>
                     <FormField control={form.control} name="layer" render={({ field }) => (<FormItem><FormLabel>Layer</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)}/>
                   </>
                 )}
@@ -233,7 +233,7 @@ export function TapeheadsOperatorForm() {
 
             <div className="flex justify-end gap-2 pt-8">
               <Button variant="outline" onClick={form.handleSubmit((values) => handleFormSubmit(values, true))}>Save Draft</Button>
-              <Button onClick={form.handleSubmit((values) => handleFormSubmit(values, false))}>Submit Unified Report</Button>
+              <Button onClick={form.handleSubmit((values) => handleFormSubmit(values, false))}>Submit Report</Button>
             </div>
           </form>
         </Form>

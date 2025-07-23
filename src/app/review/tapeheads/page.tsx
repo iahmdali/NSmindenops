@@ -11,6 +11,7 @@ import { DatePicker } from "@/components/ui/date-picker"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { summarizeShift } from "@/ai/flows/summarize-shift-flow"
+import type { OeEntry } from "@/components/review/tapeheads-oe-tracker"
 
 export default function TapeheadsReviewPage() {
   const [date, setDate] = React.useState<Date | undefined>(new Date("2023-10-27"))
@@ -18,6 +19,7 @@ export default function TapeheadsReviewPage() {
   const [submissions, setSubmissions] = React.useState<Report[]>(tapeheadsSubmissions)
   const [summary, setSummary] = React.useState<string>("");
   const [isGenerating, setIsGenerating] = React.useState(false);
+  const [oeEntries, setOeEntries] = React.useState<OeEntry[]>([]);
 
   const handleFilter = () => {
     // This is where you would fetch data from your backend based on date and shift
@@ -79,6 +81,8 @@ export default function TapeheadsReviewPage() {
         generatedSummary={summary}
         onGenerateSummary={handleGenerateSummary}
         isGeneratingSummary={isGenerating}
+        oeEntries={oeEntries}
+        onOeEntriesChange={setOeEntries}
       />
       <TapeheadsReviewClient submissions={submissions} />
     </div>

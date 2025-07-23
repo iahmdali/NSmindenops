@@ -8,15 +8,26 @@ import { Label } from "../ui/label"
 import { Textarea } from "../ui/textarea"
 import { Button } from "../ui/button"
 import { Sparkles } from "lucide-react"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion"
+import { OeEntry, TapeheadsOeTracker } from "./tapeheads-oe-tracker"
 
 interface SummaryProps {
   submissions: Report[];
   generatedSummary: string;
   onGenerateSummary: () => void;
   isGeneratingSummary: boolean;
+  oeEntries: OeEntry[];
+  onOeEntriesChange: (entries: OeEntry[]) => void;
 }
 
-export function TapeheadsReviewSummary({ submissions, generatedSummary, onGenerateSummary, isGeneratingSummary }: SummaryProps) {
+export function TapeheadsReviewSummary({ 
+  submissions, 
+  generatedSummary, 
+  onGenerateSummary, 
+  isGeneratingSummary,
+  oeEntries,
+  onOeEntriesChange,
+}: SummaryProps) {
   const summary = React.useMemo(() => {
     if (!submissions || submissions.length === 0) {
       return {
@@ -104,6 +115,18 @@ export function TapeheadsReviewSummary({ submissions, generatedSummary, onGenera
             <Label htmlFor="lead-comments">Shift-wide Comments (Optional)</Label>
             <Textarea id="lead-comments" placeholder="Add any shift-wide observations, notes, or comments..."/>
         </div>
+        
+        <Accordion type="single" collapsible className="w-full">
+          <AccordionItem value="oe-tracker">
+            <AccordionTrigger>
+               <h4 className="text-md font-semibold text-primary">📘 OE Entries and Section-Level Panel Counts</h4>
+            </AccordionTrigger>
+            <AccordionContent>
+              <TapeheadsOeTracker entries={oeEntries} onEntriesChange={onOeEntriesChange} />
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+
          <div className="space-y-2">
             <div className="flex justify-between items-center">
               <Label htmlFor="op-summary">Operational Summary (Shift Lead Full Authority)</Label>
