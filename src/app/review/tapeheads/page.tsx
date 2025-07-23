@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -14,7 +15,7 @@ import { summarizeShift } from "@/ai/flows/summarize-shift-flow"
 import type { OeEntry } from "@/components/review/tapeheads-oe-tracker"
 
 export default function TapeheadsReviewPage() {
-  const [date, setDate] = React.useState<Date | undefined>(new Date("2023-10-27"))
+  const [date, setDate] = React.useState<Date | undefined>(undefined)
   const [shift, setShift] = React.useState<string>("1")
   const [submissions, setSubmissions] = React.useState<Report[]>(tapeheadsSubmissions)
   const [summary, setSummary] = React.useState<string>("");
@@ -29,7 +30,14 @@ export default function TapeheadsReviewPage() {
   }
   
   React.useEffect(() => {
-    handleFilter();
+    // Set initial date on client-side to avoid hydration mismatch
+    setDate(new Date("2023-10-27"));
+  }, []);
+
+  React.useEffect(() => {
+    if (date) { // Only filter when date is set
+      handleFilter();
+    }
   }, [date, shift])
 
   const handleGenerateSummary = async () => {
