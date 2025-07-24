@@ -42,6 +42,14 @@ const issueOptions = [
     "Lamination Issues", "Mold Shape Issues", "Panel Alignment Issues", "Other"
 ];
 
+const moldNumberOptions = [
+    "Gantry 4/MOLD 105",
+    "Gantry 6/MOLD 109",
+    "Gantry 6/MOLD 110",
+    "Gantry 7/MOLD 111",
+    "Gantry 8/MOLD 100",
+];
+
 
 const gantryReportSchema = z.object({
   report_date: z.date({ required_error: 'A date for the report is required.' }),
@@ -310,7 +318,18 @@ function MoldField({ moldIndex, control, removeMold }: { moldIndex: number, cont
                 render={({ field }) => (
                     <FormItem className="flex-1 max-w-sm">
                         <FormLabel>Mold Number</FormLabel>
-                        <FormControl><Input placeholder="Enter mold number" {...field} /></FormControl>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select a Gantry/MOLD"/>
+                                </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                {moldNumberOptions.map(option => (
+                                    <SelectItem key={option} value={option}>{option}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                         <FormMessage />
                     </FormItem>
                 )}
@@ -371,3 +390,5 @@ function MoldField({ moldIndex, control, removeMold }: { moldIndex: number, cont
     </Card>
   )
 }
+
+    
