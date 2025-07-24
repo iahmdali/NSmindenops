@@ -176,7 +176,7 @@ export function FilmsReportForm() {
                                 <FormLabel>Gantry/MOLD</FormLabel>
                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                     <FormControl><SelectTrigger><SelectValue placeholder="Select Gantry/MOLD" /></SelectTrigger></FormControl>
-                                    <SelectContent><SelectItem value="" disabled>Select...</SelectItem>{gantryMoldOptions.map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}</SelectContent>
+                                    <SelectContent>{gantryMoldOptions.map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}</SelectContent>
                                 </Select>
                                 <FormMessage />
                             </FormItem>
