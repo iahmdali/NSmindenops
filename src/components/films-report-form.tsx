@@ -85,37 +85,6 @@ function Section({ title, description, children, actions }: { title: string, des
     );
 }
 
-function CrewList({ control }: { control: any }) {
-    const { fields, append, remove } = useFieldArray({ control, name: "crew_members" });
-    
-    return (
-        <div className="space-y-4">
-            {fields.map((field, index) => (
-                 <div key={field.id} className="flex items-end gap-4 p-4 border rounded-md relative bg-muted/30">
-                    <FormField control={control} name={`crew_members.${index}.name`} render={({ field }) => (
-                        <FormItem className="flex-1"><FormLabel>Name</FormLabel><FormControl><Input placeholder="Crew member name" {...field} /></FormControl><FormMessage /></FormItem>
-                    )}/>
-                    <FormField control={control} name={`crew_members.${index}.shift_time`} render={({ field }) => (
-                        <FormItem className="flex-1"><FormLabel>Shift Time</FormLabel><FormControl><Input placeholder="e.g., 06:00 - 14:00" {...field} /></FormControl><FormMessage /></FormItem>
-                    )}/>
-                    <FormField control={control} name={`crew_members.${index}.crew_type`} render={({ field }) => (
-                        <FormItem className="flex-1">
-                            <FormLabel>Crew Type</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl>
-                                <SelectContent><SelectItem value="Films Crew">Films Crew</SelectItem><SelectItem value="Joining Crew">Joining Crew</SelectItem></SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
-                    )}/>
-                    <Button type="button" variant="ghost" size="icon" className="text-destructive shrink-0" onClick={() => remove(index)}><Trash2 className="size-4" /></Button>
-                </div>
-            ))}
-             {fields.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No crew members added.</p>}
-        </div>
-    )
-}
-
 export function FilmsReportForm() {
   const { toast } = useToast();
   const form = useForm<FilmsReportFormValues>({
@@ -123,6 +92,7 @@ export function FilmsReportForm() {
     defaultValues,
   });
 
+  const { fields: crewFields, append: appendCrew, remove: removeCrew } = useFieldArray({ control: form.control, name: "crew_members" });
   const { fields: sailPrepFields, append: appendSailPrep, remove: removeSailPrep } = useFieldArray({
       control: form.control,
       name: "sail_preparations"
@@ -170,8 +140,31 @@ export function FilmsReportForm() {
             </CardContent>
         </Card>
         
-        <Section title="Crew Members" actions={<Button type="button" variant="outline" size="sm" onClick={() => appendSailPrep({ name: '', shift_time: '', crew_type: 'Films Crew' })}><PlusCircle className="mr-2 h-4 w-4" />Add Crew</Button>}>
-           <CrewList control={form.control} />
+        <Section title="Crew Members" actions={<Button type="button" variant="outline" size="sm" onClick={() => appendCrew({ name: '', shift_time: '', crew_type: 'Films Crew' })}><PlusCircle className="mr-2 h-4 w-4" />Add Crew</Button>}>
+            <div className="space-y-4">
+            {crewFields.map((field, index) => (
+                 <div key={field.id} className="flex items-end gap-4 p-4 border rounded-md relative bg-muted/30">
+                    <FormField control={form.control} name={`crew_members.${index}.name`} render={({ field }) => (
+                        <FormItem className="flex-1"><FormLabel>Name</FormLabel><FormControl><Input placeholder="Crew member name" {...field} /></FormControl><FormMessage /></FormItem>
+                    )}/>
+                    <FormField control={form.control} name={`crew_members.${index}.shift_time`} render={({ field }) => (
+                        <FormItem className="flex-1"><FormLabel>Shift Time</FormLabel><FormControl><Input placeholder="e.g., 06:00 - 14:00" {...field} /></FormControl><FormMessage /></FormItem>
+                    )}/>
+                    <FormField control={form.control} name={`crew_members.${index}.crew_type`} render={({ field }) => (
+                        <FormItem className="flex-1">
+                            <FormLabel>Crew Type</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl>
+                                <SelectContent><SelectItem value="Films Crew">Films Crew</SelectItem><SelectItem value="Joining Crew">Joining Crew</SelectItem></SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )}/>
+                    <Button type="button" variant="ghost" size="icon" className="text-destructive shrink-0" onClick={() => removeCrew(index)}><Trash2 className="size-4" /></Button>
+                </div>
+            ))}
+             {crewFields.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No crew members added.</p>}
+        </div>
         </Section>
         
         <Section title="Sail Preparation Tracking" actions={<Button type="button" variant="outline" size="sm" onClick={() => appendSailPrep({ gantry_mold: "", sail_number: "", status_in_progress: true, status_done: false, issue_notes: "" })}><PlusCircle className="mr-2 h-4 w-4" />Add Sail</Button>}>
