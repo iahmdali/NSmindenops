@@ -33,3 +33,5 @@ export function DepartmentReportForm({ department }: DepartmentReportFormProps) 
   
   return <GenericReportForm department={department} />;
 }
+
+    
