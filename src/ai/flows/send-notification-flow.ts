@@ -59,7 +59,7 @@ const sendShippingNotificationFlow = ai.defineFlow(
   },
   async (tagId) => {
     const result = await sendEmailTool({
-        to: 'shipping@northsails.com',
+        to: 'yasubuddinali@gmail.com',
         subject: `Ready for Pickup: Tag ID ${tagId}`,
         body: `The Graphics department has completed all work for Tag ID: ${tagId}. It is now ready for pickup and shipping.`
     });
