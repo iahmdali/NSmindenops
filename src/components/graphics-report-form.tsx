@@ -97,38 +97,46 @@ export function GraphicsReportForm() {
     
     useEffect(() => {
         const checkCompletedTags = async () => {
-            const finishedTasks = tasks.filter(t => t.isFinished && t.tagId && !notifiedTags.has(t.tagId));
-            
-            if (finishedTasks.length === 0) return;
-
-            for (const task of finishedTasks) {
-                if (notifiedTags.has(task.tagId)) {
-                    continue;
+            // Group tasks by tagId
+            const tasksByTagId = graphicsTasksData.reduce((acc, task) => {
+                if (!acc[task.tagId]) {
+                    acc[task.tagId] = [];
                 }
+                acc[task.tagId].push(task);
+                return acc;
+            }, {} as Record<string, Task[]>);
 
-                try {
-                    console.log(`Task for Tag ID ${task.tagId} marked as finished. Sending notification...`);
-                    const result = await sendShippingNotification(task.tagId);
-                    if (result.success) {
+            for (const tagId in tasksByTagId) {
+                if (notifiedTags.has(tagId) || !tagId) continue;
+
+                const allTasksForTag = tasksByTagId[tagId];
+                const allTasksCompleted = allTasksForTag.every(t => t.status === 'done');
+                
+                if (allTasksCompleted) {
+                    try {
+                        console.log(`All tasks for Tag ID ${tagId} are complete. Sending notification...`);
+                        const result = await sendShippingNotification(tagId);
+                        if (result.success) {
+                            toast({
+                                title: "Shipping Notification Sent!",
+                                description: `The shipping department has been notified that Tag ID ${tagId} is ready for pickup.`
+                            });
+                            setNotifiedTags(prev => new Set(prev).add(tagId));
+                        } else {
+                            toast({
+                                title: "Notification Failed",
+                                description: result.message,
+                                variant: "destructive"
+                            });
+                        }
+                    } catch (error) {
+                        console.error("Failed to send notification:", error);
                         toast({
-                            title: "Shipping Notification Sent!",
-                            description: `The shipping department has been notified that Tag ID ${task.tagId} is ready for pickup.`
-                        });
-                        setNotifiedTags(prev => new Set(prev).add(task.tagId));
-                    } else {
-                        toast({
-                            title: "Notification Failed",
-                            description: result.message,
+                            title: "Error",
+                            description: "An error occurred while sending the shipping notification.",
                             variant: "destructive"
                         });
                     }
-                } catch (error) {
-                    console.error("Failed to send notification:", error);
-                    toast({
-                        title: "Error",
-                        description: "An error occurred while sending the shipping notification.",
-                        variant: "destructive"
-                    });
                 }
             }
         };

@@ -44,11 +44,23 @@ export function GraphicsAnalytics() {
         const startedTasks = tasksToday; // All tasks with a date for today were started
         const completedTasks = tasksToday.filter(task => task.status === 'done');
         
-        const readyForShippingTags = Array.from(new Set(
-            graphicsTasksData
-                .filter(t => t.isFinished)
-                .map(t => t.tagId)
-        ));
+        // Logic to determine which tags are ready for shipping
+        const tasksByTagId = graphicsTasksData.reduce((acc, task) => {
+            if (!task.tagId) return acc;
+            if (!acc[task.tagId]) {
+                acc[task.tagId] = [];
+            }
+            acc[task.tagId].push(task);
+            return acc;
+        }, {} as Record<string, GraphicsTask[]>);
+
+        const readyForShippingTags: string[] = [];
+        for (const tagId in tasksByTagId) {
+            const allTasksForTag = tasksByTagId[tagId];
+            if (allTasksForTag.every(t => t.status === 'done')) {
+                readyForShippingTags.push(tagId);
+            }
+        }
 
         return {
             startedTasks,
