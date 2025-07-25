@@ -54,8 +54,9 @@ export function GraphicsTaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
         onUpdate({ ...task, workTypes: newTypes });
     };
     
-    // Core fields are editable only in "todo" status. For inking, they are never editable.
-    const isCoreFieldDisabled = !isToDo || isToDoInking;
+    // Core fields are editable only in "todo" status unless it's an inking task.
+    const isCoreFieldDisabled = !isToDo || (isToDoInking);
+
 
     return (
         <Dialog>
@@ -130,7 +131,11 @@ export function GraphicsTaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
                         <div className="space-y-4">
                             <div className="space-y-2">
                                 <Label>Description / Notes</Label>
-                                <Input value={task.content} onChange={e => handleFieldChange('content', e.target.value)} />
+                                <Input 
+                                    value={task.content} 
+                                    onChange={e => handleFieldChange('content', e.target.value)} 
+                                    disabled={task.status !== 'inProgress'}
+                                />
                             </div>
                             <div className="space-y-2">
                                 <Label>Work Type(s)</Label>
@@ -140,6 +145,7 @@ export function GraphicsTaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
                                             <Checkbox
                                                 checked={task.workTypes?.includes(item)}
                                                 onCheckedChange={checked => handleWorkTypeChange(item, !!checked)}
+                                                disabled={task.status !== 'inProgress'}
                                             />
                                             <Label className="font-normal">{item}</Label>
                                         </div>
