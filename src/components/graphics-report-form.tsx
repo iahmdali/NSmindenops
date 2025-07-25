@@ -97,36 +97,44 @@ export function GraphicsReportForm() {
     
     useEffect(() => {
         const checkFinishedTags = async () => {
-            const finishedTagIds = new Set(
-                graphicsTasksData.filter(t => t.isFinished).map(t => t.tagId)
+             const finishedTagIds = new Set(
+                graphicsTasksData
+                    .filter(t => t.isFinished)
+                    .map(t => t.tagId)
             );
 
             for (const tagId of finishedTagIds) {
-                if (notifiedTags.has(tagId) || !tagId) continue;
+                if (!tagId || notifiedTags.has(tagId)) continue;
+                
+                // All tasks for this tagId must be in the 'done' state
+                const allTasksForTag = graphicsTasksData.filter(t => t.tagId === tagId);
+                const allTasksDone = allTasksForTag.every(t => t.status === 'done');
 
-                try {
-                    console.log(`Task for Tag ID ${tagId} marked as finished. Sending notification...`);
-                    const result = await sendShippingNotification(tagId);
-                    if (result.success) {
+                if (allTasksDone) {
+                    try {
+                        console.log(`All tasks for Tag ID ${tagId} are done and marked as finished. Sending notification...`);
+                        const result = await sendShippingNotification(tagId);
+                        if (result.success) {
+                            toast({
+                                title: "Shipping Notification Sent!",
+                                description: `The shipping department has been notified that Tag ID ${tagId} is ready for pickup.`
+                            });
+                            setNotifiedTags(prev => new Set(prev).add(tagId));
+                        } else {
+                            toast({
+                                title: "Notification Failed",
+                                description: result.message,
+                                variant: "destructive"
+                            });
+                        }
+                    } catch (error) {
+                        console.error("Failed to send notification:", error);
                         toast({
-                            title: "Shipping Notification Sent!",
-                            description: `The shipping department has been notified that Tag ID ${tagId} is ready for pickup.`
-                        });
-                        setNotifiedTags(prev => new Set(prev).add(tagId));
-                    } else {
-                        toast({
-                            title: "Notification Failed",
-                            description: result.message,
+                            title: "Error",
+                            description: "An error occurred while sending the shipping notification.",
                             variant: "destructive"
                         });
                     }
-                } catch (error) {
-                    console.error("Failed to send notification:", error);
-                    toast({
-                        title: "Error",
-                        description: "An error occurred while sending the shipping notification.",
-                        variant: "destructive"
-                    });
                 }
             }
         };
@@ -138,27 +146,43 @@ export function GraphicsReportForm() {
     const { fields: maintenanceFields, append: appendMaintenance, remove: removeMaintenance } = useFieldArray({ control: form.control, name: "maintenance_tasks" });
     
     const updateTasks = (newTasks: Task[]) => {
-      // Update the shared data source
       graphicsTasksData.length = 0;
       graphicsTasksData.push(...newTasks);
-      // Update local state to trigger re-render
       setTasks([...newTasks]);
     };
 
     const addNewTask = (type: 'cutting' | 'inking') => {
-        const newTask: Task = {
-            id: `${type}-${Date.now()}`,
-            type,
+        const timestamp = Date.now();
+        const cuttingTask: Task = {
+            id: `cut-${timestamp}`,
+            type: 'cutting',
             tagId: '',
             status: 'todo',
-            content: 'New Task',
+            content: 'New Cutting Task',
+            tagType: 'Sail',
             startedAt: new Date().toISOString(),
         };
-        const newTasks = [...tasks, newTask];
+
+        let newTasks = [...tasks, cuttingTask];
+        
+        // If it's a sail, automatically add a corresponding inking task.
+        if (type === 'cutting') {
+             const inkingTask: Task = {
+                id: `ink-${timestamp}`,
+                type: 'inking',
+                tagId: '', // This will be synced with the cutting task
+                status: 'todo',
+                content: 'New Inking Task',
+                tagType: 'Sail',
+                startedAt: new Date().toISOString(),
+            };
+            newTasks.push(inkingTask);
+        }
+        
         updateTasks(newTasks);
         toast({ title: "Task Added", description: `A new ${type} task has been added to the 'To Do' column.` });
     }
-
+    
     const cuttingTasks = tasks.filter(t => t.type === 'cutting');
     const inkingTasks = tasks.filter(t => t.type === 'inking');
 

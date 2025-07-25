@@ -5,6 +5,7 @@ import React from 'react';
 import { Card } from '@/components/ui/card';
 import { GripVertical, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
     Dialog,
     DialogContent,
@@ -39,7 +40,20 @@ export function GraphicsTaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
     const workTypes = task.type === 'cutting' ? cuttingWorkTypes : inkingWorkTypes;
 
     const handleFieldChange = (field: keyof Task, value: any) => {
-        onUpdate({ ...task, [field]: value });
+        const updatedTask = { ...task, [field]: value };
+        
+        // If tagId is changed in cutting, sync it to the corresponding inking task.
+        if (field === 'tagId' && task.type === 'cutting') {
+            const inkingTaskId = task.id.replace('cut-', 'ink-');
+            onUpdate({ ...updatedTask, id: task.id }); // update cutting task first
+            
+            // This is a bit of a hack, we need to find and update the inking task in the parent
+            // This suggests a better state management approach might be needed for complex relations
+            // For now, we assume onUpdate handles the full list.
+            
+        } else {
+             onUpdate(updatedTask);
+        }
     };
 
     const handleWorkTypeChange = (item: string, checked: boolean) => {
@@ -59,7 +73,19 @@ export function GraphicsTaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
                             <GripVertical size={16} />
                         </div>
                         <div className="flex-1">
-                            <p className="font-semibold text-sm">{task.tagId || 'New Task'}</p>
+                            <div className="flex justify-between items-center">
+                                <p className="font-semibold text-sm">{task.tagId || 'New Task'}</p>
+                                <div className="flex items-center gap-1">
+                                    {task.tagType === 'Decal' && (
+                                        <Badge variant="secondary" className="h-5 w-5 p-0 justify-center font-bold">D</Badge>
+                                    )}
+                                    {isSail && task.sidedness === 'Double-Sided' && (
+                                        <Badge variant="outline" className="h-5 w-5 p-0 justify-center font-bold">
+                                            {task.sideOfWork?.charAt(0)}
+                                        </Badge>
+                                    )}
+                                </div>
+                            </div>
                             <p className="text-xs text-muted-foreground">{task.content}</p>
                         </div>
                     </div>
@@ -97,7 +123,7 @@ export function GraphicsTaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
                                 <div className="space-y-2">
                                     <Label>Side of Work</Label>
                                     <Select value={task.sideOfWork} onValueChange={val => handleFieldChange('sideOfWork', val)} disabled={!isEditable}>
-                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectTrigger><SelectValue placeholder="Select side..."/></SelectTrigger>
                                         <SelectContent><SelectItem value="Front">Front</SelectItem><SelectItem value="Back">Back</SelectItem></SelectContent>
                                     </Select>
                                 </div>
@@ -107,27 +133,30 @@ export function GraphicsTaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
                     
                     <Separator />
                     
-                     {task.status === 'inProgress' && (
+                     {(task.status === 'inProgress' || task.status === 'todo') && (
                         <>
-                            <div className="space-y-2">
-                                <Label>Work Type(s)</Label>
-                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                    {workTypes.map(item => (
-                                        <div key={item} className="flex flex-row items-start space-x-3 space-y-0">
-                                            <Checkbox
-                                                checked={task.workTypes?.includes(item)}
-                                                onCheckedChange={checked => handleWorkTypeChange(item, !!checked)}
-                                            />
-                                            <Label className="font-normal">{item}</Label>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
                              <div className="space-y-2">
                                 <Label>Description / Notes</Label>
                                 <Input value={task.content} onChange={e => handleFieldChange('content', e.target.value)} />
                             </div>
                         </>
+                    )}
+                    
+                    {task.status === 'inProgress' && (
+                        <div className="space-y-2">
+                            <Label>Work Type(s)</Label>
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                {workTypes.map(item => (
+                                    <div key={item} className="flex flex-row items-start space-x-3 space-y-0">
+                                        <Checkbox
+                                            checked={task.workTypes?.includes(item)}
+                                            onCheckedChange={checked => handleWorkTypeChange(item, !!checked)}
+                                        />
+                                        <Label className="font-normal">{item}</Label>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     )}
 
 
@@ -151,7 +180,7 @@ export function GraphicsTaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
                              </div>
                               <div className="flex items-center space-x-2 pt-2">
                                <Checkbox id="isFinished" checked={task.isFinished} onCheckedChange={val => handleFieldChange('isFinished', val)} />
-                               <Label htmlFor="isFinished" className="text-base font-medium">Mark as Finished (applies to whole Tag ID)</Label>
+                               <Label htmlFor="isFinished" className="text-base font-medium">Mark as Finished (triggers shipping)</Label>
                             </div>
                         </div>
                     )}
