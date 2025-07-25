@@ -24,7 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"
 import { GraphicsKanbanBoard, type Task } from "./graphics/graphics-kanban-board"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "./ui/dialog"
 import { sendShippingNotification } from "@/ai/flows/send-notification-flow"
-import { initialTasks } from "@/lib/graphics-data"
+import { graphicsTasksData } from "@/lib/graphics-data"
 import { PageHeader } from "@/components/page-header"
 
 
@@ -76,10 +76,9 @@ function Section({ title, description, children, actions }: { title: string, des
 
 export function GraphicsReportForm() {
     const { toast } = useToast();
-    const [cuttingTasks, setCuttingTasks] = useState<Task[]>(initialTasks.filter(t => t.type === 'cutting'));
-    const [inkingTasks, setInkingTasks] = useState<Task[]>(initialTasks.filter(t => t.type === 'inking'));
+    const [tasks, setTasks] = useState<Task[]>(graphicsTasksData);
     const [notifiedTags, setNotifiedTags] = useState<Set<string>>(new Set());
-    
+
     const form = useForm<GraphicsReportFormValues>({
         resolver: zodResolver(graphicsReportSchema),
         defaultValues: {
@@ -95,19 +94,18 @@ export function GraphicsReportForm() {
         },
         mode: "onBlur"
     });
-
+    
     useEffect(() => {
         const checkCompletedTags = async () => {
-            const allTasks = [...cuttingTasks, ...inkingTasks];
-            const finishedTasks = allTasks.filter(t => t.isFinished && t.tagId && !notifiedTags.has(t.tagId));
-
+            const finishedTasks = tasks.filter(t => t.isFinished && t.tagId && !notifiedTags.has(t.tagId));
+            
             if (finishedTasks.length === 0) return;
 
             for (const task of finishedTasks) {
-                 if (notifiedTags.has(task.tagId)) {
-                    continue; 
+                if (notifiedTags.has(task.tagId)) {
+                    continue;
                 }
-                
+
                 try {
                     console.log(`Task for Tag ID ${task.tagId} marked as finished. Sending notification...`);
                     const result = await sendShippingNotification(task.tagId);
@@ -136,26 +134,35 @@ export function GraphicsReportForm() {
         };
 
         checkCompletedTags();
-    }, [cuttingTasks, inkingTasks, notifiedTags, toast]);
+    }, [tasks, notifiedTags, toast]);
 
     const { fields: personnelFields, append: appendPersonnel, remove: removePersonnel } = useFieldArray({ control: form.control, name: "personnel" });
     const { fields: maintenanceFields, append: appendMaintenance, remove: removeMaintenance } = useFieldArray({ control: form.control, name: "maintenance_tasks" });
     
+    const updateTasks = (newTasks: Task[]) => {
+      // Update the shared data source
+      graphicsTasksData.length = 0;
+      graphicsTasksData.push(...newTasks);
+      // Update local state to trigger re-render
+      setTasks([...newTasks]);
+    };
+
     const addNewTask = (type: 'cutting' | 'inking') => {
         const newTask: Task = {
             id: `${type}-${Date.now()}`,
             type,
             tagId: '',
             status: 'todo',
-            content: 'New Task'
+            content: 'New Task',
+            startedAt: new Date().toISOString(),
         };
-        if (type === 'cutting') {
-            setCuttingTasks(prev => [...prev, newTask]);
-        } else {
-            setInkingTasks(prev => [...prev, newTask]);
-        }
+        const newTasks = [...tasks, newTask];
+        updateTasks(newTasks);
         toast({ title: "Task Added", description: `A new ${type} task has been added to the 'To Do' column.` });
     }
+
+    const cuttingTasks = tasks.filter(t => t.type === 'cutting');
+    const inkingTasks = tasks.filter(t => t.type === 'inking');
 
     return (
         <Form {...form}>
@@ -221,10 +228,10 @@ export function GraphicsReportForm() {
                         <TabsTrigger value="inking">Inking Tasks</TabsTrigger>
                     </TabsList>
                     <TabsContent value="cutting">
-                        <GraphicsKanbanBoard tasks={cuttingTasks} setTasks={setCuttingTasks} type="cutting" onAddTask={() => addNewTask('cutting')} />
+                        <GraphicsKanbanBoard tasks={cuttingTasks} setTasks={updateTasks} type="cutting" onAddTask={() => addNewTask('cutting')} />
                     </TabsContent>
                     <TabsContent value="inking">
-                        <GraphicsKanbanBoard tasks={inkingTasks} setTasks={setInkingTasks} type="inking" onAddTask={() => addNewTask('inking')} />
+                        <GraphicsKanbanBoard tasks={inkingTasks} setTasks={updateTasks} type="inking" onAddTask={() => addNewTask('inking')} />
                     </TabsContent>
                 </Tabs>
             </div>

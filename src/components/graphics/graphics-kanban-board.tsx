@@ -6,6 +6,7 @@ import { DragDropContext, Droppable, Draggable, OnDragEndResponder } from '@hell
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import { GraphicsTaskCard } from './graphics-task-card';
+import { graphicsTasksData } from '@/lib/graphics-data';
 
 export interface Task {
     id: string;
@@ -21,11 +22,13 @@ export interface Task {
     personnelCount?: number;
     tapeUsed?: boolean;
     isFinished?: boolean;
+    startedAt?: string;
+    completedAt?: string;
 }
 
 interface KanbanBoardProps {
     tasks: Task[];
-    setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
+    setTasks: (tasks: Task[]) => void;
     type: 'cutting' | 'inking';
     onAddTask: () => void;
 }
@@ -49,22 +52,30 @@ export function GraphicsKanbanBoard({ tasks, setTasks, type, onAddTask }: Kanban
             return;
         }
         
-        const task = tasks.find(t => t.id === draggableId);
+        const allTasks = [...graphicsTasksData];
+        const task = allTasks.find(t => t.id === draggableId);
+
         if (task) {
             const newStatus = destination.droppableId as 'todo' | 'inProgress' | 'done';
             const updatedTask = { ...task, status: newStatus };
             
-            const newTasks = tasks.map(t => t.id === draggableId ? updatedTask : t);
+            if (newStatus === 'done' && !task.completedAt) {
+                updatedTask.completedAt = new Date().toISOString();
+            }
+
+            const newTasks = allTasks.map(t => t.id === draggableId ? updatedTask : t);
             setTasks(newTasks);
         }
     };
     
     const updateTask = (updatedTask: Task) => {
-        setTasks(prev => prev.map(task => task.id === updatedTask.id ? updatedTask : task));
+        const newTasks = graphicsTasksData.map(task => task.id === updatedTask.id ? updatedTask : task);
+        setTasks(newTasks);
     }
     
     const deleteTask = (taskId: string) => {
-        setTasks(prev => prev.filter(task => task.id !== taskId));
+        const newTasks = graphicsTasksData.filter(task => task.id !== taskId);
+        setTasks(newTasks);
     }
 
     return (
@@ -110,4 +121,3 @@ export function GraphicsKanbanBoard({ tasks, setTasks, type, onAddTask }: Kanban
         </div>
     );
 }
-

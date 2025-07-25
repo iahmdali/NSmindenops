@@ -21,7 +21,9 @@ const today = new Date();
 const yesterday = new Date(today);
 yesterday.setDate(today.getDate() - 1);
 
-export const graphicsTasksData: GraphicsTask[] = [
+// This is now our single source of truth for task data.
+// It will be mutated by the components to simulate a real-time database.
+export let graphicsTasksData: GraphicsTask[] = [
     // Today's work
     { 
         id: 'cut-1', type: 'cutting', tagId: 'SAIL-123', status: 'inProgress', content: 'Main sail body cutting', 
@@ -36,11 +38,13 @@ export const graphicsTasksData: GraphicsTask[] = [
     },
     { 
         id: 'cut-2', type: 'cutting', tagId: 'SAIL-789', status: 'todo', content: 'Jib sail initial cut',
-        tagType: 'Sail', sidedness: 'Single-Sided'
+        tagType: 'Sail', sidedness: 'Single-Sided',
+        startedAt: today.toISOString()
     },
      { 
         id: 'ink-2', type: 'inking', tagId: 'SAIL-123', status: 'todo', content: 'Inking front side insignia',
-        tagType: 'Sail', sidedness: 'Double-Sided', sideOfWork: 'Front'
+        tagType: 'Sail', sidedness: 'Double-Sided', sideOfWork: 'Front',
+        startedAt: today.toISOString()
     },
 
 
@@ -54,7 +58,7 @@ export const graphicsTasksData: GraphicsTask[] = [
     { 
         id: 'ink-y1', type: 'inking', tagId: 'SAIL-Y1', status: 'done', content: 'All graphics applied',
         tagType: 'Sail', sidedness: 'Single-Sided',
-        durationMins: 90, personnelCount: 1, tapeUsed: true, isFinished: true,
+        durationMins: 90, personnelCount: 1, tapeUsed: true, isFinished: false, // This tag wasn't marked as finished from inking
         startedAt: yesterday.toISOString(), completedAt: yesterday.toISOString()
     },
      { 
@@ -63,18 +67,5 @@ export const graphicsTasksData: GraphicsTask[] = [
         durationMins: 180, personnelCount: 1, isFinished: true,
         startedAt: yesterday.toISOString(), completedAt: yesterday.toISOString()
      },
-     { 
-        id: 'ink-y2', type: 'inking', tagId: 'DECAL-Y2', status: 'done', content: 'N/A for decals',
-        tagType: 'Decal',
-        durationMins: 0, personnelCount: 0, isFinished: true,
-        startedAt: yesterday.toISOString(), completedAt: yesterday.toISOString()
-     }
-];
-
-// Combine with initial tasks for Kanban board display
-import { type Task } from '@/components/graphics/graphics-kanban-board';
-export const initialTasks: Task[] = [
-    { id: 'cut-1', type: 'cutting', tagId: 'SAIL-123', status: 'todo', content: 'Initial cutting task' },
-    { id: 'ink-1', type: 'inking', tagId: 'DECAL-456', status: 'inProgress', content: 'Inking main logo' },
-    { id: 'cut-2', type: 'cutting', tagId: 'SAIL-789', status: 'done', content: 'Final weeding', durationMins: 45, personnelCount: 1 },
+     // No inking task for DECAL-Y2, so it was ready for shipping after cutting.
 ];

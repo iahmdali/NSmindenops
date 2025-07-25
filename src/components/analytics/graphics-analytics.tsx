@@ -1,7 +1,7 @@
 
 "use client"
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -12,6 +12,20 @@ import { graphicsTasksData, type GraphicsTask } from '@/lib/graphics-data';
 
 export function GraphicsAnalytics() {
     const [date, setDate] = useState<Date | undefined>(new Date());
+    // Add a state to force re-render when underlying data changes
+    const [tasks, setTasks] = useState<GraphicsTask[]>(graphicsTasksData);
+
+    useEffect(() => {
+        // This is a bit of a hack for this demo to force re-renders
+        // as components outside this one modify the shared graphicsTasksData array.
+        const interval = setInterval(() => {
+            if (tasks.length !== graphicsTasksData.length) {
+                setTasks([...graphicsTasksData]);
+            }
+        }, 500);
+        return () => clearInterval(interval);
+    }, [tasks.length]);
+
 
     const dailyData = useMemo(() => {
         if (!date) {
@@ -22,33 +36,26 @@ export function GraphicsAnalytics() {
             };
         }
 
-        const tasksToday = graphicsTasksData.filter(task => isSameDay(new Date(task.completedAt || task.startedAt || new Date()), date));
+        const tasksToday = graphicsTasksData.filter(task => {
+            const taskDate = task.completedAt || task.startedAt;
+            return taskDate && isSameDay(new Date(taskDate), date);
+        });
 
-        const startedTasks = tasksToday.filter(task => task.status === 'inProgress' || task.status === 'done');
+        const startedTasks = tasksToday; // All tasks with a date for today were started
         const completedTasks = tasksToday.filter(task => task.status === 'done');
-
-        // Find tags where both cutting and inking are finished
-        const finishedTags = new Set<string>();
-        const allFinishedTasks = graphicsTasksData.filter(t => t.isFinished);
         
-        for (const task of allFinishedTasks) {
-            const hasCutting = allFinishedTasks.some(t => t.tagId === task.tagId && t.type === 'cutting');
-            const hasInking = allFinishedTasks.some(t => t.tagId === task.tagId && t.type === 'inking');
-            if (hasCutting && hasInking) {
-                finishedTags.add(task.tagId);
-            }
-        }
-        
-        // This is a simplification; in a real scenario you'd check completion dates.
-        const readyForShippingTags = Array.from(finishedTags);
-
+        const readyForShippingTags = Array.from(new Set(
+            graphicsTasksData
+                .filter(t => t.isFinished)
+                .map(t => t.tagId)
+        ));
 
         return {
             startedTasks,
             completedTasks,
             readyForShippingTags,
         };
-    }, [date]);
+    }, [date, tasks]);
     
     const summaryStats = useMemo(() => {
         const totalCompleted = dailyData.completedTasks.length;
@@ -162,7 +169,7 @@ export function GraphicsAnalytics() {
                     </CardContent>
                 </Card>
                 <Card>
-                    <CardHeader><CardTitle>Tasks Started</CardTitle></CardHeader>
+                    <CardHeader><CardTitle>Tasks Started Today</CardTitle></CardHeader>
                     <CardContent>
                         <ul className="space-y-2">
                            {dailyData.startedTasks.length > 0 ? dailyData.startedTasks.map(task => (
