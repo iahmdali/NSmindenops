@@ -21,6 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import type { Task } from './graphics-kanban-board';
+import { FormControl, FormItem } from '../ui/form';
 
 interface TaskCardProps {
     task: Task;
