@@ -31,6 +31,8 @@ interface KanbanBoardProps {
     setTasks: (tasks: Task[]) => void;
     type: 'cutting' | 'inking';
     onAddTask: () => void;
+    onUpdateTask: (task: Task) => void;
+    onDeleteTask: (taskId: string) => void;
 }
 
 const columns = {
@@ -39,7 +41,7 @@ const columns = {
     done: { id: 'done', title: 'Completed' },
 };
 
-export function GraphicsKanbanBoard({ tasks, setTasks, type, onAddTask }: KanbanBoardProps) {
+export function GraphicsKanbanBoard({ tasks, setTasks, type, onAddTask, onUpdateTask, onDeleteTask }: KanbanBoardProps) {
 
     const onDragEnd: OnDragEndResponder = (result) => {
         const { destination, source, draggableId } = result;
@@ -68,25 +70,6 @@ export function GraphicsKanbanBoard({ tasks, setTasks, type, onAddTask }: Kanban
         }
     };
     
-    const updateTask = (updatedTask: Task) => {
-        let newTasks = graphicsTasksData.map(task => task.id === updatedTask.id ? updatedTask : task);
-        
-        // If it's a cutting task, sync tagId with corresponding inking task
-        if (updatedTask.type === 'cutting') {
-            const correspondingInkingTask = newTasks.find(t => t.id === updatedTask.id.replace('cut-', 'ink-'));
-            if (correspondingInkingTask && correspondingInkingTask.tagId !== updatedTask.tagId) {
-                newTasks = newTasks.map(t => t.id === correspondingInkingTask.id ? { ...t, tagId: updatedTask.tagId } : t);
-            }
-        }
-
-        setTasks(newTasks);
-    }
-    
-    const deleteTask = (taskId: string) => {
-        const newTasks = graphicsTasksData.filter(task => task.id !== taskId);
-        setTasks(newTasks);
-    }
-
     return (
         <div className="p-4 rounded-lg bg-muted/30">
             <div className="mb-4 flex justify-end">
@@ -114,7 +97,7 @@ export function GraphicsKanbanBoard({ tasks, setTasks, type, onAddTask }: Kanban
                                                         {...provided.draggableProps}
                                                         {...provided.dragHandleProps}
                                                     >
-                                                        <GraphicsTaskCard task={task} onUpdate={updateTask} onDelete={deleteTask} />
+                                                        <GraphicsTaskCard task={task} onUpdate={onUpdateTask} onDelete={onDeleteTask} />
                                                     </div>
                                                 )}
                                             </Draggable>

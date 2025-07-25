@@ -147,8 +147,10 @@ export function GraphicsReportForm() {
 
     const addNewTask = (type: 'cutting' | 'inking') => {
         const timestamp = Date.now();
-        const newTasks = [...tasks];
+        const newTasks = [...graphicsTasksData];
 
+        // For cutting, we create a linked inking task.
+        // For inking, we only create an inking task (e.g. for decals that dont need cutting).
         if (type === 'cutting') {
             const cuttingTask: Task = {
                 id: `cut-${timestamp}`,
@@ -186,6 +188,36 @@ export function GraphicsReportForm() {
         toast({ title: "Task Added", description: `A new task has been added to the 'To Do' column.` });
     }
     
+    const updateTask = (updatedTask: Task) => {
+        let newTasks = graphicsTasksData.map(task => task.id === updatedTask.id ? updatedTask : task);
+        
+        // If it's a cutting task, sync its details with the corresponding inking task
+        if (updatedTask.type === 'cutting') {
+            const correspondingInkingId = updatedTask.id.replace('cut-', 'ink-');
+            const correspondingInkingTask = newTasks.find(t => t.id === correspondingInkingId);
+            
+            if (correspondingInkingTask) {
+                 newTasks = newTasks.map(t => 
+                    t.id === correspondingInkingId 
+                        ? { ...t, 
+                            tagId: updatedTask.tagId,
+                            tagType: updatedTask.tagType,
+                            sidedness: updatedTask.sidedness,
+                            sideOfWork: updatedTask.sideOfWork,
+                          } 
+                        : t
+                );
+            }
+        }
+
+        updateTasks(newTasks);
+    }
+    
+    const deleteTask = (taskId: string) => {
+        const newTasks = graphicsTasksData.filter(task => task.id !== taskId);
+        updateTasks(newTasks);
+    }
+
     const cuttingTasks = tasks.filter(t => t.type === 'cutting');
     const inkingTasks = tasks.filter(t => t.type === 'inking');
 
@@ -253,10 +285,10 @@ export function GraphicsReportForm() {
                         <TabsTrigger value="inking">Inking Tasks</TabsTrigger>
                     </TabsList>
                     <TabsContent value="cutting">
-                        <GraphicsKanbanBoard tasks={cuttingTasks} setTasks={updateTasks} type="cutting" onAddTask={() => addNewTask('cutting')} />
+                        <GraphicsKanbanBoard tasks={cuttingTasks} setTasks={updateTasks} type="cutting" onUpdateTask={updateTask} onDeleteTask={deleteTask} onAddTask={() => addNewTask('cutting')} />
                     </TabsContent>
                     <TabsContent value="inking">
-                        <GraphicsKanbanBoard tasks={inkingTasks} setTasks={updateTasks} type="inking" onAddTask={() => addNewTask('inking')} />
+                        <GraphicsKanbanBoard tasks={inkingTasks} setTasks={updateTasks} type="inking" onUpdateTask={updateTask} onDeleteTask={deleteTask} onAddTask={() => addNewTask('inking')} />
                     </TabsContent>
                 </Tabs>
             </div>
