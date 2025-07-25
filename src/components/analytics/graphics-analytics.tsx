@@ -12,19 +12,16 @@ import { graphicsTasksData, type GraphicsTask } from '@/lib/graphics-data';
 
 export function GraphicsAnalytics() {
     const [date, setDate] = useState<Date | undefined>(new Date());
-    // Add a state to force re-render when underlying data changes
     const [tasks, setTasks] = useState<GraphicsTask[]>(graphicsTasksData);
 
     useEffect(() => {
-        // This is a bit of a hack for this demo to force re-renders
-        // as components outside this one modify the shared graphicsTasksData array.
         const interval = setInterval(() => {
-            if (tasks.length !== graphicsTasksData.length) {
+            if (tasks.length !== graphicsTasksData.length || tasks !== graphicsTasksData) {
                 setTasks([...graphicsTasksData]);
             }
         }, 500);
         return () => clearInterval(interval);
-    }, [tasks.length]);
+    }, [tasks]);
 
 
     const dailyData = useMemo(() => {
@@ -44,27 +41,16 @@ export function GraphicsAnalytics() {
         const startedTasks = tasksToday; 
         const completedTasks = tasksToday.filter(task => task.status === 'done');
         
-        // Logic to determine which tags are ready for shipping
-        const tagsMap = new Map<string, { all: number; done: number }>();
+        const readyForShippingTags: string[] = [];
+        const finishedTagIds = new Set<string>();
+
         graphicsTasksData.forEach(task => {
-            if (!task.tagId) return;
-            if (!tagsMap.has(task.tagId)) {
-                tagsMap.set(task.tagId, { all: 0, done: 0 });
-            }
-            const entry = tagsMap.get(task.tagId)!;
-            entry.all += 1;
-            if (task.status === 'done') {
-                entry.done += 1;
+            if (task.isFinished && task.tagId) {
+                finishedTagIds.add(task.tagId);
             }
         });
-
-        const readyForShippingTags: string[] = [];
-        for (const [tagId, counts] of tagsMap.entries()) {
-            if (counts.all > 0 && counts.all === counts.done) {
-                readyForShippingTags.push(tagId);
-            }
-        }
-
+        
+        readyForShippingTags.push(...Array.from(finishedTagIds));
 
         return {
             startedTasks,

@@ -35,9 +35,8 @@ const inkingWorkTypes = ["Layout", "Masking", "Fold", "Mixing Ink", "Touch-up"];
 
 export function GraphicsTaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
     const isSail = task.tagType === 'Sail';
-    const isToDo = task.status === 'todo';
     const isCutting = task.type === 'cutting';
-    const isToDoInking = !isCutting && isToDo;
+    const isToDoInking = !isCutting && task.status === 'todo';
 
     const workTypes = isCutting ? cuttingWorkTypes : inkingWorkTypes;
 
@@ -54,8 +53,8 @@ export function GraphicsTaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
         onUpdate({ ...task, workTypes: newTypes });
     };
     
-    // Core fields are editable only in "todo" status unless it's an inking task.
-    const isCoreFieldDisabled = !isToDo || (isToDoInking);
+    const isCoreFieldDisabled = task.status !== 'todo' || isToDoInking;
+    const isDetailFieldDisabled = task.status !== 'inProgress';
 
 
     return (
@@ -118,7 +117,7 @@ export function GraphicsTaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
                                     <Label>Side of Work</Label>
                                     <Select value={task.sideOfWork} onValueChange={val => handleFieldChange('sideOfWork', val)} disabled={isCoreFieldDisabled}>
                                         <SelectTrigger><SelectValue placeholder="Select side..."/></SelectTrigger>
-                                        <SelectContent><SelectItem value="Front">Front</SelectItem><SelectItem value="Back">Back</SelectItem></SelectContent>
+                                        <SelectContent><SelectItem value="Port">Port</SelectItem><SelectItem value="Starboard">Starboard</SelectItem></SelectContent>
                                     </Select>
                                 </div>
                             )}
@@ -127,33 +126,31 @@ export function GraphicsTaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
                     
                     <Separator />
                     
-                    {!isToDo && (
-                        <div className="space-y-4">
-                            <div className="space-y-2">
-                                <Label>Description / Notes</Label>
-                                <Input 
-                                    value={task.content} 
-                                    onChange={e => handleFieldChange('content', e.target.value)} 
-                                    disabled={task.status !== 'inProgress'}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Work Type(s)</Label>
-                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                    {workTypes.map(item => (
-                                        <div key={item} className="flex flex-row items-start space-x-3 space-y-0">
-                                            <Checkbox
-                                                checked={task.workTypes?.includes(item)}
-                                                onCheckedChange={checked => handleWorkTypeChange(item, !!checked)}
-                                                disabled={task.status !== 'inProgress'}
-                                            />
-                                            <Label className="font-normal">{item}</Label>
-                                        </div>
-                                    ))}
-                                </div>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label>Description / Notes</Label>
+                            <Input 
+                                value={task.content} 
+                                onChange={e => handleFieldChange('content', e.target.value)} 
+                                disabled={isDetailFieldDisabled}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Work Type(s)</Label>
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                {workTypes.map(item => (
+                                    <div key={item} className="flex flex-row items-start space-x-3 space-y-0">
+                                        <Checkbox
+                                            checked={task.workTypes?.includes(item)}
+                                            onCheckedChange={checked => handleWorkTypeChange(item, !!checked)}
+                                            disabled={isDetailFieldDisabled}
+                                        />
+                                        <Label className="font-normal">{item}</Label>
+                                    </div>
+                                ))}
                             </div>
                         </div>
-                    )}
+                    </div>
 
                     {task.status === 'done' && (
                         <div className="p-4 bg-muted/50 rounded-lg space-y-4">
