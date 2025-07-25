@@ -107,22 +107,29 @@ export function GraphicsTaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
                     
                     <Separator />
                     
-                    <div className="space-y-2">
-                        <Label>Work Type(s)</Label>
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                            {workTypes.map(item => (
-                                <div key={item} className="flex flex-row items-start space-x-3 space-y-0">
-                                    <Checkbox
-                                        checked={task.workTypes?.includes(item)}
-                                        onCheckedChange={checked => handleWorkTypeChange(item, !!checked)}
-                                    />
-                                    <Label className="font-normal">{item}</Label>
+                     {task.status === 'inProgress' && (
+                        <>
+                            <div className="space-y-2">
+                                <Label>Work Type(s)</Label>
+                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                    {workTypes.map(item => (
+                                        <div key={item} className="flex flex-row items-start space-x-3 space-y-0">
+                                            <Checkbox
+                                                checked={task.workTypes?.includes(item)}
+                                                onCheckedChange={checked => handleWorkTypeChange(item, !!checked)}
+                                            />
+                                            <Label className="font-normal">{item}</Label>
+                                        </div>
+                                    ))}
                                 </div>
-                            ))}
-                        </div>
-                    </div>
+                            </div>
+                             <div className="space-y-2">
+                                <Label>Description / Notes</Label>
+                                <Input value={task.content} onChange={e => handleFieldChange('content', e.target.value)} />
+                            </div>
+                        </>
+                    )}
 
-                    <Separator />
 
                     {task.status === 'done' && (
                         <div className="grid md:grid-cols-3 gap-4 items-end p-4 bg-muted/50 rounded-lg">
@@ -142,10 +149,6 @@ export function GraphicsTaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
                              )}
                         </div>
                     )}
-                     <div className="space-y-2">
-                        <Label>Description / Notes</Label>
-                        <Input value={task.content} onChange={e => handleFieldChange('content', e.target.value)} />
-                    </div>
                     
                     {task.type === 'inking' && (
                         <div className="flex items-center space-x-2 pt-4">
