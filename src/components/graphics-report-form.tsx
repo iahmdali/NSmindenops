@@ -99,41 +99,38 @@ export function GraphicsReportForm() {
     useEffect(() => {
         const checkCompletedTags = async () => {
             const allTasks = [...cuttingTasks, ...inkingTasks];
-            const uniqueTagIds = [...new Set(allTasks.map(t => t.tagId))].filter(Boolean);
+            const finishedTasks = allTasks.filter(t => t.isFinished && t.tagId && !notifiedTags.has(t.tagId));
 
-            for (const tagId of uniqueTagIds) {
-                if (notifiedTags.has(tagId)) {
-                    continue; // Skip if already notified
+            if (finishedTasks.length === 0) return;
+
+            for (const task of finishedTasks) {
+                 if (notifiedTags.has(task.tagId)) {
+                    continue; 
                 }
-
-                const tasksForTag = allTasks.filter(t => t.tagId === tagId);
-                const allTasksForTagAreDone = tasksForTag.every(t => t.status === 'done');
-
-                if (tasksForTag.length > 0 && allTasksForTagAreDone) {
-                    try {
-                        console.log(`All tasks for Tag ID ${tagId} are complete. Sending notification...`);
-                        const result = await sendShippingNotification(tagId);
-                        if (result.success) {
-                            toast({
-                                title: "Shipping Notification Sent!",
-                                description: `The shipping department has been notified that Tag ID ${tagId} is ready for pickup.`
-                            });
-                            setNotifiedTags(prev => new Set(prev).add(tagId));
-                        } else {
-                            toast({
-                                title: "Notification Failed",
-                                description: result.message,
-                                variant: "destructive"
-                            });
-                        }
-                    } catch (error) {
-                        console.error("Failed to send notification:", error);
+                
+                try {
+                    console.log(`Task for Tag ID ${task.tagId} marked as finished. Sending notification...`);
+                    const result = await sendShippingNotification(task.tagId);
+                    if (result.success) {
                         toast({
-                            title: "Error",
-                            description: "An error occurred while sending the shipping notification.",
+                            title: "Shipping Notification Sent!",
+                            description: `The shipping department has been notified that Tag ID ${task.tagId} is ready for pickup.`
+                        });
+                        setNotifiedTags(prev => new Set(prev).add(task.tagId));
+                    } else {
+                        toast({
+                            title: "Notification Failed",
+                            description: result.message,
                             variant: "destructive"
                         });
                     }
+                } catch (error) {
+                    console.error("Failed to send notification:", error);
+                    toast({
+                        title: "Error",
+                        description: "An error occurred while sending the shipping notification.",
+                        variant: "destructive"
+                    });
                 }
             }
         };
@@ -167,11 +164,11 @@ export function GraphicsReportForm() {
                  <div className="flex gap-2 justify-end">
                     <Dialog>
                         <DialogTrigger asChild>
-                            <Button variant="outline">Log Personnel</Button>
+                            <Button variant="outline">Log Personnel & Maintenance</Button>
                         </DialogTrigger>
                         <DialogContent className="sm:max-w-4xl">
-                            <DialogHeader><DialogTitle>Personnel Log</DialogTitle></DialogHeader>
-                            <div className="max-h-[60vh] overflow-y-auto p-1">
+                            <DialogHeader><DialogTitle>Personnel & Maintenance Log</DialogTitle></DialogHeader>
+                            <div className="max-h-[60vh] overflow-y-auto p-1 space-y-4">
                                 <Section title="Personnel" actions={<Button type="button" variant="outline" size="sm" onClick={() => appendPersonnel({ name: '', start_time: '', end_time: '', notes: '' })}><PlusCircle className="mr-2 h-4 w-4" />Add Person</Button>}>
                                   <div className="space-y-4">
                                     {personnelFields.map((field, index) => (
@@ -186,20 +183,6 @@ export function GraphicsReportForm() {
                                     {personnelFields.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No personnel added.</p>}
                                   </div>
                                 </Section>
-                            </div>
-                            <DialogFooter>
-                                <DialogClose asChild><Button>Close</Button></DialogClose>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
-
-                    <Dialog>
-                         <DialogTrigger asChild>
-                            <Button variant="outline">Log Maintenance</Button>
-                        </DialogTrigger>
-                         <DialogContent className="sm:max-w-4xl">
-                            <DialogHeader><DialogTitle>Maintenance Log</DialogTitle></DialogHeader>
-                             <div className="max-h-[60vh] overflow-y-auto p-1 space-y-4">
                                <Section title="Maintenance Tasks" actions={<Button type="button" variant="outline" size="sm" onClick={() => appendMaintenance({ description: '', duration_mins: 0, personnel_count: 1 })}><PlusCircle className="mr-2 h-4 w-4" />Add Maintenance</Button>}>
                                     <div className="space-y-4">
                                         {maintenanceFields.map((field, index) => (
