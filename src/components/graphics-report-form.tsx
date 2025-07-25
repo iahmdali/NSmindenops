@@ -99,37 +99,41 @@ export function GraphicsReportForm() {
     useEffect(() => {
         const checkCompletedTags = async () => {
             const allTasks = [...cuttingTasks, ...inkingTasks];
-            const finishedTasks = allTasks.filter(t => t.isFinished);
-            
-            for (const task of finishedTasks) {
-                if (!task.tagId || notifiedTags.has(task.tagId)) {
-                    continue; // Skip if no tagId or already notified
+            const uniqueTagIds = [...new Set(allTasks.map(t => t.tagId))].filter(Boolean);
+
+            for (const tagId of uniqueTagIds) {
+                if (notifiedTags.has(tagId)) {
+                    continue; // Skip if already notified
                 }
 
-                console.log(`Tag ${task.tagId} is ready for shipping. Sending notification...`);
-                
-                try {
-                    const result = await sendShippingNotification(task.tagId);
-                    if(result.success) {
-                        toast({
-                            title: "Shipping Notification Sent!",
-                            description: `The shipping department has been notified that Tag ID ${task.tagId} is ready for pickup.`
-                        });
-                            setNotifiedTags(prev => new Set(prev).add(task.tagId));
-                    } else {
+                const tasksForTag = allTasks.filter(t => t.tagId === tagId);
+                const allTasksForTagAreDone = tasksForTag.every(t => t.status === 'done');
+
+                if (tasksForTag.length > 0 && allTasksForTagAreDone) {
+                    try {
+                        console.log(`All tasks for Tag ID ${tagId} are complete. Sending notification...`);
+                        const result = await sendShippingNotification(tagId);
+                        if (result.success) {
                             toast({
-                            title: "Notification Failed",
-                            description: result.message,
+                                title: "Shipping Notification Sent!",
+                                description: `The shipping department has been notified that Tag ID ${tagId} is ready for pickup.`
+                            });
+                            setNotifiedTags(prev => new Set(prev).add(tagId));
+                        } else {
+                            toast({
+                                title: "Notification Failed",
+                                description: result.message,
+                                variant: "destructive"
+                            });
+                        }
+                    } catch (error) {
+                        console.error("Failed to send notification:", error);
+                        toast({
+                            title: "Error",
+                            description: "An error occurred while sending the shipping notification.",
                             variant: "destructive"
                         });
                     }
-                } catch (error) {
-                    console.error("Failed to send notification:", error);
-                    toast({
-                        title: "Error",
-                        description: "An error occurred while sending the shipping notification.",
-                        variant: "destructive"
-                    });
                 }
             }
         };

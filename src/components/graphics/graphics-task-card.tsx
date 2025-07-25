@@ -132,28 +132,27 @@ export function GraphicsTaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
 
 
                     {task.status === 'done' && (
-                        <div className="grid md:grid-cols-3 gap-4 items-end p-4 bg-muted/50 rounded-lg">
-                            <div className="space-y-2">
-                                <Label>Duration (mins)</Label>
-                                <Input type="number" value={task.durationMins} onChange={e => handleFieldChange('durationMins', e.target.valueAsNumber)} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Personnel Count</Label>
-                                <Input type="number" value={task.personnelCount} onChange={e => handleFieldChange('personnelCount', e.target.valueAsNumber)} />
-                            </div>
-                             {task.type === 'inking' && (
-                                <div className="flex items-center h-10">
-                                    <Checkbox id="tapeUsed" checked={task.tapeUsed} onCheckedChange={val => handleFieldChange('tapeUsed', val)} />
-                                    <Label htmlFor="tapeUsed" className="ml-2">Tape Used?</Label>
+                        <div className="p-4 bg-muted/50 rounded-lg space-y-4">
+                            <div className="grid md:grid-cols-3 gap-4 items-end">
+                                <div className="space-y-2">
+                                    <Label>Duration (mins)</Label>
+                                    <Input type="number" value={task.durationMins} onChange={e => handleFieldChange('durationMins', e.target.valueAsNumber)} />
                                 </div>
-                             )}
-                        </div>
-                    )}
-                    
-                    {task.type === 'cutting' && (
-                        <div className="flex items-center space-x-2 pt-4">
-                           <Checkbox id="isFinished" checked={task.isFinished} onCheckedChange={val => handleFieldChange('isFinished', val)} />
-                           <Label htmlFor="isFinished" className="text-base font-medium">Mark as Finished (applies to whole Tag ID)</Label>
+                                <div className="space-y-2">
+                                    <Label>Personnel Count</Label>
+                                    <Input type="number" value={task.personnelCount} onChange={e => handleFieldChange('personnelCount', e.target.valueAsNumber)} />
+                                </div>
+                                 {task.type === 'inking' && (
+                                    <div className="flex items-center h-10">
+                                        <Checkbox id="tapeUsed" checked={task.tapeUsed} onCheckedChange={val => handleFieldChange('tapeUsed', val)} />
+                                        <Label htmlFor="tapeUsed" className="ml-2">Tape Used?</Label>
+                                    </div>
+                                 )}
+                             </div>
+                              <div className="flex items-center space-x-2 pt-2">
+                               <Checkbox id="isFinished" checked={task.isFinished} onCheckedChange={val => handleFieldChange('isFinished', val)} />
+                               <Label htmlFor="isFinished" className="text-base font-medium">Mark as Finished (applies to whole Tag ID)</Label>
+                            </div>
                         </div>
                     )}
 
