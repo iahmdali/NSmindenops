@@ -69,7 +69,16 @@ export function GraphicsKanbanBoard({ tasks, setTasks, type, onAddTask }: Kanban
     };
     
     const updateTask = (updatedTask: Task) => {
-        const newTasks = graphicsTasksData.map(task => task.id === updatedTask.id ? updatedTask : task);
+        let newTasks = graphicsTasksData.map(task => task.id === updatedTask.id ? updatedTask : task);
+        
+        // If it's a cutting task, sync tagId with corresponding inking task
+        if (updatedTask.type === 'cutting') {
+            const correspondingInkingTask = newTasks.find(t => t.id === updatedTask.id.replace('cut-', 'ink-'));
+            if (correspondingInkingTask && correspondingInkingTask.tagId !== updatedTask.tagId) {
+                newTasks = newTasks.map(t => t.id === correspondingInkingTask.id ? { ...t, tagId: updatedTask.tagId } : t);
+            }
+        }
+
         setTasks(newTasks);
     }
     
