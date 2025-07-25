@@ -23,8 +23,8 @@ import { Checkbox } from "./ui/checkbox"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"
 import { GraphicsKanbanBoard, type Task } from "./graphics/graphics-kanban-board"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "./ui/dialog"
-import { PageHeader } from "@/components/page-header"
 import { sendShippingNotification } from "@/ai/flows/send-notification-flow"
+import { initialTasks } from "@/lib/graphics-data"
 
 
 const personnelSchema = z.object({
@@ -55,11 +55,6 @@ const graphicsReportSchema = z.object({
 
 type GraphicsReportFormValues = z.infer<typeof graphicsReportSchema>;
 
-const initialTasks: Task[] = [
-    { id: 'cut-1', type: 'cutting', tagId: 'SAIL-123', status: 'todo', content: 'Initial cutting task' },
-    { id: 'ink-1', type: 'inking', tagId: 'DECAL-456', status: 'inProgress', content: 'Inking main logo' },
-    { id: 'cut-2', type: 'cutting', tagId: 'SAIL-789', status: 'done', content: 'Final weeding', durationMins: 45, personnelCount: 1 },
-];
 
 function Section({ title, description, children, actions }: { title: string, description?: string, children: React.ReactNode, actions?: React.ReactNode }) {
   return (
@@ -169,77 +164,72 @@ export function GraphicsReportForm() {
     return (
         <Form {...form}>
             <div className="space-y-6">
-                <PageHeader 
-                    title="Graphics Department Task Board"
-                    description="Live Kanban board for tracking Cutting and Inking tasks."
-                >
-                     <div className="flex gap-2">
-                        <Dialog>
-                            <DialogTrigger asChild>
-                                <Button variant="outline">Log Personnel</Button>
-                            </DialogTrigger>
-                            <DialogContent className="sm:max-w-4xl">
-                                <DialogHeader><DialogTitle>Personnel Log</DialogTitle></DialogHeader>
-                                <div className="max-h-[60vh] overflow-y-auto p-1">
-                                    <Section title="Personnel" actions={<Button type="button" variant="outline" size="sm" onClick={() => appendPersonnel({ name: '', start_time: '', end_time: '', notes: '' })}><PlusCircle className="mr-2 h-4 w-4" />Add Person</Button>}>
-                                      <div className="space-y-4">
-                                        {personnelFields.map((field, index) => (
-                                          <div key={field.id} className="p-4 border rounded-md relative grid md:grid-cols-4 gap-4 items-end">
-                                            <FormField control={form.control} name={`personnel.${index}.name`} render={({ field }) => (<FormItem><FormLabel>Name</FormLabel><FormControl><Input placeholder="Employee name" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                            <FormField control={form.control} name={`personnel.${index}.start_time`} render={({ field }) => (<FormItem><FormLabel>Start Time</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                            <FormField control={form.control} name={`personnel.${index}.end_time`} render={({ field }) => (<FormItem><FormLabel>End Time</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                            <FormField control={form.control} name={`personnel.${index}.notes`} render={({ field }) => (<FormItem><FormLabel>Notes</FormLabel><FormControl><Input placeholder="Optional" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                            <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive" onClick={() => removePersonnel(index)}><Trash2 className="size-4" /></Button>
-                                          </div>
-                                        ))}
-                                        {personnelFields.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No personnel added.</p>}
+                 <div className="flex gap-2 justify-end">
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button variant="outline">Log Personnel</Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-4xl">
+                            <DialogHeader><DialogTitle>Personnel Log</DialogTitle></DialogHeader>
+                            <div className="max-h-[60vh] overflow-y-auto p-1">
+                                <Section title="Personnel" actions={<Button type="button" variant="outline" size="sm" onClick={() => appendPersonnel({ name: '', start_time: '', end_time: '', notes: '' })}><PlusCircle className="mr-2 h-4 w-4" />Add Person</Button>}>
+                                  <div className="space-y-4">
+                                    {personnelFields.map((field, index) => (
+                                      <div key={field.id} className="p-4 border rounded-md relative grid md:grid-cols-4 gap-4 items-end">
+                                        <FormField control={form.control} name={`personnel.${index}.name`} render={({ field }) => (<FormItem><FormLabel>Name</FormLabel><FormControl><Input placeholder="Employee name" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                        <FormField control={form.control} name={`personnel.${index}.start_time`} render={({ field }) => (<FormItem><FormLabel>Start Time</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                        <FormField control={form.control} name={`personnel.${index}.end_time`} render={({ field }) => (<FormItem><FormLabel>End Time</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                        <FormField control={form.control} name={`personnel.${index}.notes`} render={({ field }) => (<FormItem><FormLabel>Notes</FormLabel><FormControl><Input placeholder="Optional" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                        <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive" onClick={() => removePersonnel(index)}><Trash2 className="size-4" /></Button>
                                       </div>
-                                    </Section>
-                                </div>
-                                <DialogFooter>
-                                    <DialogClose asChild><Button>Close</Button></DialogClose>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
+                                    ))}
+                                    {personnelFields.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No personnel added.</p>}
+                                  </div>
+                                </Section>
+                            </div>
+                            <DialogFooter>
+                                <DialogClose asChild><Button>Close</Button></DialogClose>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
 
-                        <Dialog>
-                             <DialogTrigger asChild>
-                                <Button variant="outline">Log Maintenance</Button>
-                            </DialogTrigger>
-                             <DialogContent className="sm:max-w-4xl">
-                                <DialogHeader><DialogTitle>Maintenance Log</DialogTitle></DialogHeader>
-                                 <div className="max-h-[60vh] overflow-y-auto p-1 space-y-4">
-                                   <Section title="Maintenance Tasks" actions={<Button type="button" variant="outline" size="sm" onClick={() => appendMaintenance({ description: '', duration_mins: 0, personnel_count: 1 })}><PlusCircle className="mr-2 h-4 w-4" />Add Maintenance</Button>}>
-                                        <div className="space-y-4">
-                                            {maintenanceFields.map((field, index) => (
-                                                <div key={field.id} className="flex items-end gap-4 p-4 border rounded-md relative">
-                                                    <FormField control={form.control} name={`maintenance_tasks.${index}.description`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Description</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                                    <FormField control={form.control} name={`maintenance_tasks.${index}.duration_mins`} render={({ field }) => (<FormItem><FormLabel>Duration (mins)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                                    <FormField control={form.control} name={`maintenance_tasks.${index}.personnel_count`} render={({ field }) => (<FormItem><FormLabel>Personnel</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                                    <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removeMaintenance(index)}><Trash2 className="size-4"/></Button>
-                                                </div>
-                                            ))}
-                                            {maintenanceFields.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No maintenance tasks added.</p>}
-                                        </div>
-                                    </Section>
+                    <Dialog>
+                         <DialogTrigger asChild>
+                            <Button variant="outline">Log Maintenance</Button>
+                        </DialogTrigger>
+                         <DialogContent className="sm:max-w-4xl">
+                            <DialogHeader><DialogTitle>Maintenance Log</DialogTitle></DialogHeader>
+                             <div className="max-h-[60vh] overflow-y-auto p-1 space-y-4">
+                               <Section title="Maintenance Tasks" actions={<Button type="button" variant="outline" size="sm" onClick={() => appendMaintenance({ description: '', duration_mins: 0, personnel_count: 1 })}><PlusCircle className="mr-2 h-4 w-4" />Add Maintenance</Button>}>
+                                    <div className="space-y-4">
+                                        {maintenanceFields.map((field, index) => (
+                                            <div key={field.id} className="flex items-end gap-4 p-4 border rounded-md relative">
+                                                <FormField control={form.control} name={`maintenance_tasks.${index}.description`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Description</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                                <FormField control={form.control} name={`maintenance_tasks.${index}.duration_mins`} render={({ field }) => (<FormItem><FormLabel>Duration (mins)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                                <FormField control={form.control} name={`maintenance_tasks.${index}.personnel_count`} render={({ field }) => (<FormItem><FormLabel>Personnel</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                                <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removeMaintenance(index)}><Trash2 className="size-4"/></Button>
+                                            </div>
+                                        ))}
+                                        {maintenanceFields.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No maintenance tasks added.</p>}
+                                    </div>
+                                </Section>
 
-                                    <Section title="Daily Machine Maintenance Checks">
-                                        <div className="grid md:grid-cols-2 gap-x-8 gap-y-4">
-                                            <FormField control={form.control} name="daily_maintenance.mutoh_head_area" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>Mutoh – Head Area</FormLabel></FormItem>)} />
-                                            <FormField control={form.control} name="daily_maintenance.mutoh_head_rest" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>Mutoh – Head Rest</FormLabel></FormItem>)} />
-                                            <FormField control={form.control} name="daily_maintenance.plotter_adhesive" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>Plotter – Adhesive</FormLabel></FormItem>)} />
-                                            <FormField control={form.control} name="daily_maintenance.vacuum_table_cleaned" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>Vacuum/Table Cleaned</FormLabel></FormItem>)} />
-                                             <FormField control={form.control} name="daily_maintenance.air_filters_checked" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>Air Filters Checked</FormLabel></FormItem>)} />
-                                        </div>
-                                    </Section>
-                                 </div>
-                                 <DialogFooter>
-                                    <DialogClose asChild><Button>Close</Button></DialogClose>
-                                 </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
-                    </div>
-                </PageHeader>
+                                <Section title="Daily Machine Maintenance Checks">
+                                    <div className="grid md:grid-cols-2 gap-x-8 gap-y-4">
+                                        <FormField control={form.control} name="daily_maintenance.mutoh_head_area" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>Mutoh – Head Area</FormLabel></FormItem>)} />
+                                        <FormField control={form.control} name="daily_maintenance.mutoh_head_rest" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>Mutoh – Head Rest</FormLabel></FormItem>)} />
+                                        <FormField control={form.control} name="daily_maintenance.plotter_adhesive" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>Plotter – Adhesive</FormLabel></FormItem>)} />
+                                        <FormField control={form.control} name="daily_maintenance.vacuum_table_cleaned" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>Vacuum/Table Cleaned</FormLabel></FormItem>)} />
+                                         <FormField control={form.control} name="daily_maintenance.air_filters_checked" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>Air Filters Checked</FormLabel></FormItem>)} />
+                                    </div>
+                                </Section>
+                             </div>
+                             <DialogFooter>
+                                <DialogClose asChild><Button>Close</Button></DialogClose>
+                             </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                </div>
                 
 
                 <Tabs defaultValue="cutting">
