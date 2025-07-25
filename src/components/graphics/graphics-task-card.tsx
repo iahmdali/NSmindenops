@@ -36,7 +36,6 @@ const inkingWorkTypes = ["Layout", "Masking", "Fold", "Mixing Ink", "Touch-up"];
 export function GraphicsTaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
     const isSail = task.tagType === 'Sail';
     const isCutting = task.type === 'cutting';
-    const isToDoInking = !isCutting && task.status === 'todo';
 
     const workTypes = isCutting ? cuttingWorkTypes : inkingWorkTypes;
 
@@ -53,8 +52,14 @@ export function GraphicsTaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
         onUpdate({ ...task, workTypes: newTypes });
     };
     
-    const isCoreFieldDisabled = task.status !== 'todo' || isToDoInking;
+    // Core fields (Tag ID, Type, Sidedness) are only editable for CUTTING tasks in the TODO stage.
+    const isCoreFieldDisabled = task.status !== 'todo' || task.type !== 'cutting';
+    
+    // Detail fields (Description, Work Types) are only editable in the IN PROGRESS stage.
     const isDetailFieldDisabled = task.status !== 'inProgress';
+    
+    // Completion fields are only editable in the DONE stage.
+    const isCompletionFieldDisabled = task.status !== 'done';
 
 
     return (
@@ -152,30 +157,28 @@ export function GraphicsTaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
                         </div>
                     </div>
 
-                    {task.status === 'done' && (
-                        <div className="p-4 bg-muted/50 rounded-lg space-y-4">
-                            <div className="grid md:grid-cols-3 gap-4 items-end">
-                                <div className="space-y-2">
-                                    <Label>Duration (mins)</Label>
-                                    <Input type="number" value={task.durationMins || ''} onChange={e => handleFieldChange('durationMins', e.target.valueAsNumber)} />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Personnel Count</Label>
-                                    <Input type="number" value={task.personnelCount || ''} onChange={e => handleFieldChange('personnelCount', e.target.valueAsNumber)} />
-                                </div>
-                                 {task.type === 'inking' && (
-                                    <div className="flex items-center h-10">
-                                        <Checkbox id="tapeUsed" checked={task.tapeUsed} onCheckedChange={val => handleFieldChange('tapeUsed', !!val)} />
-                                        <Label htmlFor="tapeUsed" className="ml-2">Tape Used?</Label>
-                                    </div>
-                                 )}
-                             </div>
-                             <div className="flex items-center space-x-2 pt-2">
-                               <Checkbox id="isFinished" checked={task.isFinished} onCheckedChange={val => handleFieldChange('isFinished', !!val)} />
-                               <Label htmlFor="isFinished" className="text-base font-medium">Mark as Finished (sends shipping notification)</Label>
+                    <div className={`p-4 bg-muted/50 rounded-lg space-y-4 ${isCompletionFieldDisabled ? 'hidden' : 'block'}`}>
+                        <div className="grid md:grid-cols-3 gap-4 items-end">
+                            <div className="space-y-2">
+                                <Label>Duration (mins)</Label>
+                                <Input type="number" value={task.durationMins || ''} onChange={e => handleFieldChange('durationMins', e.target.valueAsNumber)} disabled={isCompletionFieldDisabled} />
                             </div>
+                            <div className="space-y-2">
+                                <Label>Personnel Count</Label>
+                                <Input type="number" value={task.personnelCount || ''} onChange={e => handleFieldChange('personnelCount', e.target.valueAsNumber)} disabled={isCompletionFieldDisabled} />
+                            </div>
+                             {task.type === 'inking' && (
+                                <div className="flex items-center h-10">
+                                    <Checkbox id="tapeUsed" checked={task.tapeUsed} onCheckedChange={val => handleFieldChange('tapeUsed', !!val)} disabled={isCompletionFieldDisabled} />
+                                    <Label htmlFor="tapeUsed" className="ml-2">Tape Used?</Label>
+                                </div>
+                             )}
+                         </div>
+                         <div className="flex items-center space-x-2 pt-2">
+                           <Checkbox id="isFinished" checked={task.isFinished} onCheckedChange={val => handleFieldChange('isFinished', !!val)} disabled={isCompletionFieldDisabled} />
+                           <Label htmlFor="isFinished" className="text-base font-medium">Mark as Finished (sends shipping notification)</Label>
                         </div>
-                    )}
+                    </div>
 
                 </div>
                 <DialogFooter className="sm:justify-between">
