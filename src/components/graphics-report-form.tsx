@@ -96,52 +96,42 @@ export function GraphicsReportForm() {
     });
     
     useEffect(() => {
-        const checkCompletedTags = async () => {
-            // Group tasks by tagId
-            const tasksByTagId = graphicsTasksData.reduce((acc, task) => {
-                if (!acc[task.tagId]) {
-                    acc[task.tagId] = [];
-                }
-                acc[task.tagId].push(task);
-                return acc;
-            }, {} as Record<string, Task[]>);
+        const checkFinishedTags = async () => {
+            const finishedTagIds = new Set(
+                graphicsTasksData.filter(t => t.isFinished).map(t => t.tagId)
+            );
 
-            for (const tagId in tasksByTagId) {
+            for (const tagId of finishedTagIds) {
                 if (notifiedTags.has(tagId) || !tagId) continue;
 
-                const allTasksForTag = tasksByTagId[tagId];
-                const allTasksCompleted = allTasksForTag.every(t => t.status === 'done');
-                
-                if (allTasksCompleted) {
-                    try {
-                        console.log(`All tasks for Tag ID ${tagId} are complete. Sending notification...`);
-                        const result = await sendShippingNotification(tagId);
-                        if (result.success) {
-                            toast({
-                                title: "Shipping Notification Sent!",
-                                description: `The shipping department has been notified that Tag ID ${tagId} is ready for pickup.`
-                            });
-                            setNotifiedTags(prev => new Set(prev).add(tagId));
-                        } else {
-                            toast({
-                                title: "Notification Failed",
-                                description: result.message,
-                                variant: "destructive"
-                            });
-                        }
-                    } catch (error) {
-                        console.error("Failed to send notification:", error);
+                try {
+                    console.log(`Task for Tag ID ${tagId} marked as finished. Sending notification...`);
+                    const result = await sendShippingNotification(tagId);
+                    if (result.success) {
                         toast({
-                            title: "Error",
-                            description: "An error occurred while sending the shipping notification.",
+                            title: "Shipping Notification Sent!",
+                            description: `The shipping department has been notified that Tag ID ${tagId} is ready for pickup.`
+                        });
+                        setNotifiedTags(prev => new Set(prev).add(tagId));
+                    } else {
+                        toast({
+                            title: "Notification Failed",
+                            description: result.message,
                             variant: "destructive"
                         });
                     }
+                } catch (error) {
+                    console.error("Failed to send notification:", error);
+                    toast({
+                        title: "Error",
+                        description: "An error occurred while sending the shipping notification.",
+                        variant: "destructive"
+                    });
                 }
             }
         };
 
-        checkCompletedTags();
+        checkFinishedTags();
     }, [tasks, notifiedTags, toast]);
 
     const { fields: personnelFields, append: appendPersonnel, remove: removePersonnel } = useFieldArray({ control: form.control, name: "personnel" });
