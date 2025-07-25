@@ -97,38 +97,48 @@ export function GraphicsReportForm() {
     
      useEffect(() => {
         const checkFinishedTags = async () => {
-            const finishedTagIds = new Set(
-                graphicsTasksData
-                    .filter(t => t.isFinished)
-                    .map(t => t.tagId)
-            );
+             const tags = new Map<string, { allTasks: Task[], completedTasks: Task[] }>();
 
-            for (const tagId of finishedTagIds) {
-                if (!tagId || notifiedTags.has(tagId)) continue;
-                
-                console.log(`Tag ID ${tagId} is marked as finished. Sending notification...`);
-                try {
-                    const result = await sendShippingNotification(tagId);
-                    if (result.success) {
+            graphicsTasksData.forEach(task => {
+                if (!task.tagId) return;
+                if (!tags.has(task.tagId)) {
+                    tags.set(task.tagId, { allTasks: [], completedTasks: [] });
+                }
+                tags.get(task.tagId)!.allTasks.push(task);
+                if (task.status === 'done') {
+                    tags.get(task.tagId)!.completedTasks.push(task);
+                }
+            });
+
+            for (const [tagId, { allTasks, completedTasks }] of tags.entries()) {
+                if (notifiedTags.has(tagId)) continue;
+
+                // Check if all tasks for this tagId are in the 'done' state
+                if (allTasks.length > 0 && allTasks.length === completedTasks.length) {
+                    console.log(`All tasks for Tag ID ${tagId} are complete. Sending notification...`);
+                    try {
+                        const result = await sendShippingNotification(tagId);
+                        if (result.success) {
+                            toast({
+                                title: "Shipping Notification Sent!",
+                                description: `The shipping department has been notified that Tag ID ${tagId} is ready for pickup.`
+                            });
+                            setNotifiedTags(prev => new Set(prev).add(tagId));
+                        } else {
+                             toast({
+                                title: "Notification Failed",
+                                description: result.message,
+                                variant: "destructive"
+                            });
+                        }
+                    } catch (error) {
+                        console.error("Failed to send notification:", error);
                         toast({
-                            title: "Shipping Notification Sent!",
-                            description: `The shipping department has been notified that Tag ID ${tagId} is ready for pickup.`
-                        });
-                        setNotifiedTags(prev => new Set(prev).add(tagId));
-                    } else {
-                        toast({
-                            title: "Notification Failed",
-                            description: result.message,
+                            title: "Error",
+                            description: "An error occurred while sending the shipping notification.",
                             variant: "destructive"
                         });
                     }
-                } catch (error) {
-                    console.error("Failed to send notification:", error);
-                    toast({
-                        title: "Error",
-                        description: "An error occurred while sending the shipping notification.",
-                        variant: "destructive"
-                    });
                 }
             }
         };
@@ -149,37 +159,20 @@ export function GraphicsReportForm() {
         const timestamp = Date.now();
         const newTasks = [...graphicsTasksData];
 
-        // For cutting, we create a linked inking task.
-        // For inking, we only create an inking task (e.g. for decals that dont need cutting).
         if (type === 'cutting') {
             const cuttingTask: Task = {
-                id: `cut-${timestamp}`,
-                type: 'cutting',
-                tagId: '', 
-                status: 'todo',
-                content: 'New Cutting Task',
-                tagType: 'Sail',
-                startedAt: new Date().toISOString(),
+                id: `cut-${timestamp}`, type: 'cutting', tagId: '', status: 'todo',
+                content: 'New Cutting Task', tagType: 'Sail', startedAt: new Date().toISOString(),
             };
             const inkingTask: Task = {
-                id: `ink-${timestamp}`,
-                type: 'inking',
-                tagId: '',
-                status: 'todo',
-                content: 'New Inking Task',
-                tagType: 'Sail',
-                startedAt: new Date().toISOString(),
+                id: `ink-${timestamp}`, type: 'inking', tagId: '', status: 'todo',
+                content: 'New Inking Task', tagType: 'Sail', startedAt: new Date().toISOString(),
             };
             newTasks.push(cuttingTask, inkingTask);
-        } else { // Only inking
+        } else {
              const inkingTask: Task = {
-                id: `ink-${timestamp}`,
-                type: 'inking',
-                tagId: '',
-                status: 'todo',
-                content: 'New Inking Task',
-                tagType: 'Sail',
-                startedAt: new Date().toISOString(),
+                id: `ink-${timestamp}`, type: 'inking', tagId: '', status: 'todo',
+                content: 'New Inking Task', tagType: 'Sail', startedAt: new Date().toISOString(),
             };
             newTasks.push(inkingTask);
         }
@@ -191,23 +184,18 @@ export function GraphicsReportForm() {
     const updateTask = (updatedTask: Task) => {
         let newTasks = graphicsTasksData.map(task => task.id === updatedTask.id ? updatedTask : task);
         
-        // If it's a cutting task, sync its details with the corresponding inking task
         if (updatedTask.type === 'cutting') {
             const correspondingInkingId = updatedTask.id.replace('cut-', 'ink-');
-            const correspondingInkingTask = newTasks.find(t => t.id === correspondingInkingId);
-            
-            if (correspondingInkingTask) {
-                 newTasks = newTasks.map(t => 
-                    t.id === correspondingInkingId 
-                        ? { ...t, 
-                            tagId: updatedTask.tagId,
-                            tagType: updatedTask.tagType,
-                            sidedness: updatedTask.sidedness,
-                            sideOfWork: updatedTask.sideOfWork,
-                          } 
-                        : t
-                );
-            }
+            newTasks = newTasks.map(t => 
+                t.id === correspondingInkingId 
+                    ? { ...t, 
+                        tagId: updatedTask.tagId,
+                        tagType: updatedTask.tagType,
+                        sidedness: updatedTask.sidedness,
+                        sideOfWork: updatedTask.sideOfWork,
+                      } 
+                    : t
+            );
         }
 
         updateTasks(newTasks);

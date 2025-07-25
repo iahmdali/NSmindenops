@@ -36,6 +36,7 @@ const inkingWorkTypes = ["Layout", "Masking", "Fold", "Mixing Ink", "Touch-up"];
 export function GraphicsTaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
     const isSail = task.tagType === 'Sail';
     const isEditable = task.status === 'todo';
+    const isToDoInking = task.type === 'inking' && task.status === 'todo';
 
     const workTypes = task.type === 'cutting' ? cuttingWorkTypes : inkingWorkTypes;
 
@@ -87,11 +88,11 @@ export function GraphicsTaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
                     <div className="grid md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label>Tag ID</Label>
-                            <Input value={task.tagId} onChange={e => handleFieldChange('tagId', e.target.value)} disabled={!isEditable} />
+                            <Input value={task.tagId} onChange={e => handleFieldChange('tagId', e.target.value)} disabled={isToDoInking} />
                         </div>
                         <div className="space-y-2">
                              <Label>Tag Type</Label>
-                             <RadioGroup value={task.tagType} onValueChange={val => handleFieldChange('tagType', val)} className="flex items-center space-x-4 h-10" disabled={!isEditable}>
+                             <RadioGroup value={task.tagType} onValueChange={val => handleFieldChange('tagType', val)} className="flex items-center space-x-4 h-10" disabled={isToDoInking}>
                                 <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Sail" /></FormControl><Label className="font-normal">Sail</Label></FormItem>
                                 <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Decal" /></FormControl><Label className="font-normal">Decal</Label></FormItem>
                              </RadioGroup>
@@ -102,7 +103,7 @@ export function GraphicsTaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
                         <div className="grid md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label>Sidedness</Label>
-                                 <RadioGroup value={task.sidedness} onValueChange={val => handleFieldChange('sidedness', val)} className="flex items-center space-x-4 h-10" disabled={!isEditable}>
+                                 <RadioGroup value={task.sidedness} onValueChange={val => handleFieldChange('sidedness', val)} className="flex items-center space-x-4 h-10" disabled={isToDoInking}>
                                     <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Single-Sided" /></FormControl><Label className="font-normal">Single-Sided</Label></FormItem>
                                     <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Double-Sided" /></FormControl><Label className="font-normal">Double-Sided</Label></FormItem>
                                 </RadioGroup>
@@ -110,7 +111,7 @@ export function GraphicsTaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
                             {task.sidedness === 'Double-Sided' && (
                                 <div className="space-y-2">
                                     <Label>Side of Work</Label>
-                                    <Select value={task.sideOfWork} onValueChange={val => handleFieldChange('sideOfWork', val)} disabled={!isEditable}>
+                                    <Select value={task.sideOfWork} onValueChange={val => handleFieldChange('sideOfWork', val)} disabled={isToDoInking}>
                                         <SelectTrigger><SelectValue placeholder="Select side..."/></SelectTrigger>
                                         <SelectContent><SelectItem value="Front">Front</SelectItem><SelectItem value="Back">Back</SelectItem></SelectContent>
                                     </Select>
@@ -121,7 +122,7 @@ export function GraphicsTaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
                     
                     <Separator />
                     
-                    {task.status === 'inProgress' && (
+                    {task.status !== 'todo' && (
                         <div className="space-y-4">
                             <div className="space-y-2">
                                 <Label>Description / Notes</Label>
