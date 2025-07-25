@@ -98,16 +98,30 @@ export function GraphicsReportForm() {
      useEffect(() => {
         const checkFinishedTags = async () => {
             const finishedTagIds = new Set<string>();
+            const tagTaskMap: Record<string, Task[]> = {};
 
-            // Find all tags that have been explicitly marked as finished
+            // Group tasks by tagId
             graphicsTasksData.forEach(task => {
-                if (task.isFinished && task.tagId) {
-                    finishedTagIds.add(task.tagId);
+                if (!task.tagId) return;
+                if (!tagTaskMap[task.tagId]) {
+                    tagTaskMap[task.tagId] = [];
                 }
+                tagTaskMap[task.tagId].push(task);
             });
 
+            for (const tagId in tagTaskMap) {
+                const associatedTasks = tagTaskMap[tagId];
+                const allTasksDone = associatedTasks.every(t => t.status === 'done');
+                const anyTaskMarkedFinished = associatedTasks.some(t => t.isFinished);
+
+                if (allTasksDone && anyTaskMarkedFinished) {
+                    finishedTagIds.add(tagId);
+                }
+            }
+
+
             for (const tagId of finishedTagIds) {
-                if (notifiedTags.has(tagId)) continue; // Skip if already notified
+                if (notifiedTags.has(tagId)) continue; 
 
                 console.log(`Tag ID ${tagId} is marked as finished. Sending notification...`);
                 try {
@@ -152,26 +166,27 @@ export function GraphicsReportForm() {
         const timestamp = Date.now();
         const newTasks = [...graphicsTasksData];
 
+        const cuttingTask: Task = {
+            id: `cut-${timestamp}`, type: 'cutting', tagId: '', status: 'todo',
+            content: '', tagType: 'Sail', startedAt: new Date().toISOString(),
+        };
+
+        const inkingTask: Task = {
+            id: `ink-${timestamp}`, type: 'inking', tagId: '', status: 'todo',
+            content: '', tagType: 'Sail', startedAt: new Date().toISOString(),
+        };
+
+        // If it's a cutting task for a sail, add both. Otherwise just add one.
         if (type === 'cutting') {
-            const cuttingTask: Task = {
-                id: `cut-${timestamp}`, type: 'cutting', tagId: '', status: 'todo',
-                content: 'New Cutting Task', tagType: 'Sail', startedAt: new Date().toISOString(),
-            };
-            const inkingTask: Task = {
-                id: `ink-${timestamp}`, type: 'inking', tagId: '', status: 'todo',
-                content: 'New Inking Task', tagType: 'Sail', startedAt: new Date().toISOString(),
-            };
             newTasks.push(cuttingTask, inkingTask);
+            toast({ title: "Task Pair Added", description: `A new Cutting and Inking task pair has been created.` });
         } else {
-             const inkingTask: Task = {
-                id: `ink-${timestamp}`, type: 'inking', tagId: '', status: 'todo',
-                content: 'New Inking Task', tagType: 'Sail', startedAt: new Date().toISOString(),
-            };
-            newTasks.push(inkingTask);
+            // For decals or manual inking tasks
+             newTasks.push(inkingTask);
+             toast({ title: "Task Added", description: `A new Inking task has been created.` });
         }
         
         updateTasks(newTasks);
-        toast({ title: "Task Added", description: `A new task has been added to the 'To Do' column.` });
     }
     
     const updateTask = (updatedTask: Task) => {
@@ -187,6 +202,7 @@ export function GraphicsReportForm() {
                         tagType: updatedTask.tagType,
                         sidedness: updatedTask.sidedness,
                         sideOfWork: updatedTask.sideOfWork,
+                        content: updatedTask.content, // sync content as well
                       } 
                     : t
             );
