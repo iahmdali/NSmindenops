@@ -1,0 +1,113 @@
+
+"use client"
+
+import React, { useState } from 'react';
+import { DragDropContext, Droppable, Draggable, OnDragEndResponder } from '@hello-pangea/dnd';
+import { Button } from '@/components/ui/button';
+import { PlusCircle } from 'lucide-react';
+import { GraphicsTaskCard } from './graphics-task-card';
+
+export interface Task {
+    id: string;
+    type: 'cutting' | 'inking';
+    status: 'todo' | 'inProgress' | 'done';
+    tagId: string;
+    content: string;
+    tagType?: 'Sail' | 'Decal';
+    sidedness?: 'Single-Sided' | 'Double-Sided';
+    sideOfWork?: 'Front' | 'Back';
+    workTypes?: string[];
+    durationMins?: number;
+    personnelCount?: number;
+    tapeUsed?: boolean;
+    isFinished?: boolean;
+}
+
+interface KanbanBoardProps {
+    tasks: Task[];
+    setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
+    type: 'cutting' | 'inking';
+    onAddTask: () => void;
+}
+
+const columns = {
+    todo: { id: 'todo', title: 'To Do (Started)' },
+    inProgress: { id: 'inProgress', title: 'In Progress' },
+    done: { id: 'done', title: 'Completed' },
+};
+
+export function GraphicsKanbanBoard({ tasks, setTasks, type, onAddTask }: KanbanBoardProps) {
+
+    const onDragEnd: OnDragEndResponder = (result) => {
+        const { destination, source, draggableId } = result;
+
+        if (!destination) {
+            return;
+        }
+
+        if (destination.droppableId === source.droppableId && destination.index === source.index) {
+            return;
+        }
+        
+        const task = tasks.find(t => t.id === draggableId);
+        if (task) {
+            const newStatus = destination.droppableId as 'todo' | 'inProgress' | 'done';
+            const updatedTask = { ...task, status: newStatus };
+            
+            const newTasks = tasks.map(t => t.id === draggableId ? updatedTask : t);
+            setTasks(newTasks);
+        }
+    };
+    
+    const updateTask = (updatedTask: Task) => {
+        setTasks(prev => prev.map(task => task.id === updatedTask.id ? updatedTask : task));
+    }
+    
+    const deleteTask = (taskId: string) => {
+        setTasks(prev => prev.filter(task => task.id !== taskId));
+    }
+
+    return (
+        <div className="p-4 rounded-lg bg-muted/30">
+            <div className="mb-4 flex justify-end">
+                <Button onClick={onAddTask} size="sm">
+                    <PlusCircle className="mr-2 h-4 w-4" /> Add Task
+                </Button>
+            </div>
+            <DragDropContext onDragEnd={onDragEnd}>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {Object.values(columns).map(column => (
+                        <Droppable key={column.id} droppableId={column.id}>
+                            {(provided, snapshot) => (
+                                <div
+                                    ref={provided.innerRef}
+                                    {...provided.droppableProps}
+                                    className={`p-4 rounded-lg bg-background transition-colors ${snapshot.isDraggingOver ? 'bg-accent' : ''}`}
+                                >
+                                    <h3 className="font-semibold mb-4 text-center">{column.title}</h3>
+                                    <div className="space-y-3 min-h-[200px]">
+                                        {tasks.filter(task => task.status === column.id).map((task, index) => (
+                                            <Draggable key={task.id} draggableId={task.id} index={index}>
+                                                {(provided) => (
+                                                    <div
+                                                        ref={provided.innerRef}
+                                                        {...provided.draggableProps}
+                                                        {...provided.dragHandleProps}
+                                                    >
+                                                        <GraphicsTaskCard task={task} onUpdate={updateTask} onDelete={deleteTask} />
+                                                    </div>
+                                                )}
+                                            </Draggable>
+                                        ))}
+                                        {provided.placeholder}
+                                    </div>
+                                </div>
+                            )}
+                        </Droppable>
+                    ))}
+                </div>
+            </DragDropContext>
+        </div>
+    );
+}
+
