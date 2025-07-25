@@ -41,15 +41,29 @@ export function GraphicsAnalytics() {
             return taskDate && isSameDay(new Date(taskDate), date);
         });
 
-        const startedTasks = tasksToday; // All tasks with a date for today were started
+        const startedTasks = tasksToday; 
         const completedTasks = tasksToday.filter(task => task.status === 'done');
         
         // Logic to determine which tags are ready for shipping
-        const readyForShippingTags = Array.from(new Set(
-            graphicsTasksData
-                .filter(t => t.isFinished)
-                .map(t => t.tagId)
-        ));
+        const tagsMap = new Map<string, { all: number; done: number }>();
+        graphicsTasksData.forEach(task => {
+            if (!task.tagId) return;
+            if (!tagsMap.has(task.tagId)) {
+                tagsMap.set(task.tagId, { all: 0, done: 0 });
+            }
+            const entry = tagsMap.get(task.tagId)!;
+            entry.all += 1;
+            if (task.status === 'done') {
+                entry.done += 1;
+            }
+        });
+
+        const readyForShippingTags: string[] = [];
+        for (const [tagId, counts] of tagsMap.entries()) {
+            if (counts.all > 0 && counts.all === counts.done) {
+                readyForShippingTags.push(tagId);
+            }
+        }
 
 
         return {
