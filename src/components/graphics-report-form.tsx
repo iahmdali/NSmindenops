@@ -25,6 +25,7 @@ import { GraphicsKanbanBoard, type Task } from "./graphics/graphics-kanban-board
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "./ui/dialog"
 import { sendShippingNotification } from "@/ai/flows/send-notification-flow"
 import { initialTasks } from "@/lib/graphics-data"
+import { PageHeader } from "@/components/page-header"
 
 
 const personnelSchema = z.object({
@@ -98,43 +99,37 @@ export function GraphicsReportForm() {
     useEffect(() => {
         const checkCompletedTags = async () => {
             const allTasks = [...cuttingTasks, ...inkingTasks];
-            const completedTagIds = new Set(allTasks.filter(t => t.isFinished).map(t => t.tagId));
+            const finishedTasks = allTasks.filter(t => t.isFinished);
             
-            for (const tagId of completedTagIds) {
-                if (!tagId || notifiedTags.has(tagId)) {
+            for (const task of finishedTasks) {
+                if (!task.tagId || notifiedTags.has(task.tagId)) {
                     continue; // Skip if no tagId or already notified
                 }
 
-                // Check if both cutting and inking tasks for this tagId are marked as finished.
-                const hasFinishedCutting = cuttingTasks.some(t => t.tagId === tagId && t.isFinished);
-                const hasFinishedInking = inkingTasks.some(t => t.tagId === tagId && t.isFinished);
-
-                if (hasFinishedCutting && hasFinishedInking) {
-                    console.log(`Tag ${tagId} is ready for shipping. Sending notification...`);
-                    
-                    try {
-                        const result = await sendShippingNotification(tagId);
-                        if(result.success) {
-                            toast({
-                                title: "Shipping Notification Sent!",
-                                description: `The shipping department has been notified that Tag ID ${tagId} is ready for pickup.`
-                            });
-                             setNotifiedTags(prev => new Set(prev).add(tagId));
-                        } else {
-                             toast({
-                                title: "Notification Failed",
-                                description: result.message,
-                                variant: "destructive"
-                            });
-                        }
-                    } catch (error) {
-                        console.error("Failed to send notification:", error);
+                console.log(`Tag ${task.tagId} is ready for shipping. Sending notification...`);
+                
+                try {
+                    const result = await sendShippingNotification(task.tagId);
+                    if(result.success) {
                         toast({
-                            title: "Error",
-                            description: "An error occurred while sending the shipping notification.",
+                            title: "Shipping Notification Sent!",
+                            description: `The shipping department has been notified that Tag ID ${task.tagId} is ready for pickup.`
+                        });
+                            setNotifiedTags(prev => new Set(prev).add(task.tagId));
+                    } else {
+                            toast({
+                            title: "Notification Failed",
+                            description: result.message,
                             variant: "destructive"
                         });
                     }
+                } catch (error) {
+                    console.error("Failed to send notification:", error);
+                    toast({
+                        title: "Error",
+                        description: "An error occurred while sending the shipping notification.",
+                        variant: "destructive"
+                    });
                 }
             }
         };
@@ -164,6 +159,7 @@ export function GraphicsReportForm() {
     return (
         <Form {...form}>
             <div className="space-y-6">
+                <PageHeader title="Graphics Department" description="Live task management for Cutting and Inking." />
                  <div className="flex gap-2 justify-end">
                     <Dialog>
                         <DialogTrigger asChild>

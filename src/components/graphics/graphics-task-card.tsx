@@ -150,7 +150,7 @@ export function GraphicsTaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
                         </div>
                     )}
                     
-                    {task.type === 'inking' && (
+                    {task.type === 'cutting' && (
                         <div className="flex items-center space-x-2 pt-4">
                            <Checkbox id="isFinished" checked={task.isFinished} onCheckedChange={val => handleFieldChange('isFinished', val)} />
                            <Label htmlFor="isFinished" className="text-base font-medium">Mark as Finished (applies to whole Tag ID)</Label>
