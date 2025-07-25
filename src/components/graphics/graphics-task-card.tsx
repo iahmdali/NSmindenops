@@ -41,19 +41,7 @@ export function GraphicsTaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
 
     const handleFieldChange = (field: keyof Task, value: any) => {
         const updatedTask = { ...task, [field]: value };
-        
-        // If tagId is changed in cutting, sync it to the corresponding inking task.
-        if (field === 'tagId' && task.type === 'cutting') {
-            const inkingTaskId = task.id.replace('cut-', 'ink-');
-            onUpdate({ ...updatedTask, id: task.id }); // update cutting task first
-            
-            // This is a bit of a hack, we need to find and update the inking task in the parent
-            // This suggests a better state management approach might be needed for complex relations
-            // For now, we assume onUpdate handles the full list.
-            
-        } else {
-             onUpdate(updatedTask);
-        }
+        onUpdate(updatedTask);
     };
 
     const handleWorkTypeChange = (item: string, checked: boolean) => {
@@ -133,54 +121,50 @@ export function GraphicsTaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
                     
                     <Separator />
                     
-                     {(task.status === 'inProgress' || task.status === 'todo') && (
-                        <>
-                             <div className="space-y-2">
+                    {task.status === 'inProgress' && (
+                        <div className="space-y-4">
+                            <div className="space-y-2">
                                 <Label>Description / Notes</Label>
                                 <Input value={task.content} onChange={e => handleFieldChange('content', e.target.value)} />
                             </div>
-                        </>
-                    )}
-                    
-                    {task.status === 'inProgress' && (
-                        <div className="space-y-2">
-                            <Label>Work Type(s)</Label>
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                {workTypes.map(item => (
-                                    <div key={item} className="flex flex-row items-start space-x-3 space-y-0">
-                                        <Checkbox
-                                            checked={task.workTypes?.includes(item)}
-                                            onCheckedChange={checked => handleWorkTypeChange(item, !!checked)}
-                                        />
-                                        <Label className="font-normal">{item}</Label>
-                                    </div>
-                                ))}
+                            <div className="space-y-2">
+                                <Label>Work Type(s)</Label>
+                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                    {workTypes.map(item => (
+                                        <div key={item} className="flex flex-row items-start space-x-3 space-y-0">
+                                            <Checkbox
+                                                checked={task.workTypes?.includes(item)}
+                                                onCheckedChange={checked => handleWorkTypeChange(item, !!checked)}
+                                            />
+                                            <Label className="font-normal">{item}</Label>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     )}
-
 
                     {task.status === 'done' && (
                         <div className="p-4 bg-muted/50 rounded-lg space-y-4">
                             <div className="grid md:grid-cols-3 gap-4 items-end">
                                 <div className="space-y-2">
                                     <Label>Duration (mins)</Label>
-                                    <Input type="number" value={task.durationMins} onChange={e => handleFieldChange('durationMins', e.target.valueAsNumber)} />
+                                    <Input type="number" value={task.durationMins || ''} onChange={e => handleFieldChange('durationMins', e.target.valueAsNumber)} />
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Personnel Count</Label>
-                                    <Input type="number" value={task.personnelCount} onChange={e => handleFieldChange('personnelCount', e.target.valueAsNumber)} />
+                                    <Input type="number" value={task.personnelCount || ''} onChange={e => handleFieldChange('personnelCount', e.target.valueAsNumber)} />
                                 </div>
                                  {task.type === 'inking' && (
                                     <div className="flex items-center h-10">
-                                        <Checkbox id="tapeUsed" checked={task.tapeUsed} onCheckedChange={val => handleFieldChange('tapeUsed', val)} />
+                                        <Checkbox id="tapeUsed" checked={task.tapeUsed} onCheckedChange={val => handleFieldChange('tapeUsed', !!val)} />
                                         <Label htmlFor="tapeUsed" className="ml-2">Tape Used?</Label>
                                     </div>
                                  )}
                              </div>
-                              <div className="flex items-center space-x-2 pt-2">
-                               <Checkbox id="isFinished" checked={task.isFinished} onCheckedChange={val => handleFieldChange('isFinished', val)} />
-                               <Label htmlFor="isFinished" className="text-base font-medium">Mark as Finished (triggers shipping)</Label>
+                             <div className="flex items-center space-x-2 pt-2">
+                               <Checkbox id="isFinished" checked={task.isFinished} onCheckedChange={val => handleFieldChange('isFinished', !!val)} />
+                               <Label htmlFor="isFinished" className="text-base font-medium">Mark as Finished (applies to whole Tag ID)</Label>
                             </div>
                         </div>
                     )}
