@@ -4,7 +4,7 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm, useFieldArray } from "react-hook-form"
 import * as z from "zod"
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { PlusCircle, Trash2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -24,6 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"
 import { GraphicsKanbanBoard, type Task } from "./graphics/graphics-kanban-board"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "./ui/dialog"
 import { PageHeader } from "@/components/page-header"
+import { sendShippingNotification } from "@/ai/flows/send-notification-flow"
 
 
 const personnelSchema = z.object({
@@ -81,6 +82,7 @@ export function GraphicsReportForm() {
     const { toast } = useToast();
     const [cuttingTasks, setCuttingTasks] = useState<Task[]>(initialTasks.filter(t => t.type === 'cutting'));
     const [inkingTasks, setInkingTasks] = useState<Task[]>(initialTasks.filter(t => t.type === 'inking'));
+    const [notifiedTags, setNotifiedTags] = useState<Set<string>>(new Set());
     
     const form = useForm<GraphicsReportFormValues>({
         resolver: zodResolver(graphicsReportSchema),
@@ -97,6 +99,53 @@ export function GraphicsReportForm() {
         },
         mode: "onBlur"
     });
+
+    useEffect(() => {
+        const checkCompletedTags = async () => {
+            const allTasks = [...cuttingTasks, ...inkingTasks];
+            const completedTagIds = new Set(allTasks.filter(t => t.isFinished).map(t => t.tagId));
+            
+            for (const tagId of completedTagIds) {
+                if (!tagId || notifiedTags.has(tagId)) {
+                    continue; // Skip if no tagId or already notified
+                }
+
+                // Check if both cutting and inking tasks for this tagId are marked as finished.
+                const hasFinishedCutting = cuttingTasks.some(t => t.tagId === tagId && t.isFinished);
+                const hasFinishedInking = inkingTasks.some(t => t.tagId === tagId && t.isFinished);
+
+                if (hasFinishedCutting && hasFinishedInking) {
+                    console.log(`Tag ${tagId} is ready for shipping. Sending notification...`);
+                    
+                    try {
+                        const result = await sendShippingNotification(tagId);
+                        if(result.success) {
+                            toast({
+                                title: "Shipping Notification Sent!",
+                                description: `The shipping department has been notified that Tag ID ${tagId} is ready for pickup.`
+                            });
+                             setNotifiedTags(prev => new Set(prev).add(tagId));
+                        } else {
+                             toast({
+                                title: "Notification Failed",
+                                description: result.message,
+                                variant: "destructive"
+                            });
+                        }
+                    } catch (error) {
+                        console.error("Failed to send notification:", error);
+                        toast({
+                            title: "Error",
+                            description: "An error occurred while sending the shipping notification.",
+                            variant: "destructive"
+                        });
+                    }
+                }
+            }
+        };
+
+        checkCompletedTags();
+    }, [cuttingTasks, inkingTasks, notifiedTags, toast]);
 
     const { fields: personnelFields, append: appendPersonnel, remove: removePersonnel } = useFieldArray({ control: form.control, name: "personnel" });
     const { fields: maintenanceFields, append: appendMaintenance, remove: removeMaintenance } = useFieldArray({ control: form.control, name: "maintenance_tasks" });
