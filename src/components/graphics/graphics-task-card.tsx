@@ -2,7 +2,7 @@
 "use client"
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { GripVertical, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -34,7 +34,7 @@ const inkingWorkTypes = ["Layout", "Masking", "Fold", "Mixing Ink", "Touch-up"];
 
 export function GraphicsTaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
     const isSail = task.tagType === 'Sail';
-    const isDoubleSided = isSail && task.sidedness === 'Double-Sided';
+    isSail && task.sidedness === 'Double-Sided';
 
     const workTypes = task.type === 'cutting' ? cuttingWorkTypes : inkingWorkTypes;
 
@@ -93,7 +93,7 @@ export function GraphicsTaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
                                     <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Double-Sided" /></FormControl><Label className="font-normal">Double-Sided</Label></FormItem>
                                 </RadioGroup>
                             </div>
-                            {isDoubleSided && (
+                            {task.sidedness === 'Double-Sided' && (
                                 <div className="space-y-2">
                                     <Label>Side of Work</Label>
                                     <Select value={task.sideOfWork} onValueChange={val => handleFieldChange('sideOfWork', val)}>
@@ -124,22 +124,24 @@ export function GraphicsTaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
 
                     <Separator />
 
-                    <div className="grid md:grid-cols-3 gap-4 items-end">
-                        <div className="space-y-2">
-                            <Label>Duration (mins)</Label>
-                            <Input type="number" value={task.durationMins} onChange={e => handleFieldChange('durationMins', e.target.valueAsNumber)} />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Personnel Count</Label>
-                            <Input type="number" value={task.personnelCount} onChange={e => handleFieldChange('personnelCount', e.target.valueAsNumber)} />
-                        </div>
-                         {task.type === 'inking' && (
-                            <div className="flex items-center h-10">
-                                <Checkbox id="tapeUsed" checked={task.tapeUsed} onCheckedChange={val => handleFieldChange('tapeUsed', val)} />
-                                <Label htmlFor="tapeUsed" className="ml-2">Tape Used?</Label>
+                    {task.status === 'done' && (
+                        <div className="grid md:grid-cols-3 gap-4 items-end p-4 bg-muted/50 rounded-lg">
+                            <div className="space-y-2">
+                                <Label>Duration (mins)</Label>
+                                <Input type="number" value={task.durationMins} onChange={e => handleFieldChange('durationMins', e.target.valueAsNumber)} />
                             </div>
-                         )}
-                    </div>
+                            <div className="space-y-2">
+                                <Label>Personnel Count</Label>
+                                <Input type="number" value={task.personnelCount} onChange={e => handleFieldChange('personnelCount', e.target.valueAsNumber)} />
+                            </div>
+                             {task.type === 'inking' && (
+                                <div className="flex items-center h-10">
+                                    <Checkbox id="tapeUsed" checked={task.tapeUsed} onCheckedChange={val => handleFieldChange('tapeUsed', val)} />
+                                    <Label htmlFor="tapeUsed" className="ml-2">Tape Used?</Label>
+                                </div>
+                             )}
+                        </div>
+                    )}
                      <div className="space-y-2">
                         <Label>Description / Notes</Label>
                         <Input value={task.content} onChange={e => handleFieldChange('content', e.target.value)} />

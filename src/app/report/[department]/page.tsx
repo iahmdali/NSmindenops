@@ -10,11 +10,15 @@ function isValidDepartment(department: string): department is Department {
 }
 
 
-export default async function ReportPage({ params: { department } }: { params: { department: string } }) {
-  const departmentName = department.charAt(0).toUpperCase() + department.slice(1);
+export default function ReportPage({ params }: { params: { department: string } }) {
+  const departmentName = params.department.charAt(0).toUpperCase() + params.department.slice(1) as Department;
   
   if (!isValidDepartment(departmentName)) {
     notFound();
+  }
+  
+  if (departmentName === 'Graphics') {
+    return <DepartmentReportForm department={departmentName} />;
   }
   
   return (
