@@ -1,7 +1,7 @@
 
 import { Card } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { CheckCircle, GitFork, Milestone, MoreHorizontal } from "lucide-react";
+import { CheckCircle, Milestone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "../ui/badge";
 

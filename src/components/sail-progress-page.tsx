@@ -8,7 +8,8 @@ import { Button } from "./ui/button";
 import { Search, Wind } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
-import { ProgressTree, type ProgressNode } from "./sail-progress/progress-tree";
+import type { ProgressNode } from "./sail-progress/progress-tree";
+import { SailVisualization } from "./sail-progress/sail-visualization";
 
 // Mock data aggregation
 import { tapeheadsSubmissions } from "@/lib/data";
@@ -157,7 +158,7 @@ const aggregateDataForOE = (oeNumber: string): ProgressNode[] => {
       children: children
     });
   }
-
+  
   // Sort nodes for consistent order: Gantry -> Films -> Tapeheads -> Graphics
   nodes.sort((a, b) => {
     const order = ['Gantry', 'Films', 'Tapeheads', 'Graphics'];
@@ -236,7 +237,7 @@ export function SailProgressPage() {
           </CardHeader>
           <CardContent>
             {results.length > 0 ? (
-                <ProgressTree nodes={results} />
+                <SailVisualization nodes={results} />
             ) : (
                 <Alert>
                     <Search className="h-4 w-4" />
