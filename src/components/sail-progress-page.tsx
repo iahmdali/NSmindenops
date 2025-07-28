@@ -14,55 +14,84 @@ import { ProgressTree, type ProgressNode } from "./sail-progress/progress-tree";
 import { tapeheadsSubmissions } from "@/lib/data";
 import { graphicsTasksData } from "@/lib/graphics-data";
 import { gantryReportsData } from "@/lib/gantry-data";
+import { filmsReportsData } from "@/lib/films-data";
 
 const aggregateDataForOE = (oeNumber: string): ProgressNode[] => {
   if (!oeNumber) return [];
 
   const nodes: ProgressNode[] = [];
   const cleanOeNumber = oeNumber.trim().toLowerCase();
-
-  // Find Gantry data by sail number (assuming OE contains a sail number part)
-  const gantryReports = gantryReportsData.filter(report =>
+  
+  // 1. Gantry Data
+  const gantryReportsForOE = gantryReportsData.filter(report =>
     report.molds?.some(mold =>
       mold.sails.some(sail => sail.sail_number.toLowerCase().includes(cleanOeNumber))
     )
   );
 
-  if (gantryReports.length > 0) {
+  if (gantryReportsForOE.length > 0) {
     nodes.push({
       id: 'gantry',
       name: 'Gantry',
-      status: 'Completed', // Simplified status
-      children: gantryReports.flatMap(report => 
+      status: 'Completed', // Simplified status for the department level
+      children: gantryReportsForOE.flatMap(report =>
         (report.molds || []).flatMap(mold =>
           mold.sails
             .filter(sail => sail.sail_number.toLowerCase().includes(cleanOeNumber))
             .map(sail => ({
               id: `gantry-${report.id}-${mold.id}-${sail.sail_number}`,
               name: `Mold ${mold.mold_number} - Sail ${sail.sail_number}`,
-              status: sail.stage_of_process,
+              status: sail.stage_of_process || 'Unknown Stage',
               details: {
                 Date: report.date,
                 Shift: report.shift,
-                Issues: sail.issues || 'None',
+                "Recorded Issues": sail.issues || 'None',
               }
             }))
         )
       )
     });
   }
-
-  // Find Tapeheads data
-  const tapeheadsReports = tapeheadsSubmissions.filter(
-    (s) => s.order_entry?.toLowerCase() === cleanOeNumber
+  
+  // 2. Films Data
+  const filmsReportsForOE = filmsReportsData.filter(report => 
+    report.sail_preparations.some(prep => prep.sail_number.toLowerCase().includes(cleanOeNumber))
   );
 
-  if (tapeheadsReports.length > 0) {
+  if (filmsReportsForOE.length > 0) {
+    nodes.push({
+      id: 'films',
+      name: 'Films',
+      status: 'Completed',
+      children: filmsReportsForOE.flatMap(report => 
+        report.sail_preparations
+        .filter(prep => prep.sail_number.toLowerCase().includes(cleanOeNumber))
+        .map(prep => ({
+          id: `films-${report.report_date}-${prep.sail_number}`,
+          name: `Sail Prep for ${prep.sail_number}`,
+          status: prep.status_done ? 'Done' : 'In Progress',
+          details: {
+            Date: report.report_date,
+            "Shift Lead": report.shift_lead_name,
+            "Gantry/Mold": prep.gantry_mold,
+            "Issue Notes": prep.issue_notes || 'None',
+          }
+        }))
+      )
+    });
+  }
+
+  // 3. Tapeheads data
+  const tapeheadsReportsForOE = tapeheadsSubmissions.filter(
+    (s) => s.order_entry?.toLowerCase().includes(cleanOeNumber)
+  );
+
+  if (tapeheadsReportsForOE.length > 0) {
     nodes.push({
       id: "tapeheads",
       name: "Tapeheads",
       status: "Completed", // Simplified
-      children: tapeheadsReports.map((report) => ({
+      children: tapeheadsReportsForOE.map((report) => ({
         id: `tapeheads-${report.id}`,
         name: `Operator: ${report.operatorName} on ${report.th_number}`,
         status: report.end_of_shift_status,
@@ -76,14 +105,14 @@ const aggregateDataForOE = (oeNumber: string): ProgressNode[] => {
     });
   }
 
-  // Find Graphics data
-  const graphicsTasks = graphicsTasksData.filter(
+  // 4. Graphics data
+  const graphicsTasksForOE = graphicsTasksData.filter(
     (t) => t.tagId.toLowerCase().includes(cleanOeNumber)
   );
   
-  if (graphicsTasks.length > 0) {
-    const cuttingTasks = graphicsTasks.filter(t => t.type === 'cutting');
-    const inkingTasks = graphicsTasks.filter(t => t.type === 'inking');
+  if (graphicsTasksForOE.length > 0) {
+    const cuttingTasks = graphicsTasksForOE.filter(t => t.type === 'cutting');
+    const inkingTasks = graphicsTasksForOE.filter(t => t.type === 'inking');
     
     const children: ProgressNode[] = [];
     if(cuttingTasks.length > 0) {
@@ -93,8 +122,13 @@ const aggregateDataForOE = (oeNumber: string): ProgressNode[] => {
             status: cuttingTasks.every(t => t.status === 'done') ? 'Completed' : 'In Progress',
             children: cuttingTasks.map(task => ({
                 id: `graphics-cut-${task.id}`,
-                name: task.content,
+                name: task.content || 'Cutting Task',
                 status: task.status,
+                 details: {
+                    Type: task.tagType || 'N/A',
+                    Side: task.sideOfWork || 'N/A',
+                    Finished: task.isFinished ? 'Yes' : 'No'
+                 }
             }))
         });
     }
@@ -105,8 +139,13 @@ const aggregateDataForOE = (oeNumber: string): ProgressNode[] => {
             status: inkingTasks.every(t => t.status === 'done') ? 'Completed' : 'In Progress',
              children: inkingTasks.map(task => ({
                 id: `graphics-ink-${task.id}`,
-                name: task.content,
+                name: task.content || 'Inking Task',
                 status: task.status,
+                 details: {
+                    Type: task.tagType || 'N/A',
+                    Side: task.sideOfWork || 'N/A',
+                    Finished: task.isFinished ? 'Yes' : 'No'
+                 }
             }))
         });
     }
@@ -114,18 +153,23 @@ const aggregateDataForOE = (oeNumber: string): ProgressNode[] => {
     nodes.push({
       id: "graphics",
       name: "Graphics",
-      status: graphicsTasks.every((t) => t.status === "done") ? "Completed" : "In Progress",
+      status: graphicsTasksForOE.every((t) => t.status === "done") ? "Completed" : "In Progress",
       children: children
     });
   }
 
+  // Sort nodes for consistent order: Gantry -> Films -> Tapeheads -> Graphics
+  nodes.sort((a, b) => {
+    const order = ['Gantry', 'Films', 'Tapeheads', 'Graphics'];
+    return order.indexOf(a.name) - order.indexOf(b.name);
+  });
 
   return nodes;
 };
 
 
 export function SailProgressPage() {
-  const [oeNumber, setOeNumber] = useState("");
+  const [oeNumber, setOeNumber] = useState("OE-12345");
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState<ProgressNode[] | null>(null);
 
@@ -147,6 +191,12 @@ export function SailProgressPage() {
     }
   }
 
+  // Automatically run a search for the default OE number on initial load
+  React.useEffect(() => {
+    handleSearch();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <div className="space-y-8">
       <PageHeader
@@ -159,7 +209,7 @@ export function SailProgressPage() {
           <div className="flex w-full max-w-lg items-center space-x-2">
             <Input
               type="text"
-              placeholder="Enter OE Number (e.g., OE-12345) or Sail Number"
+              placeholder="Enter OE Number (e.g., OE-12345)"
               value={oeNumber}
               onChange={(e) => setOeNumber(e.target.value)}
               onKeyPress={handleKeyPress}
