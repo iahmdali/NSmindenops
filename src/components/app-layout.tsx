@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -44,6 +45,7 @@ import {
   ChevronDown,
   ClipboardList,
   AreaChart,
+  Waypoints,
 } from "lucide-react";
 import { Logo } from "@/components/icons";
 import { cn } from "@/lib/utils";
@@ -207,6 +209,18 @@ function MainSidebar() {
               <Link href="/review/tapeheads">
                 <ClipboardList />
                 <span>Tapeheads Review</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+           <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname === "/sail-progress"}
+              tooltip="Sail Progress"
+            >
+              <Link href="/sail-progress">
+                <Waypoints />
+                <span>Sail Progress</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

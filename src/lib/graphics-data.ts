@@ -7,7 +7,7 @@ export interface GraphicsTask {
     content: string;
     tagType?: 'Sail' | 'Decal';
     sidedness?: 'Single-Sided' | 'Double-Sided';
-    sideOfWork?: 'Front' | 'Back';
+    sideOfWork?: 'Port' | 'Starboard';
     workTypes?: string[];
     durationMins?: number;
     personnelCount?: number;
@@ -26,24 +26,24 @@ yesterday.setDate(today.getDate() - 1);
 export let graphicsTasksData: GraphicsTask[] = [
     // Today's work
     { 
-        id: 'cut-1', type: 'cutting', tagId: 'SAIL-123', status: 'inProgress', content: 'Main sail body cutting', 
-        tagType: 'Sail', sidedness: 'Double-Sided', sideOfWork: 'Front', 
+        id: 'cut-1', type: 'cutting', tagId: 'OE-12345-A', status: 'inProgress', content: 'Main sail body cutting', 
+        tagType: 'Sail', sidedness: 'Double-Sided', sideOfWork: 'Port', 
         startedAt: today.toISOString(),
         workTypes: ['Cutting', 'Masking']
     },
     { 
-        id: 'ink-1', type: 'inking', tagId: 'DECAL-456', status: 'done', content: 'Applying main logo decal',
+        id: 'ink-1', type: 'inking', tagId: 'OE-12345-B', status: 'done', content: 'Applying main logo decal',
         tagType: 'Decal', durationMins: 60, personnelCount: 2, tapeUsed: true, isFinished: true,
         startedAt: today.toISOString(), completedAt: today.toISOString()
     },
     { 
-        id: 'cut-2', type: 'cutting', tagId: 'SAIL-789', status: 'todo', content: 'Jib sail initial cut',
+        id: 'cut-2', type: 'cutting', tagId: 'OE-67890-A', status: 'todo', content: 'Jib sail initial cut',
         tagType: 'Sail', sidedness: 'Single-Sided',
         startedAt: today.toISOString()
     },
      { 
-        id: 'ink-2', type: 'inking', tagId: 'SAIL-123', status: 'todo', content: 'Inking front side insignia',
-        tagType: 'Sail', sidedness: 'Double-Sided', sideOfWork: 'Front',
+        id: 'ink-2', type: 'inking', tagId: 'OE-12345-A', status: 'todo', content: 'Inking Port side insignia',
+        tagType: 'Sail', sidedness: 'Double-Sided', sideOfWork: 'Port',
         startedAt: today.toISOString()
     },
 

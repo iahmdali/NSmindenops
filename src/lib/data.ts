@@ -1,3 +1,4 @@
+
 import type { Report } from '@/lib/types';
 
 export const tapeheadsSubmissions: Report[] = [
@@ -10,6 +11,7 @@ export const tapeheadsSubmissions: Report[] = [
     shift_lead_name: "Lead A",
     th_number: "TH-1",
     material_type: "Carbon",
+    order_entry: "OE-12345",
     end_of_shift_status: "Completed",
     shift_start_time: "06:00",
     shift_end_time: "14:00",
@@ -29,6 +31,7 @@ export const tapeheadsSubmissions: Report[] = [
     shift_lead_name: "Lead A",
     th_number: "TH-2",
     material_type: "Fiber",
+    order_entry: "OE-12345",
     end_of_shift_status: "Completed",
     shift_start_time: "06:00",
     shift_end_time: "14:00",
@@ -69,6 +72,7 @@ export const tapeheadsSubmissions: Report[] = [
     shift_lead_name: "Lead B",
     th_number: "TH-4",
     material_type: "Carbon",
+    order_entry: "OE-67890",
     end_of_shift_status: "Completed",
     shift_start_time: "14:00",
     shift_end_time: "22:00",
@@ -87,6 +91,7 @@ export const tapeheadsSubmissions: Report[] = [
     shift_lead_name: "Lead C",
     th_number: "TH-5",
     material_type: "Polyester",
+    order_entry: "OE-67890",
     end_of_shift_status: "Completed",
     shift_start_time: "22:00",
     shift_end_time: "06:00",
@@ -105,6 +110,7 @@ export const tapeheadsSubmissions: Report[] = [
     shift_lead_name: "Lead A",
     th_number: "TH-2",
     material_type: "Fiber",
+    order_entry: "OE-ABCDE",
     end_of_shift_status: "Completed",
     shift_start_time: "06:00",
     shift_end_time: "14:00",
@@ -123,6 +129,7 @@ export const tapeheadsSubmissions: Report[] = [
     shift_lead_name: "Lead A",
     th_number: "TH-1",
     material_type: "Carbon",
+    order_entry: "OE-ABCDE",
     end_of_shift_status: "Completed",
     shift_start_time: "06:00",
     shift_end_time: "14:00",
