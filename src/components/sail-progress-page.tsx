@@ -8,8 +8,9 @@ import { Button } from "./ui/button";
 import { Search, Wind } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
-import type { ProgressNode } from "./sail-progress/progress-tree";
 import { SailVisualization } from "./sail-progress/sail-visualization";
+import type { ProgressNode } from "./sail-progress/progress-tree";
+
 
 // Mock data aggregation
 import { tapeheadsSubmissions } from "@/lib/data";
