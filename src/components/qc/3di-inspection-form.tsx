@@ -23,19 +23,22 @@ const inspectionSchema = z.object({
         head: z.string().optional(),
         tack: z.string().optional(),
         clew: z.string().optional(),
-        belly: z.string().optional(),
+        belly_min: z.string().optional(),
+        belly_max: z.string().optional(),
       }).optional(),
       port: z.object({
         head: z.string().optional(),
         tack: z.string().optional(),
         clew: z.string().optional(),
-        belly: z.string().optional(),
+        belly_min: z.string().optional(),
+        belly_max: z.string().optional(),
       }).optional(),
       starboard: z.object({
         head: z.string().optional(),
         tack: z.string().optional(),
         clew: z.string().optional(),
-        belly: z.string().optional(),
+        belly_min: z.string().optional(),
+        belly_max: z.string().optional(),
       }).optional(),
   }).optional(),
   vacuum_before: z.array(z.coerce.number().optional()),
@@ -58,9 +61,9 @@ export function ThreeDiInspectionForm() {
       inspector_name: "",
       dpi_type: "<50000",
       lamination_temps: {
-        single: { head: '', tack: '', clew: '', belly: '' },
-        port: { head: '', tack: '', clew: '', belly: '' },
-        starboard: { head: '', tack: '', clew: '', belly: '' }
+        single: { head: '', tack: '', clew: '', belly_min: '', belly_max: '' },
+        port: { head: '', tack: '', clew: '', belly_min: '', belly_max: '' },
+        starboard: { head: '', tack: '', clew: '', belly_min: '', belly_max: '' }
       },
       vacuum_before: Array(10).fill(undefined),
       vacuum_after: Array(10).fill(undefined),

@@ -16,11 +16,12 @@ function TemperatureFields({ side }: { side?: 'Port' | 'Starboard' }) {
   return (
     <div className="p-4 border rounded-md space-y-4 bg-muted/30">
         {side && <h4 className="font-semibold">{side} Side</h4>}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <FormField control={control} name={`${namePrefix}.head`} render={({ field }) => (<FormItem><FormLabel>Head (°C)</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)} />
             <FormField control={control} name={`${namePrefix}.tack`} render={({ field }) => (<FormItem><FormLabel>Tack (°C)</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)} />
             <FormField control={control} name={`${namePrefix}.clew`} render={({ field }) => (<FormItem><FormLabel>Clew (°C)</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)} />
-            <FormField control={control} name={`${namePrefix}.belly`} render={({ field }) => (<FormItem><FormLabel>Belly (°C)</FormLabel><FormControl><Input placeholder="min-max" {...field} /></FormControl></FormItem>)} />
+            <FormField control={control} name={`${namePrefix}.belly_min`} render={({ field }) => (<FormItem><FormLabel>Belly (min °C)</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)} />
+            <FormField control={control} name={`${namePrefix}.belly_max`} render={({ field }) => (<FormItem><FormLabel>Belly (max °C)</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)} />
         </div>
     </div>
   );
