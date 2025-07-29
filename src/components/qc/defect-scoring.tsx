@@ -85,7 +85,7 @@ function SeverityInputs({ category, defectId, maxEntries }: { category: string, 
                                     <SelectTrigger><SelectValue placeholder="-" /></SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    <SelectItem value="">-</SelectItem>
+                                    <SelectItem value="0">-</SelectItem>
                                     {severityOptions.map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
                                 </SelectContent>
                             </Select>

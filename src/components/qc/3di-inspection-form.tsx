@@ -86,7 +86,10 @@ export function ThreeDiInspectionForm() {
             Object.values(defects[category]).forEach((defect: any) => {
                 if(defect) {
                     Object.values(defect).forEach((severity: any) => {
-                        if (severity) total += parseInt(severity, 10);
+                        const score = parseInt(severity, 10);
+                        if (!isNaN(score) && score > 0) {
+                            total += score;
+                        }
                     });
                 }
             });
