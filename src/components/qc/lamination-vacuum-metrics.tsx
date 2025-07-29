@@ -11,7 +11,7 @@ import { Textarea } from "../ui/textarea";
 
 function TemperatureFields({ side }: { side?: 'Port' | 'Starboard' }) {
   const { control } = useFormContext();
-  const namePrefix = side ? `lamination_temps.${side.toLowerCase()}` : "lamination_temps";
+  const namePrefix = side ? `lamination_temps.${side.toLowerCase()}` : "lamination_temps.single";
 
   return (
     <div className="p-4 border rounded-md space-y-4 bg-muted/30">
@@ -47,7 +47,7 @@ function VacuumFields({ stage }: { stage: 'before' | 'after' }) {
                             <FormItem>
                                 <FormLabel>{i + 1}</FormLabel>
                                 <FormControl>
-                                    <Input type="number" {...field} />
+                                    <Input type="number" {...field} value={field.value ?? ''} />
                                 </FormControl>
                             </FormItem>
                         )}

@@ -18,7 +18,26 @@ const inspectionSchema = z.object({
   oe_number: z.string().min(1, "OE# is required."),
   inspector_name: z.string().min(1, "Inspector name is required."),
   dpi_type: z.enum(["<50000", ">50000"]),
-  lamination_temps: z.any(), // Simplified for now, can be detailed later
+  lamination_temps: z.object({
+      single: z.object({
+        head: z.string().optional(),
+        tack: z.string().optional(),
+        clew: z.string().optional(),
+        belly: z.string().optional(),
+      }).optional(),
+      port: z.object({
+        head: z.string().optional(),
+        tack: z.string().optional(),
+        clew: z.string().optional(),
+        belly: z.string().optional(),
+      }).optional(),
+      starboard: z.object({
+        head: z.string().optional(),
+        tack: z.string().optional(),
+        clew: z.string().optional(),
+        belly: z.string().optional(),
+      }).optional(),
+  }).optional(),
   vacuum_before: z.array(z.coerce.number().optional()),
   vacuum_after: z.array(z.coerce.number().optional()),
   qc_comments: z.string().optional(),
@@ -38,6 +57,11 @@ export function ThreeDiInspectionForm() {
       oe_number: "",
       inspector_name: "",
       dpi_type: "<50000",
+      lamination_temps: {
+        single: { head: '', tack: '', clew: '', belly: '' },
+        port: { head: '', tack: '', clew: '', belly: '' },
+        starboard: { head: '', tack: '', clew: '', belly: '' }
+      },
       vacuum_before: Array(10).fill(undefined),
       vacuum_after: Array(10).fill(undefined),
       defects: {},
