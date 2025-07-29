@@ -46,6 +46,7 @@ import {
   ClipboardList,
   AreaChart,
   Waypoints,
+  ClipboardCheck,
 } from "lucide-react";
 import { Logo } from "@/components/icons";
 import { cn } from "@/lib/utils";
@@ -209,6 +210,18 @@ function MainSidebar() {
               <Link href="/review/tapeheads">
                 <ClipboardList />
                 <span>Tapeheads Review</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname.startsWith("/qc")}
+              tooltip="QC Inspection"
+            >
+              <Link href="/qc/3di-inspection">
+                <ClipboardCheck />
+                <span>QC Inspection</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
