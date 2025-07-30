@@ -106,7 +106,7 @@ export function SailProgressPage() {
           <div className="flex w-full max-w-lg items-center space-x-2">
             <Input
               type="text"
-              placeholder="Enter OE or Sail number..."
+              placeholder="e.g., OUS79723-001"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyPress={handleKeyPress}

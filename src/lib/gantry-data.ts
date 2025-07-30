@@ -42,7 +42,7 @@ const stages = ["Layup", "Curing", "Trimming", "Inspection", "Finished"];
 const issues = ["Delamination", "Wrinkles", "Contamination", "Porosity", ""];
 const downtimeReasons = ["Machine Error", "Material Shortage", "Shift Change", "Lunch", "Planned Maintenance"];
 
-const oeNumbers = ["OE-12345", "OE-67890", "OE-ABCDE"];
+const oeNumbers = ["OUS79723-001", "OUS79723-101", "OIT76541-001", "OAUS32145-001"];
 
 const generateRandomData = (days: number): GantryReport[] => {
   const reports: GantryReport[] = [];

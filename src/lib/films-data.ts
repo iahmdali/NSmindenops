@@ -28,7 +28,7 @@ export const filmsReportsData: FilmsReport[] = [
     sail_preparations: [
       {
         gantry_mold: 'Gantry 4/MOLD 105',
-        sail_number: 'OE-12345',
+        sail_number: 'OUS79723-001',
         prep_date: '2023-10-27',
         status_in_progress: false,
         status_done: true,
@@ -36,7 +36,7 @@ export const filmsReportsData: FilmsReport[] = [
       },
       {
         gantry_mold: 'Gantry 6/MOLD 109',
-        sail_number: 'OE-67890',
+        sail_number: 'OUS79723-101',
         prep_date: '2023-10-27',
         status_in_progress: true,
         status_done: false,
@@ -53,7 +53,7 @@ export const filmsReportsData: FilmsReport[] = [
     sail_preparations: [
       {
         gantry_mold: 'Gantry 8/MOLD 100',
-        sail_number: 'OE-ABCDE',
+        sail_number: 'OAUS32145-001',
         prep_date: '2023-10-26',
         status_in_progress: false,
         status_done: true,

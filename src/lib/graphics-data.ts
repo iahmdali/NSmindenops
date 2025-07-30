@@ -26,23 +26,23 @@ yesterday.setDate(today.getDate() - 1);
 export let graphicsTasksData: GraphicsTask[] = [
     // Today's work
     { 
-        id: 'cut-1', type: 'cutting', tagId: 'OE-12345-A', status: 'inProgress', content: 'Main sail body cutting', 
+        id: 'cut-1', type: 'cutting', tagId: 'OUS79723-001', status: 'inProgress', content: 'Main sail body cutting', 
         tagType: 'Sail', sidedness: 'Double-Sided', sideOfWork: 'Port', 
         startedAt: today.toISOString(),
         workTypes: ['Cutting', 'Masking']
     },
     { 
-        id: 'ink-1', type: 'inking', tagId: 'OE-12345-B', status: 'done', content: 'Applying main logo decal',
+        id: 'ink-1', type: 'inking', tagId: 'OUS79723-001', status: 'done', content: 'Applying main logo decal',
         tagType: 'Decal', durationMins: 60, personnelCount: 2, tapeUsed: true, isFinished: true,
         startedAt: today.toISOString(), completedAt: today.toISOString()
     },
     { 
-        id: 'cut-2', type: 'cutting', tagId: 'OE-67890-A', status: 'todo', content: 'Jib sail initial cut',
+        id: 'cut-2', type: 'cutting', tagId: 'OIT76541-001', status: 'todo', content: 'Jib sail initial cut',
         tagType: 'Sail', sidedness: 'Single-Sided',
         startedAt: today.toISOString()
     },
      { 
-        id: 'ink-2', type: 'inking', tagId: 'OE-12345-A', status: 'todo', content: 'Inking Port side insignia',
+        id: 'ink-2', type: 'inking', tagId: 'OIT76541-001', status: 'todo', content: 'Inking Port side insignia',
         tagType: 'Sail', sidedness: 'Double-Sided', sideOfWork: 'Port',
         startedAt: today.toISOString()
     },
@@ -50,13 +50,13 @@ export let graphicsTasksData: GraphicsTask[] = [
 
     // Yesterday's completed work
     { 
-        id: 'cut-y1', type: 'cutting', tagId: 'SAIL-Y1', status: 'done', content: 'Full sail cut and weed', 
+        id: 'cut-y1', type: 'cutting', tagId: 'OAUS32145-001', status: 'done', content: 'Full sail cut and weed', 
         tagType: 'Sail', sidedness: 'Single-Sided',
         durationMins: 120, personnelCount: 2, isFinished: true,
         startedAt: yesterday.toISOString(), completedAt: yesterday.toISOString()
     },
     { 
-        id: 'ink-y1', type: 'inking', tagId: 'SAIL-Y1', status: 'done', content: 'All graphics applied',
+        id: 'ink-y1', type: 'inking', tagId: 'OAUS32145-001', status: 'done', content: 'All graphics applied',
         tagType: 'Sail', sidedness: 'Single-Sided',
         durationMins: 90, personnelCount: 1, tapeUsed: true, isFinished: false, // This tag wasn't marked as finished from inking
         startedAt: yesterday.toISOString(), completedAt: yesterday.toISOString()
