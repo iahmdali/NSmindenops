@@ -173,7 +173,7 @@ export function TapeheadsOperatorForm({ oeSection }: { oeSection: OeSection }) {
 
   function onSubmit(values: OperatorFormValues) {
     console.log(values);
-    updateOeSectionStatus(oeSection.id, 'completed');
+    updateOeSectionStatus(oeSection.id, 'in-progress');
     toast({
       title: "Operator Work Submitted!",
       description: `Your entry for ${values.oeNumber}-${values.section} has been recorded.`,

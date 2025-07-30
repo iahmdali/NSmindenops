@@ -23,7 +23,7 @@ export function addOeJob(job: { oeBase: string, sections: Array<{ sectionId: str
     panels: s.panels,
     status: 'pending'
   }));
-  oeJobs.push(...newSections);
+  oeJobs.unshift(...newSections);
 }
 
 export function getOeSection(oeBase?: string, sectionId?: string): OeSection | undefined {
