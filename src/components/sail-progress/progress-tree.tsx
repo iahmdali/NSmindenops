@@ -1,41 +1,53 @@
 
 import { Card } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { CheckCircle, Milestone } from "lucide-react";
+import { CheckCircle, Milestone, AlertTriangle, CircleDotDashed } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "../ui/badge";
+import type { ProgressNode } from "@/lib/sail-progress-types";
 
-export interface ProgressNode {
-  id: string;
-  name: string;
-  status: string;
-  details?: Record<string, string | number>;
-  children?: ProgressNode[];
-}
-
-interface ProgressTreeProps {
-  nodes: ProgressNode[];
-}
-
-const statusStyles = {
-  default: "bg-gray-100 text-gray-800 border-gray-200",
-  "In Progress": "bg-blue-100 text-blue-800 border-blue-200",
-  Completed: "bg-green-100 text-green-800 border-green-200",
-  Done: "bg-green-100 text-green-800 border-green-200",
-  "Pass": "bg-green-100 text-green-800 border-green-200",
-  "Fail": "bg-red-100 text-red-800 border-red-500",
-  "Requires Reinspection": "bg-yellow-100 text-yellow-800 border-yellow-500",
-  "Ready for Pickup": "bg-primary/20 text-primary border-primary/50",
-  "Awaiting Pickup": "bg-primary/20 text-primary border-primary/50"
+const statusStyles: Record<string, string> = {
+  Completed: "bg-green-100 text-green-800",
+  Prepped: "bg-green-100 text-green-800",
+  "QC Passed": "bg-green-100 text-green-800",
+  "In Progress": "bg-yellow-100 text-yellow-800",
+  "Requires Reinspection": "bg-yellow-100 text-yellow-800",
+  "QC Fail": "bg-red-100 text-red-800",
+  "Issues Logged": "bg-red-100 text-red-800",
+  done: "bg-green-100 text-green-800",
+  inProgress: "bg-yellow-100 text-yellow-800",
+  todo: "bg-gray-100 text-gray-800",
+  default: "bg-gray-100 text-gray-800",
 };
 
-function getStatusClass(status?: string) {
-  if (!status) return statusStyles.default;
-  const statusKey = Object.keys(statusStyles).find(key => status.toLowerCase().includes(key.toLowerCase()));
-  return statusKey ? statusStyles[statusKey as keyof typeof statusStyles] : statusStyles.default;
+const statusIcons: Record<string, React.ElementType> = {
+  Completed: CheckCircle,
+  Prepped: CheckCircle,
+  "QC Passed": CheckCircle,
+  done: CheckCircle,
+  "In Progress": CircleDotDashed,
+  inProgress: CircleDotDashed,
+  "Requires Reinspection": AlertTriangle,
+  "QC Fail": AlertTriangle,
+  "Issues Logged": AlertTriangle,
+  default: Milestone,
+};
+
+
+function getStatusInfo(status: string): { className: string, Icon: React.ElementType } {
+  const statusKey = Object.keys(statusStyles).find(key => status.toLowerCase().includes(key.toLowerCase())) || 'default';
+  const iconKey = Object.keys(statusIcons).find(key => status.toLowerCase().includes(key.toLowerCase())) || 'default';
+  return {
+    className: statusStyles[statusKey],
+    Icon: statusIcons[iconKey],
+  };
 }
 
-export function ProgressTree({ nodes }: ProgressTreeProps) {
+export function ProgressTree({ nodes }: { nodes: ProgressNode[] }) {
+  if (!nodes || nodes.length === 0) {
+    return <p className="text-muted-foreground">No progress data available for this sail.</p>;
+  }
+
   return (
     <div className="relative pl-8">
       {/* Vertical line */}
@@ -51,22 +63,27 @@ export function ProgressTree({ nodes }: ProgressTreeProps) {
 
 function TreeNode({ node }: { node: ProgressNode }) {
   const hasChildren = node.children && node.children.length > 0;
-  
-  const statusClass = getStatusClass(node.status);
-  const isCompleted = node.status === 'Completed' || node.status === 'Done' || node.status === 'Pass' || node.status === 'Ready for Pickup';
+  const { className: statusClass, Icon } = getStatusInfo(node.status);
 
   return (
     <div className="relative">
       {/* Circle on the vertical line */}
-      <div className="absolute -left-[2.1rem] top-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-background border-2 border-primary">
-        {isCompleted ? (
-          <CheckCircle className="h-5 w-5 text-green-600" />
-        ) : (
-          <Milestone className="h-5 w-5 text-primary" />
-        )}
+      <div className={cn(
+          "absolute -left-[2.1rem] top-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-background border-2",
+          node.status.includes('Fail') || node.status.includes('Issues') ? 'border-red-500' : 
+          node.status.includes('Progress') || node.status.includes('Reinspection') ? 'border-yellow-500' :
+          'border-primary'
+        )}>
+          <Icon className={cn(
+              "h-5 w-5",
+              node.status.includes('Fail') || node.status.includes('Issues') ? 'text-red-500' : 
+              node.status.includes('Progress') || node.status.includes('Reinspection') ? 'text-yellow-500' :
+              node.status.includes('Completed') || node.status.includes('Passed') ? 'text-green-600' :
+              'text-primary'
+          )} />
       </div>
 
-      <Accordion type="single" collapsible defaultValue={hasChildren ? `item-${node.id}` : undefined}>
+      <Accordion type="single" collapsible defaultValue={hasChildren ? `item-${node.id}` : undefined} className="border-b-0">
         <AccordionItem value={`item-${node.id}`} className="border-b-0">
           <Card className="overflow-hidden">
             <AccordionTrigger className="p-4 hover:no-underline [&[data-state=open]>svg]:text-primary">

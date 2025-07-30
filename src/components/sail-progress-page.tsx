@@ -1,259 +1,84 @@
 
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { PageHeader } from "./page-header";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { Search, Wind } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/card";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
-import { ProgressTree, type ProgressNode } from "./sail-progress/progress-tree";
+import { ProgressTree } from "./sail-progress/progress-tree";
+import { getSailProgressData, getRecentSails } from "@/lib/sail-progress-logic";
+import type { Sail } from "@/lib/sail-progress-types";
+import { Badge } from "./ui/badge";
 
-
-// Mock data aggregation
-import { tapeheadsSubmissions } from "@/lib/data";
-import { graphicsTasksData } from "@/lib/graphics-data";
-import { gantryReportsData } from "@/lib/gantry-data";
-import { filmsReportsData } from "@/lib/films-data";
-import { qcInspectionData } from "@/lib/qc-data";
-
-const aggregateDataForOE = (oeNumber: string): ProgressNode[] => {
-  if (!oeNumber) return [];
-
-  const nodes: ProgressNode[] = [];
-  const cleanOeNumber = oeNumber.trim().toLowerCase();
-  
-  // 1. Gantry Data
-  const gantryReportsForOE = gantryReportsData.filter(report =>
-    report.molds?.some(mold =>
-      mold.sails.some(sail => sail.sail_number.toLowerCase().includes(cleanOeNumber))
-    )
-  );
-
-  if (gantryReportsForOE.length > 0) {
-    const gantryNode: ProgressNode = {
-      id: 'gantry',
-      name: 'Gantry',
-      status: 'In Progress', // Default status
-      children: []
-    };
-
-    const allGantrySailsDone = gantryReportsForOE.every(report =>
-        report.molds?.every(mold =>
-            mold.sails
-                .filter(sail => sail.sail_number.toLowerCase().includes(cleanOeNumber))
-                .every(sail => sail.stage_of_process === 'Finished')
-        )
-    );
-    if (allGantrySailsDone) {
-        gantryNode.status = 'Completed';
-    }
-
-    gantryNode.children = gantryReportsForOE.flatMap(report =>
-        (report.molds || []).flatMap(mold =>
-          mold.sails
-            .filter(sail => sail.sail_number.toLowerCase().includes(cleanOeNumber))
-            .map(sail => {
-              // Find corresponding Films data
-              const filmPrep = filmsReportsData.find(filmReport => 
-                filmReport.sail_preparations.some(p => p.sail_number.toLowerCase().includes(cleanOeNumber) && p.gantry_mold === mold.mold_number)
-              )?.sail_preparations[0];
-
-              return {
-                id: `gantry-${report.id}-${mold.id}-${sail.sail_number}`,
-                name: `Mold ${mold.mold_number} - Sail ${sail.sail_number}`,
-                status: sail.stage_of_process || 'Unknown Stage',
-                details: {
-                  "Gantry Report Date": report.date,
-                  "Film Prep Date": filmPrep ? new Date(filmPrep.prep_date).toLocaleDateString() : "N/A",
-                  "Film Status": filmPrep ? (filmPrep.status_done ? 'Done' : 'In Progress') : "N/A",
-                  "Gantry Issues": sail.issues || 'None',
-                }
-              }
-            })
-        )
-      )
-    nodes.push(gantryNode);
-  }
-  
-  // 2. Films Data
-  const filmsReportsForOE = filmsReportsData.filter(report => 
-    report.sail_preparations.some(prep => prep.sail_number.toLowerCase().includes(cleanOeNumber))
-  );
-
-  if (filmsReportsForOE.length > 0) {
-    nodes.push({
-      id: 'films',
-      name: 'Films',
-      status: filmsReportsForOE.every(r => r.sail_preparations.every(p => p.status_done)) ? 'Completed' : 'In Progress',
-      children: filmsReportsForOE.flatMap(report => 
-        report.sail_preparations
-        .filter(prep => prep.sail_number.toLowerCase().includes(cleanOeNumber))
-        .map(prep => ({
-          id: `films-${prep.prep_date}-${prep.sail_number}`,
-          name: `Sail Prep for ${prep.sail_number}`,
-          status: prep.status_done ? 'Done' : 'In Progress',
-          details: {
-            Date: new Date(prep.prep_date).toLocaleDateString(),
-            "Shift Lead": report.shift_lead_name,
-            "Gantry/Mold": prep.gantry_mold,
-            "Issue Notes": prep.issue_notes || 'None',
-          }
-        }))
-      )
-    });
-  }
-
-  // 3. Tapeheads data
-  const tapeheadsReportsForOE = tapeheadsSubmissions.filter(
-    (s) => s.order_entry?.toLowerCase().includes(cleanOeNumber)
-  );
-
-  if (tapeheadsReportsForOE.length > 0) {
-    nodes.push({
-      id: "tapeheads",
-      name: "Tapeheads",
-      status: tapeheadsReportsForOE.every(r => r.end_of_shift_status === 'Completed') ? "Completed" : "In Progress",
-      children: tapeheadsReportsForOE.map((report) => ({
-        id: `tapeheads-${report.id}`,
-        name: `Operator: ${report.operatorName} on ${report.th_number}`,
-        status: report.end_of_shift_status,
-        details: {
-          Date: new Date(report.date).toLocaleDateString(),
-          Shift: report.shift,
-          "Total Meters": `${report.total_meters}m`,
-          "Spin Out": report.had_spin_out ? "Yes" : "No",
-        },
-      })),
-    });
-  }
-
-  // 4. Graphics data
-  const graphicsTasksForOE = graphicsTasksData.filter(
-    (t) => t.tagId.toLowerCase().includes(cleanOeNumber)
-  );
-  
-  if (graphicsTasksForOE.length > 0) {
-    const cuttingTasks = graphicsTasksForOE.filter(t => t.type === 'cutting');
-    const inkingTasks = graphicsTasksForOE.filter(t => t.type === 'inking');
-    
-    const children: ProgressNode[] = [];
-    if(cuttingTasks.length > 0) {
-        children.push({
-            id: 'graphics-cutting',
-            name: 'Cutting/Masking',
-            status: cuttingTasks.every(t => t.status === 'done') ? 'Completed' : 'In Progress',
-            children: cuttingTasks.map(task => ({
-                id: `graphics-cut-${task.id}`,
-                name: task.content || 'Cutting Task',
-                status: task.status,
-                 details: {
-                    Type: task.tagType || 'N/A',
-                    Side: task.sideOfWork || 'N/A',
-                    Finished: task.isFinished ? 'Yes' : 'No'
-                 }
-            }))
-        });
-    }
-     if(inkingTasks.length > 0) {
-        children.push({
-            id: 'graphics-inking',
-            name: 'Inking',
-            status: inkingTasks.every(t => t.status === 'done') ? 'Completed' : 'In Progress',
-             children: inkingTasks.map(task => ({
-                id: `graphics-ink-${task.id}`,
-                name: task.content || 'Inking Task',
-                status: task.status,
-                 details: {
-                    Type: task.tagType || 'N/A',
-                    Side: task.sideOfWork || 'N/A',
-                    Finished: task.isFinished ? 'Yes' : 'No'
-                 }
-            }))
-        });
-    }
-
-    nodes.push({
-      id: "graphics",
-      name: "Graphics",
-      status: graphicsTasksForOE.every((t) => t.status === "done") ? "Completed" : "In Progress",
-      children: children
-    });
-  }
-
-  // 5. QC Data
-  const qcReportForOE = qcInspectionData.find(qc => qc.oe_number.toLowerCase().includes(cleanOeNumber));
-  if (qcReportForOE) {
-      const getStatus = (score: number) => {
-          if (score >= 100) return "Fail";
-          if (score >= 61) return "Requires Reinspection";
-          return "Pass";
-      }
-      const status = getStatus(qcReportForOE.totalScore);
-      nodes.push({
-          id: 'qc',
-          name: 'QC',
-          status: status,
-          children: [{
-              id: `qc-${qcReportForOE.oe_number}`,
-              name: `Inspection for ${qcReportForOE.oe_number}`,
-              status: status,
-              details: {
-                  "Inspection Date": new Date(qcReportForOE.inspection_date).toLocaleDateString(),
-                  "Inspector": qcReportForOE.inspector_name,
-                  "Total Score": qcReportForOE.totalScore,
-                  "Final Decision": qcReportForOE.reinspection_notes || 'N/A'
-              }
-          }]
-      })
-  }
-
-  // 6. Shipping (placeholder)
-  const isReadyForShipping = graphicsTasksData
-    .filter(t => t.tagId.toLowerCase().includes(cleanOeNumber))
-    .every(t => t.isFinished && t.status === 'done');
-
-  if (isReadyForShipping && qcReportForOE?.totalScore < 100) {
-       nodes.push({
-          id: 'shipping',
-          name: 'Shipping',
-          status: 'Ready for Pickup',
-          children: [{
-              id: `shipping-${oeNumber}`,
-              name: 'Ready for Shipping',
-              status: 'Awaiting Pickup',
-              details: {
-                  "Notification Sent": "Yes"
-              }
-          }]
-      })
-  }
-
-  
-  // Sort nodes for consistent order: Gantry -> Films -> Tapeheads -> Graphics -> QC -> Shipping
-  nodes.sort((a, b) => {
-    const order = ['Gantry', 'Films', 'Tapeheads', 'Graphics', 'QC', 'Shipping'];
-    return order.indexOf(a.name) - order.indexOf(b.name);
-  });
-
-  return nodes;
+const statusColors: Record<string, string> = {
+  Completed: "bg-green-100 text-green-800",
+  "In Progress": "bg-yellow-100 text-yellow-800",
+  "Issues Logged": "bg-red-100 text-red-800",
+  "QC Passed": "bg-green-100 text-green-800",
+  "QC Fail": "bg-red-100 text-red-800",
+  "Requires Reinspection": "bg-yellow-100 text-yellow-800"
 };
 
+function SailProgressCard({ sail }: { sail: Sail }) {
+  const mainSection = sail.sections.find(s => s.isHeadSection);
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex justify-between items-start">
+            <div>
+              <CardTitle className="text-xl">Sail#: {sail.sailId}</CardTitle>
+              <CardDescription>Original OE: {mainSection?.oeNumber || 'N/A'}</CardDescription>
+            </div>
+             <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Overall Status:</span>
+                 <Badge className={cn("text-base", statusColors[sail.overallStatus] || "bg-gray-100 text-gray-800")}>
+                    {sail.overallStatus}
+                 </Badge>
+            </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div>
+            <h4 className="font-semibold mb-2">Sections Included:</h4>
+            <div className="flex flex-wrap gap-2">
+                {sail.sections.map(section => (
+                    <Badge key={section.oeNumber} variant="secondary" className="font-mono">
+                        {section.oeNumber}
+                    </Badge>
+                ))}
+            </div>
+        </div>
+        <div>
+            <h4 className="font-semibold mb-4">Department Timeline:</h4>
+            <ProgressTree nodes={sail.progress} />
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
 
 export function SailProgressPage() {
-  const [oeNumber, setOeNumber] = useState("OE-12345");
+  const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [results, setResults] = useState<ProgressNode[] | null>(null);
+  const [searchedSails, setSearchedSails] = useState<Sail[] | null>(null);
+  
+  const recentSails = useMemo(() => getRecentSails(10), []);
 
   const handleSearch = () => {
-    if (!oeNumber) return;
+    if (!searchQuery) {
+        setSearchedSails(null); // Clear search results if query is empty
+        return;
+    };
     setIsLoading(true);
-    setResults(null);
+    setSearchedSails(null);
     // Simulate API call
     setTimeout(() => {
-      const data = aggregateDataForOE(oeNumber);
-      setResults(data);
+      const data = getSailProgressData(searchQuery);
+      setSearchedSails(data);
       setIsLoading(false);
     }, 500);
   };
@@ -264,17 +89,15 @@ export function SailProgressPage() {
     }
   }
 
-  // Automatically run a search for the default OE number on initial load
-  React.useEffect(() => {
-    handleSearch();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const displaySails = searchedSails ?? recentSails;
+  const displayTitle = searchedSails ? `Search Results for "${searchQuery}"` : "Most Recent Sails";
+
 
   return (
     <div className="space-y-8">
       <PageHeader
         title="Sail Progress Tracker"
-        description="Search for an Order Entry (OE) number to see its progress across all departments."
+        description="Search for an Order Entry (OE) number to view complete production status across all departments."
       />
 
       <Card>
@@ -282,9 +105,9 @@ export function SailProgressPage() {
           <div className="flex w-full max-w-lg items-center space-x-2">
             <Input
               type="text"
-              placeholder="Enter OE Number (e.g., OE-12345)"
-              value={oeNumber}
-              onChange={(e) => setOeNumber(e.target.value)}
+              placeholder="Enter OE or Sail number..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               onKeyPress={handleKeyPress}
               className="h-11 text-lg"
             />
@@ -302,25 +125,21 @@ export function SailProgressPage() {
         </div>
       )}
 
-      {results && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Production Flow for: {oeNumber}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {results.length > 0 ? (
-                <ProgressTree nodes={results} />
+      {!isLoading && (
+        <div className="space-y-6">
+            <h2 className="text-2xl font-bold tracking-tight">{displayTitle}</h2>
+            {displaySails.length > 0 ? (
+                displaySails.map(sail => <SailProgressCard key={sail.sailId} sail={sail} />)
             ) : (
                 <Alert>
                     <Search className="h-4 w-4" />
                     <AlertTitle>No Results Found</AlertTitle>
                     <AlertDescription>
-                        Could not find any production data for the specified OE number. Please check the number and try again.
+                        Could not find any production data for the specified query. Please check the number and try again.
                     </AlertDescription>
                 </Alert>
             )}
-          </CardContent>
-        </Card>
+        </div>
       )}
     </div>
   );
