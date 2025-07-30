@@ -21,26 +21,28 @@ interface TapeheadsOeTrackerProps {
     onEntriesChange: (entries: OeEntry[]) => void;
 }
 
+
 const generateSectionIds = (oeNumber: string, sections: number): string[] => {
     if (!oeNumber || oeNumber.length < 3 || sections <= 0) return [];
-
+    const oeBaseMatch = oeNumber.match(/^([A-Z]+[0-9]+)/);
+    if (!oeBaseMatch) return [];
+    
+    const oeBase = oeBaseMatch[1];
     const lastThree = oeNumber.slice(-3);
     if (isNaN(parseInt(lastThree, 10))) return [];
 
-    const lastDigit = lastThree.slice(-1);
+    const sailIdentifier = lastThree.slice(-1); // The 'X' in 00X
+    const sailNumberPrefix = lastThree.slice(0, 1); // The '0' in 00X or '2' in 20X for the second sail
+
     const ids: string[] = [];
 
-    // First section is always '00' + lastDigit
-    ids.push(`00${lastDigit}`);
+    // Head panel is always '00' + identifier, but adjusted for multi-sail OEs
+    ids.push(`${oeBase}-${sailNumberPrefix}0${sailIdentifier}`);
 
-    if (sections > 1) {
-        // Second section is always '10' + lastDigit
-        ids.push(`10${lastDigit}`);
-    }
-
-    // Subsequent sections start from 11, 12, etc.
-    for (let i = 2; i < sections; i++) {
-        ids.push(`${10 + i - 1}${lastDigit}`);
+    // Subsequent sections increment the middle digit
+    for (let i = 1; i < sections; i++) {
+        const panelSequence = 10 * i;
+        ids.push(`${oeBase}-${panelSequence + parseInt(sailNumberPrefix,10)}${sailIdentifier}`);
     }
 
     return ids;
@@ -124,7 +126,7 @@ function OeEntryCard({ entry, onUpdate, onPanelUpdate, onRemove }: { entry: OeEn
                     <Label htmlFor={`oe-number-${entry.id}`}>OE Number</Label>
                     <Input 
                         id={`oe-number-${entry.id}`}
-                        placeholder="e.g., OIT7654-002"
+                        placeholder="e.g., OUK23456-001"
                         value={entry.oeNumber}
                         onChange={(e) => onUpdate(entry.id, 'oeNumber', e.target.value)}
                     />
