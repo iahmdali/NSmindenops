@@ -119,17 +119,40 @@ function OeEntryCard({ entry, onUpdate, onPanelUpdate, onRemove }: { entry: OeEn
     
     const sectionIds = useMemo(() => generateSectionIds(entry.oeNumber, entry.sections), [entry.oeNumber, entry.sections]);
     
+    const [oeBase, oeSuffix] = useMemo(() => {
+        const parts = entry.oeNumber.split('-');
+        if (parts.length === 2) {
+            return [parts[0], parts[1]];
+        }
+        return [entry.oeNumber, ''];
+    }, [entry.oeNumber]);
+
+    const handleOeChange = (base: string, suffix: string) => {
+        const newOeNumber = suffix ? `${base}-${suffix}` : base;
+        onUpdate(entry.id, 'oeNumber', newOeNumber);
+    };
+
     return (
         <Card className="bg-muted/50 p-4 relative">
             <div className="flex items-end gap-4 mb-4">
-                <div className="grid gap-1.5 flex-1">
-                    <Label htmlFor={`oe-number-${entry.id}`}>OE Number</Label>
-                    <Input 
-                        id={`oe-number-${entry.id}`}
-                        placeholder="e.g., OUK23456-001"
-                        value={entry.oeNumber}
-                        onChange={(e) => onUpdate(entry.id, 'oeNumber', e.target.value)}
-                    />
+                 <div className="grid gap-1.5 flex-1">
+                    <Label htmlFor={`oe-base-${entry.id}`}>OE Number</Label>
+                    <div className="flex items-center gap-2">
+                        <Input 
+                            id={`oe-base-${entry.id}`}
+                            placeholder="e.g., OUK23456"
+                            value={oeBase}
+                            onChange={(e) => handleOeChange(e.target.value, oeSuffix)}
+                        />
+                        <span className="text-muted-foreground">-</span>
+                        <Input 
+                            id={`oe-suffix-${entry.id}`}
+                            placeholder="001"
+                            value={oeSuffix}
+                            onChange={(e) => handleOeChange(oeBase, e.target.value)}
+                            className="w-24"
+                        />
+                    </div>
                 </div>
                  <div className="grid gap-1.5">
                     <Label htmlFor={`oe-sections-${entry.id}`}>Number of Sections</Label>
