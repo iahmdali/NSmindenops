@@ -1,6 +1,8 @@
 
 import { DepartmentReportForm } from "@/components/department-report-form";
 import { PageHeader } from "@/components/page-header";
+import { OeSection, getOeSection } from "@/lib/oe-data";
+import { notFound } from "next/navigation";
 
 export default function TapeheadsOperatorEntryPage({
     searchParams
@@ -8,7 +10,13 @@ export default function TapeheadsOperatorEntryPage({
     searchParams: { oe?: string, section?: string }
 }) {
     const { oe, section } = searchParams;
-    const title = oe && section ? `${oe}-${section}` : 'Tapeheads Operator Entry';
+    const oeSection: OeSection | undefined = getOeSection(oe, section);
+    
+    if (!oe || !section || !oeSection) {
+        notFound();
+    }
+    
+    const title = `${oe}-${section}`;
 
     return (
         <div className="space-y-6">
@@ -16,7 +24,7 @@ export default function TapeheadsOperatorEntryPage({
                 title={title}
                 description="Fill out the detailed report for your work on this OE section."
             />
-            <DepartmentReportForm department="Tapeheads" />
+            <DepartmentReportForm department="Tapeheads" oeSection={oeSection}/>
         </div>
     );
 }

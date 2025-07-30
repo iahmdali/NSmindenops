@@ -1,5 +1,5 @@
 
-import { tapeheadsSubmissions } from '@/lib/data';
+import { tapeheadsSubmissions } from '@/lib/tapeheads-data';
 import { gantryReportsData } from '@/lib/gantry-data';
 import { filmsData } from '@/lib/films-data';
 import { qcReportsData } from '@/lib/qc-data';

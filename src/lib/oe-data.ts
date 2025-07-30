@@ -25,3 +25,15 @@ export function addOeJob(job: { oeBase: string, sections: Array<{ sectionId: str
   }));
   oeJobs.push(...newSections);
 }
+
+export function getOeSection(oeBase?: string, sectionId?: string): OeSection | undefined {
+  if (!oeBase || !sectionId) return undefined;
+  return oeJobs.find(job => job.oeBase === oeBase && job.sectionId === sectionId);
+}
+
+export function updateOeSectionStatus(sectionId: string, status: OeSection['status']) {
+    const jobIndex = oeJobs.findIndex(job => job.id === sectionId);
+    if (jobIndex !== -1) {
+        oeJobs[jobIndex].status = status;
+    }
+}

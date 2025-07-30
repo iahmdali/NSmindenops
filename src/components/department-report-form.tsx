@@ -6,12 +6,14 @@ import { GantryReportForm } from "./gantry-report-form"
 import { GraphicsReportForm } from "./graphics-report-form"
 import { FilmsReportForm } from "./films-report-form"
 import { TapeheadsOperatorForm } from "./tapeheads-operator-form"
+import type { OeSection } from "@/lib/oe-data"
 
 interface DepartmentReportFormProps {
   department: Department;
+  oeSection?: OeSection;
 }
 
-export function DepartmentReportForm({ department }: DepartmentReportFormProps) {
+export function DepartmentReportForm({ department, oeSection }: DepartmentReportFormProps) {
   if (department === 'Pregger') {
     return <PreggerReportForm />;
   }
@@ -28,8 +30,8 @@ export function DepartmentReportForm({ department }: DepartmentReportFormProps) 
     return <FilmsReportForm />;
   }
 
-  if (department === 'Tapeheads') {
-    return <TapeheadsOperatorForm />;
+  if (department === 'Tapeheads' && oeSection) {
+    return <TapeheadsOperatorForm oeSection={oeSection} />;
   }
   
   return <GenericReportForm department={department} />;
