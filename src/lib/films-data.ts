@@ -8,8 +8,7 @@ export interface FilmsReport {
     gantry_mold: string;
     sail_number: string;
     prep_date: string;
-    status_in_progress: boolean;
-    status_done: boolean;
+    status: 'Started' | 'Finished';
     issue_notes?: string;
   }[];
   oops_report_info?: string;
@@ -28,18 +27,16 @@ export const filmsReportsData: FilmsReport[] = [
     sail_preparations: [
       {
         gantry_mold: 'Gantry 4/MOLD 105',
-        sail_number: 'OUS79723-001',
+        sail_number: 'OUK23456-001',
         prep_date: '2023-10-27',
-        status_in_progress: false,
-        status_done: true,
+        status: 'Finished',
         issue_notes: 'Minor wrinkle on edge, corrected.'
       },
       {
         gantry_mold: 'Gantry 6/MOLD 109',
-        sail_number: 'OUS79723-101',
+        sail_number: 'OUK23456-101',
         prep_date: '2023-10-27',
-        status_in_progress: true,
-        status_done: false,
+        status: 'Started',
       }
     ]
   },
@@ -53,10 +50,9 @@ export const filmsReportsData: FilmsReport[] = [
     sail_preparations: [
       {
         gantry_mold: 'Gantry 8/MOLD 100',
-        sail_number: 'OAUS32145-001',
+        sail_number: 'OIT76541-001',
         prep_date: '2023-10-26',
-        status_in_progress: false,
-        status_done: true,
+        status: 'Finished',
       }
     ]
   }

@@ -8,7 +8,7 @@ import { qcInspectionData } from "@/lib/qc-data";
 
 /**
  * Parses an OE number to extract its base and suffix.
- * Example: 'OUS79723-001' -> { base: 'OUS79723', suffix: '001' }
+ * Example: 'OUK23456-001' -> { base: 'OUK23456', suffix: '001' }
  */
 function parseOeNumber(oeNumber: string): { base: string, suffix: string } | null {
     const match = oeNumber.match(/^([A-Z0-9]+)-(\d{3,})$/i);
@@ -22,7 +22,6 @@ function parseOeNumber(oeNumber: string): { base: string, suffix: string } | nul
 function findRelatedOeNumbers(sailBase: string): string[] {
     const allOes = new Set<string>();
     
-    // Simple way to get all possible OEs from mock data
     tapeheadsSubmissions.forEach(s => s.order_entry && allOes.add(s.order_entry));
     gantryReportsData.forEach(r => r.molds?.forEach(m => m.sails.forEach(s => allOes.add(s.sail_number))));
     filmsReportsData.forEach(r => r.sail_preparations.forEach(p => allOes.add(p.sail_number)));
@@ -48,9 +47,10 @@ function aggregateDataForSail(sailId: string, allOeNumbers: string[]): Sail {
     const sections: Section[] = allOeNumbers.map(oe => {
         const parsed = parseOeNumber(oe);
         const suffix = parsed?.suffix || '';
+        const isHead = suffix.startsWith('00') || suffix.startsWith('20'); // Handle first and second sail head
         return {
             oeNumber: oe,
-            isHeadSection: suffix.startsWith('00'),
+            isHeadSection: isHead,
             suffix,
         };
     }).sort((a,b) => a.suffix.localeCompare(b.suffix));
@@ -115,11 +115,11 @@ function addFilmsData(progress: ProgressNode[], allOeNumbers: string[]) {
     progress.push({
         id: 'films',
         name: 'Films',
-        status: allPreps.every(p => p.status_done) ? "Completed" : "In Progress",
+        status: allPreps.every(p => p.status === 'Finished') ? "Completed" : "In Progress",
         children: allPreps.map(p => ({
             id: `films-${p.sail_number}-${p.prep_date}`,
             name: `Prep for ${p.sail_number}`,
-            status: p.status_done ? 'Prepped' : 'In Progress',
+            status: p.status === 'Finished' ? 'Prepped' : 'In Progress',
             details: {
                 Date: new Date(p.prep_date).toLocaleDateString(),
                 "Gantry/Mold": p.gantry_mold,
@@ -223,10 +223,28 @@ export function getSailProgressData(query: string): Sail[] {
     const allOeNumbersForSail = findRelatedOeNumbers(sailBase);
 
     if (allOeNumbersForSail.length === 0) return [];
+    
+    // Group OEs by sail group (last digit of suffix)
+    const sailsByGroup: Record<string, string[]> = {};
+    allOeNumbersForSail.forEach(oe => {
+        const p = parseOeNumber(oe);
+        if(!p) return;
+        const lastDigit = p.suffix.slice(-1);
+        const firstDigit = p.suffix.slice(0, 1);
+        const groupKey = `${firstDigit}${lastDigit}`; // e.g., '01' for 001, '21' for 201
 
-    const sailId = sailBase + '-' + allOeNumbersForSail[0].split('-')[1].slice(0, -1) + 'X';
-
-    return [aggregateDataForSail(sailId, allOeNumbersForSail)];
+        if(!sailsByGroup[groupKey]) {
+            sailsByGroup[groupKey] = [];
+        }
+        sailsByGroup[groupKey].push(oe);
+    });
+    
+    return Object.entries(sailsByGroup).map(([groupKey, oEs]) => {
+        const sailIdentifier = oEs[0].slice(-1);
+        const sailNum = oEs[0].split('-')[1].slice(0, 1);
+        const sailId = `${sailBase}-${sailNum}0${sailIdentifier}`;
+        return aggregateDataForSail(sailId, oEs);
+    });
 }
 
 /**
@@ -243,7 +261,7 @@ export function getRecentSails(count: number): Sail[] {
     Array.from(allSailBases).slice(0, count).forEach(base => {
         const sailData = getSailProgressData(base + "-001"); // Search with a dummy head section
         if (sailData.length > 0) {
-            recentSails.push(sailData[0]);
+            recentSails.push(...sailData);
         }
     });
 

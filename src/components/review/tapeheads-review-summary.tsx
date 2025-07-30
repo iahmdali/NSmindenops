@@ -8,7 +8,7 @@ import { Input } from "../ui/input"
 import { Label } from "../ui/label"
 import { Textarea } from "../ui/textarea"
 import { Button } from "../ui/button"
-import { Sparkles } from "lucide-react"
+import { Sparkles, BookOpen } from "lucide-react"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion"
 import { OeEntry, TapeheadsOeTracker } from "./tapeheads-oe-tracker"
 
@@ -119,10 +119,13 @@ export function TapeheadsReviewSummary({
             <Textarea id="lead-comments" placeholder="Add any shift-wide observations, notes, or comments..."/>
         </div>
         
-        <Accordion type="single" collapsible className="w-full">
+        <Accordion type="single" collapsible className="w-full" defaultValue="oe-tracker">
           <AccordionItem value="oe-tracker">
             <AccordionTrigger>
-               <h4 className="text-md font-semibold text-primary">📘 OE Entries and Section-Level Panel Counts</h4>
+               <div className="flex items-center gap-3">
+                <BookOpen className="h-5 w-5 text-primary"/>
+                <h4 className="text-md font-semibold text-primary">OE Entries and Section-Level Panel Counts</h4>
+               </div>
             </AccordionTrigger>
             <AccordionContent>
               <TapeheadsOeTracker entries={oeEntries} onEntriesChange={onOeEntriesChange} />
