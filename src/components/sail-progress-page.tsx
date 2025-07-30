@@ -12,6 +12,7 @@ import { ProgressTree } from "./sail-progress/progress-tree";
 import { getSailProgressData, getRecentSails } from "@/lib/sail-progress-logic";
 import type { Sail } from "@/lib/sail-progress-types";
 import { Badge } from "./ui/badge";
+import { cn } from "@/lib/utils";
 
 const statusColors: Record<string, string> = {
   Completed: "bg-green-100 text-green-800",
