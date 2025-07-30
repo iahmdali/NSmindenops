@@ -1,100 +1,114 @@
 
-
 export interface GantryReport {
-  id: number;
-  date: string;
-  shift: string;
-  zone_assignment: string;
-  briefing_items?: string;
-  end_of_shift_checklist: boolean;
-  zoneLeads?: Array<{
-    name: string;
-    time: string;
-  }>;
-  personnel?: Array<{
-    name: string;
-    start_time: string;
-    end_time: string;
-  }>;
-  molds?: Array<{
-    id: number;
-    mold_number: string;
-    sails: Array<{
-      sail_number: string;
-      stage_of_process: string;
-      issues: string;
+    id: string;
+    report_date: string;
+    date: string;
+    shift: string;
+    zone_assignment?: string;
+    zoneLeads?: Array<{
+        zone_number: string;
+        lead_name: string;
     }>;
-  }>;
-  downtime?: Array<{
-    reason: string;
-    duration: number;
-  }>;
-  maintenance?: Array<{
-    description: string;
-    duration: number;
-  }>;
+    personnel?: Array<{
+        name: string;
+        start_time?: string;
+        end_time?: string;
+    }>;
+    molds?: Array<{
+        mold_number: string;
+        sails?: Array<{
+            sail_number: string;
+            stage_of_process?: string;
+            issues?: string;
+        }>;
+    }>;
+    downtime?: Array<{
+        reason: string;
+        duration: number;
+    }>;
+    maintenance?: Array<{
+        description: string;
+        duration: number;
+    }>;
 }
 
-const personnelList = ["Alice", "Bob", "Charlie", "David", "Eve", "Frank"];
-const zoneLeadsList = ["Lead A", "Lead B", "Lead C"];
-const moldNumbers = ["Gantry 4/MOLD 105", "Gantry 6/MOLD 109", "Gantry 6/MOLD 110", "Gantry 7/MOLD 111", "Gantry 8/MOLD 100"];
-const stages = ["Layup", "Curing", "Trimming", "Inspection", "Finished"];
-const issues = ["Delamination", "Wrinkles", "Contamination", "Porosity", ""];
-const downtimeReasons = ["Machine Error", "Material Shortage", "Shift Change", "Lunch", "Planned Maintenance"];
 
-const oeNumbers = ["OUS79723-001", "OUS79723-101", "OIT76541-001", "OAUS32145-001"];
-
-const generateRandomData = (days: number): GantryReport[] => {
-  const reports: GantryReport[] = [];
-  const today = new Date();
-
-  for (let i = 0; i < days; i++) {
-    const reportDate = new Date(today);
-    reportDate.setDate(today.getDate() - i);
-    const dateStr = reportDate.toISOString().split('T')[0];
-
-    for (let shift = 1; shift <= 3; shift++) {
-      if (Math.random() < 0.2) continue; // Skip some shifts
-
-      const reportId = reports.length + 1;
-      const numPersonnel = Math.floor(Math.random() * 3) + 2;
-
-      reports.push({
-        id: reportId,
-        date: dateStr,
-        shift: String(shift),
-        zone_assignment: `Zone ${String.fromCharCode(65 + (shift-1))}`,
-        end_of_shift_checklist: Math.random() > 0.1,
-        zoneLeads: [{
-            name: zoneLeadsList[shift-1],
-            time: "Full Shift"
-        }],
-        personnel: Array.from({ length: numPersonnel }, (_, p_idx) => ({
-            name: personnelList[(i + p_idx) % personnelList.length],
-            start_time: shift === 1 ? '06:00' : (shift === 2 ? '14:00' : '22:00'),
-            end_time: shift === 1 ? '14:00' : (shift === 2 ? '22:00' : '06:00'),
-        })),
-        molds: moldNumbers.map((mold_number, m_idx) => ({
-            id: reportId * 10 + m_idx,
-            mold_number,
-            sails: Array.from({ length: Math.floor(Math.random() * 2) + 1 }, (_, s_idx) => ({
-                sail_number: oeNumbers[(i + s_idx) % oeNumbers.length],
-                stage_of_process: stages[Math.floor(Math.random() * stages.length)],
-                issues: issues[Math.floor(Math.random() * issues.length)],
-            })),
-        })),
-        downtime: Array.from({ length: Math.floor(Math.random() * 3) }, () => ({
-            reason: downtimeReasons[Math.floor(Math.random() * downtimeReasons.length)],
-            duration: Math.floor(Math.random() * 55) + 5,
-        })),
-        maintenance: Math.random() > 0.8 ? [{
-            description: "Cleaned mold surfaces",
-            duration: 30
-        }] : [],
-      });
-    }
-  }
-  return reports;
-};
-
-export const gantryReportsData: GantryReport[] = generateRandomData(5);
+export const gantryReportsData: GantryReport[] = [
+    {
+        id: "gantry_rpt_1",
+        report_date: "2023-10-27",
+        date: "2023-10-27",
+        shift: "1",
+        zone_assignment: "Zone A",
+        zoneLeads: [{ zone_number: "Zone 1", lead_name: "Lead Alpha" }],
+        personnel: [
+            { name: "Michael" },
+            { name: "Andrew" },
+        ],
+        molds: [
+            {
+                mold_number: "MOLD 105",
+                sails: [
+                    { sail_number: "OUK23456-001", stage_of_process: "Lamination", issues: "None" },
+                    { sail_number: "OUK23456-101", stage_of_process: "Panel Installation", issues: "None" },
+                ],
+            },
+        ],
+        downtime: [
+            { reason: "Mechanical", duration: 30 },
+        ],
+        maintenance: [],
+    },
+    {
+        id: "gantry_rpt_2",
+        report_date: "2023-10-27",
+        date: "2023-10-27",
+        shift: "2",
+        zone_assignment: "Zone B",
+        zoneLeads: [{ zone_number: "Zone 2", lead_name: "Lead Bravo" }],
+        personnel: [
+            { name: "David" },
+            { name: "Sophia" },
+        ],
+        molds: [
+            {
+                mold_number: "MOLD 109",
+                sails: [
+                    { sail_number: "OUS79723-001", stage_of_process: "Top Film Installation", issues: "Minor creases noted." },
+                ],
+            },
+        ],
+        downtime: [],
+        maintenance: [
+            { description: "Cleaned mold surface", duration: 45 },
+        ],
+    },
+    {
+        id: "gantry_rpt_3",
+        report_date: "2023-10-28",
+        date: "2023-10-28",
+        shift: "1",
+        zone_assignment: "Zone A",
+        zoneLeads: [{ zone_number: "Zone 1", lead_name: "Lead Alpha" }],
+        personnel: [
+            { name: "Michael" },
+            { name: "Kevin" },
+        ],
+        molds: [
+            {
+                mold_number: "MOLD 105",
+                sails: [
+                    { sail_number: "OAUS32145-002", stage_of_process: "Lamination Inspection", issues: "None" },
+                ],
+            },
+             {
+                mold_number: "MOLD 110",
+                sails: [
+                    { sail_number: "OIT76541-001", stage_of_process: "Grid Base Film Installation", issues: "None" },
+                ],
+            },
+        ],
+        downtime: [],
+        maintenance: [],
+    },
+];

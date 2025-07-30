@@ -225,18 +225,6 @@ function MainSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-           <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              isActive={pathname === "/sail-progress"}
-              tooltip="Sail Progress"
-            >
-              <Link href="/sail-progress">
-                <Waypoints />
-                <span>Sail Progress</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="group-data-[collapsible=icon]:hidden">
