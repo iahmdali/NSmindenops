@@ -32,6 +32,7 @@ import React, { useEffect } from "react"
 import { MultiSelect } from "./ui/multi-select"
 import { updateOeSectionStatus, type OeSection } from "@/lib/oe-data"
 import { useRouter } from "next/navigation"
+import { RadioGroup, RadioGroupItem } from "./ui/radio-group"
 
 const problemSchema = z.object({
   title: z.string().min(1, "Problem title is required."),
@@ -69,8 +70,8 @@ const tapeheadsOperatorSchema = z.object({
   problems: z.array(problemSchema).optional(),
   
   // Panel Tracking
+  panelWorkType: z.enum(["individual", "nested"]).default("individual"),
   panelsWorkedOn: z.array(z.string()).min(1, "At least one panel must be selected."),
-  nestedPanels: z.array(z.object({ value: z.string().min(1) })).optional(),
 
   // Checklist
   checklist: z.object({
@@ -136,20 +137,20 @@ export function TapeheadsOperatorForm({ oeSection }: { oeSection: OeSection }) {
       metersProduced: 0,
       tapesUsed: 0,
       problems: [],
+      panelWorkType: "individual",
       panelsWorkedOn: [],
-      nestedPanels: [],
       checklist: checklistItems.reduce((acc, item) => ({...acc, [item.id]: false}), {})
     },
   });
 
   const { fields: problemFields, append: appendProblem, remove: removeProblem } = useFieldArray({ control: form.control, name: "problems" });
-  const { fields: nestedPanelFields, append: appendNestedPanel, remove: removeNestedPanel } = useFieldArray({ control: form.control, name: "nestedPanels" });
 
   const watchStatus = useWatch({ control: form.control, name: "endOfShiftStatus" });
   const watchHadSpinout = useWatch({ control: form.control, name: "hadSpinOut" });
   const watchStartTime = useWatch({ control: form.control, name: "shiftStartTime" });
   const watchEndTime = useWatch({ control: form.control, name: "shiftEndTime" });
   const watchMetersProduced = useWatch({ control: form.control, name: "metersProduced" });
+  const watchPanelWorkType = useWatch({ control: form.control, name: "panelWorkType"});
   
   useEffect(() => {
     if (watchStartTime && watchEndTime) {
@@ -169,6 +170,11 @@ export function TapeheadsOperatorForm({ oeSection }: { oeSection: OeSection }) {
       }
     }
   }, [watchStartTime, watchEndTime, watchMetersProduced, form]);
+  
+   useEffect(() => {
+    // Reset panelsWorkedOn when work type changes
+    form.setValue("panelsWorkedOn", []);
+  }, [watchPanelWorkType, form]);
 
 
   function onSubmit(values: OperatorFormValues) {
@@ -250,34 +256,71 @@ export function TapeheadsOperatorForm({ oeSection }: { oeSection: OeSection }) {
                 </div>
             </Section>
 
-            <Section title="Panel Tracking">
+            <Section title="Panel & Layer Details">
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                      <FormField
                         control={form.control}
-                        name="panelsWorkedOn"
+                        name="panelWorkType"
                         render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Panels Worked On</FormLabel>
-                                <MultiSelect
-                                    options={panelOptions}
-                                    selected={field.value}
-                                    onChange={field.onChange}
-                                    placeholder="Select panels..."
-                                />
+                            <FormItem className="space-y-3">
+                                <FormLabel>Work Type</FormLabel>
+                                <FormControl>
+                                    <RadioGroup
+                                    onValueChange={field.onChange}
+                                    defaultValue={field.value}
+                                    className="flex items-center space-x-4"
+                                    >
+                                    <FormItem className="flex items-center space-x-2 space-y-0">
+                                        <FormControl><RadioGroupItem value="individual" /></FormControl>
+                                        <FormLabel className="font-normal">Individual</FormLabel>
+                                    </FormItem>
+                                    <FormItem className="flex items-center space-x-2 space-y-0">
+                                        <FormControl><RadioGroupItem value="nested" /></FormControl>
+                                        <FormLabel className="font-normal">Nested</FormLabel>
+                                    </FormItem>
+                                    </RadioGroup>
+                                </FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
+                        />
+                      <FormField
+                        control={form.control}
+                        name="panelsWorkedOn"
+                        render={({ field }) => {
+                           const handleIndividualChange = (value: string) => {
+                                field.onChange(value ? [value] : []);
+                            };
+
+                            return (
+                                <FormItem>
+                                    <FormLabel>Panels Worked On</FormLabel>
+                                    {watchPanelWorkType === 'nested' ? (
+                                        <MultiSelect
+                                            options={panelOptions}
+                                            selected={field.value}
+                                            onChange={field.onChange}
+                                            placeholder="Select panels..."
+                                        />
+                                    ) : (
+                                        <Select onValueChange={handleIndividualChange} value={field.value?.[0] || ""}>
+                                             <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select a panel" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                {panelOptions.map(opt => (
+                                                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                    <FormMessage />
+                                </FormItem>
+                            )
+                        }}
                     />
-                    <div>
-                        <FormLabel>Nested Panels</FormLabel>
-                         {nestedPanelFields.map((field, index) => (
-                            <div key={field.id} className="flex items-center gap-2 mt-2">
-                               <FormField control={form.control} name={`nestedPanels.${index}.value`} render={({ field }) => (<FormItem className="flex-1"><FormControl><Input placeholder="e.g. P1a, P2b..." {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removeNestedPanel(index)}><Trash2 className="size-4" /></Button>
-                            </div>
-                         ))}
-                         <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => appendNestedPanel({ value: '' })}><PlusCircle className="mr-2 h-4 w-4"/>Add Nested Panel</Button>
-                    </div>
                 </div>
             </Section>
             
@@ -300,3 +343,5 @@ export function TapeheadsOperatorForm({ oeSection }: { oeSection: OeSection }) {
     </Card>
   )
 }
+
+    
