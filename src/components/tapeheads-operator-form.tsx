@@ -30,6 +30,9 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "./ui/command"
+import { cn } from "@/lib/utils"
 
 const tapeheadsOperatorSchema = z.object({
   date: z.date(),
@@ -46,11 +49,13 @@ const tapeheadsOperatorSchema = z.object({
   total_meters: z.coerce.number().min(0),
   total_tapes: z.coerce.number().min(0),
   issues: z.array(z.object({
-    problem_reason: z.string().min(1, "Reason is required."),
-    duration_minutes: z.coerce.number().min(0),
+    title: z.string().min(1, "Title is required."),
+    duration_minutes: z.coerce.number().optional(),
   })).optional(),
   had_spin_out: z.boolean().default(false),
   spin_out_duration_minutes: z.coerce.number().optional(),
+  panels_worked_on: z.array(z.string()).optional(),
+  nested_panels: z.array(z.object({ value: z.string() })).optional(),
   checklist_items: z.object({
     smooth_fuse_full: z.boolean().default(false),
     blades_glasses: z.boolean().default(false),
@@ -79,6 +84,8 @@ function SectionHeader({ title, description }: { title: string, description?: st
   )
 }
 
+const panelOptions = [...Array(10)].map((_, i) => ({ value: `P${i+1}`, label: `P${i+1}` }));
+
 export function TapeheadsOperatorForm() {
   const { toast } = useToast();
   const form = useForm<TapeheadsOperatorFormValues>({
@@ -98,14 +105,14 @@ export function TapeheadsOperatorForm() {
       issues: [],
       had_spin_out: false,
       spin_out_duration_minutes: 0,
+      panels_worked_on: [],
+      nested_panels: [],
       checklist_items: {},
     },
   });
 
-  const { fields, append, remove } = useFieldArray({
-    control: form.control,
-    name: "issues",
-  });
+  const { fields: issueFields, append: appendIssue, remove: removeIssue } = useFieldArray({ control: form.control, name: "issues" });
+  const { fields: nestedPanelFields, append: appendNested, remove: removeNested } = useFieldArray({ control: form.control, name: "nested_panels" });
   
   const status = useWatch({ control: form.control, name: 'end_of_shift_status' });
   const hadSpinOut = useWatch({ control: form.control, name: 'had_spin_out' });
@@ -132,10 +139,10 @@ export function TapeheadsOperatorForm() {
   }, [hoursWorked, totalMeters]);
 
 
-  function handleFormSubmit(values: TapeheadsOperatorFormValues, isDraft: boolean) {
-    console.log({ ...values, is_draft: isDraft });
+  function handleFormSubmit(values: TapeheadsOperatorFormValues) {
+    console.log(values);
     toast({
-      title: `Report ${isDraft ? 'Draft Saved' : 'Submitted'}!`,
+      title: `Report Submitted!`,
       description: `Your Tapeheads report has been successfully saved.`,
     });
     form.reset();
@@ -144,12 +151,12 @@ export function TapeheadsOperatorForm() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="font-headline">Tapeheads Operator Entry</CardTitle>
-        <CardDescription>Fill out your individual entry for the shift.</CardDescription>
+        <CardTitle className="font-headline">Tapeheads Operator Entry Form</CardTitle>
+        <CardDescription>Fill out your individual entry for the shift and OE section.</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form className="space-y-8">
+          <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-8">
             <SectionHeader title="Shift Details" />
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               <FormField control={form.control} name="date" render={({ field }) => (<FormItem><FormLabel>Date</FormLabel><FormControl><DatePicker value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>)}/>
@@ -163,14 +170,14 @@ export function TapeheadsOperatorForm() {
             <SectionHeader title="Work & Output" />
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 <FormField control={form.control} name="material_type" render={({ field }) => (<FormItem><FormLabel>Material Type</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent><SelectItem value="Carbon">Carbon</SelectItem><SelectItem value="Aramid">Aramid</SelectItem><SelectItem value="Kevlar">Kevlar</SelectItem><SelectItem value="Polyester">Polyester</SelectItem><SelectItem value="Hybrid">Hybrid</SelectItem></SelectContent></Select><FormMessage /></FormItem>)}/>
-                <FormField control={form.control} name="total_meters" render={({ field }) => (<FormItem><FormLabel>Meters Produced</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(+e.target.value)} /></FormControl><FormMessage /></FormItem>)}/>
-                <FormField control={form.control} name="total_tapes" render={({ field }) => (<FormItem><FormLabel>Tapes Used</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(+e.target.value)}/></FormControl><FormMessage /></FormItem>)}/>
+                <FormField control={form.control} name="total_meters" render={({ field }) => (<FormItem><FormLabel>Meters Produced</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)}/>
+                <FormField control={form.control} name="total_tapes" render={({ field }) => (<FormItem><FormLabel>Tapes Used</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)}/>
              </div>
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-end">
                 <FormField control={form.control} name="end_of_shift_status" render={({ field }) => (<FormItem><FormLabel>End of Shift Status</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent><SelectItem value="In Progress">In Progress</SelectItem><SelectItem value="Completed">Completed</SelectItem></SelectContent></Select><FormMessage /></FormItem>)}/>
                 {status === 'In Progress' && (
                   <>
-                    <FormField control={form.control} name="order_entry" render={({ field }) => (<FormItem><FormLabel>OE (Output Estimate)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)}/>
+                    <FormField control={form.control} name="order_entry" render={({ field }) => (<FormItem><FormLabel>OE Output Estimate</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)}/>
                     <FormField control={form.control} name="layer" render={({ field }) => (<FormItem><FormLabel>Layer</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)}/>
                   </>
                 )}
@@ -194,30 +201,66 @@ export function TapeheadsOperatorForm() {
             <Separator />
             <SectionHeader title="Issues & Downtime" description="Record any problems that caused delays."/>
             <div className="space-y-4">
-              {fields.map((field, index) => (
+              <FormField control={form.control} name="had_spin_out" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal text-base">Had Spin Out?</FormLabel></FormItem>)} />
+              {hadSpinOut && (
+                  <FormField control={form.control} name="spin_out_duration_minutes" render={({ field }) => (<FormItem className="max-w-xs"><FormLabel>Spin Out Duration (minutes)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)}/>
+              )}
+              {issueFields.map((field, index) => (
                 <Card key={field.id} className="p-4 relative">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-                     <FormField control={form.control} name={`issues.${index}.problem_reason`} render={({ field }) => ( <FormItem><FormLabel>Problem Reason</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )}/>
-                     <FormField control={form.control} name={`issues.${index}.duration_minutes`} render={({ field }) => ( <FormItem><FormLabel>Duration (minutes)</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(+e.target.value)} /></FormControl><FormMessage /></FormItem> )}/>
+                     <FormField control={form.control} name={`issues.${index}.title`} render={({ field }) => ( <FormItem><FormLabel>Problem Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )}/>
+                     <FormField control={form.control} name={`issues.${index}.duration_minutes`} render={({ field }) => ( <FormItem><FormLabel>Duration (minutes)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem> )}/>
                   </div>
-                  <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive" onClick={() => remove(index)}>
+                  <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive" onClick={() => removeIssue(index)}>
                     <Trash2 className="size-4" />
                   </Button>
                 </Card>
               ))}
-              <Button type="button" variant="outline" size="sm" onClick={() => append({ problem_reason: '', duration_minutes: 0 })}>
+              <Button type="button" variant="outline" size="sm" onClick={() => appendIssue({ title: '', duration_minutes: 0 })}>
                 <PlusCircle className="mr-2 h-4 w-4" /> Add Problem
               </Button>
+            </div>
+
+            <Separator />
+            <SectionHeader title="Panel Tracking" />
+            <div className="space-y-4">
+                <FormField
+                    control={form.control}
+                    name="panels_worked_on"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Panels Worked On</FormLabel>
+                            <FormControl>
+                               <MultiSelect options={panelOptions} selected={field.value || []} onChange={field.onChange} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <div>
+                  <FormLabel>Nested Panels</FormLabel>
+                  <div className="space-y-2 pt-2">
+                    {nestedPanelFields.map((field, index) => (
+                      <div key={field.id} className="flex items-center gap-2">
+                        <FormField
+                          control={form.control}
+                          name={`nested_panels.${index}.value`}
+                          render={({ field }) => (
+                            <Input {...field} placeholder="e.g., P1a" className="flex-1"/>
+                          )}
+                        />
+                        <Button type="button" variant="ghost" size="icon" onClick={() => removeNested(index)}><Trash2 className="size-4 text-destructive"/></Button>
+                      </div>
+                    ))}
+                    <Button type="button" variant="outline" size="sm" onClick={() => appendNested({ value: '' })}>
+                      <PlusCircle className="mr-2 h-4 w-4" /> Add Nested Panel
+                    </Button>
+                  </div>
+                </div>
             </div>
             
             <Separator />
             <SectionHeader title="End of Shift Checklist"/>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
-                <FormField control={form.control} name="had_spin_out" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4 col-span-1"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal text-base">Had Spin Out?</FormLabel></FormItem>)} />
-                {hadSpinOut && (
-                    <FormField control={form.control} name="spin_out_duration_minutes" render={({ field }) => (<FormItem className="col-span-1"><FormLabel>Spin Out Duration (minutes)</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(+e.target.value)} /></FormControl><FormMessage /></FormItem>)}/>
-                )}
-            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 <FormField control={form.control} name="checklist_items.smooth_fuse_full" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Smooth Fuse Full</FormLabel></FormItem>)} />
                 <FormField control={form.control} name="checklist_items.blades_glasses" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Blades Glasses</FormLabel></FormItem>)} />
@@ -231,16 +274,69 @@ export function TapeheadsOperatorForm() {
                 <FormField control={form.control} name="checklist_items.cleaned_work_station" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Cleaned Work Station</FormLabel></FormItem>)} />
                 <FormField control={form.control} name="checklist_items.meter_stick" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Meter Stick</FormLabel></FormItem>)} />
                 <FormField control={form.control} name="checklist_items.two_irons" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Two Irons</FormLabel></FormItem>)} />
-                <FormField control={form.control} name="checklist_items.th_isle_trash_empty" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">TH Aisle Trash Empty</FormLabel></FormItem>)} />
+                <FormField control={form.control} name="checklist_items.th_isle_trash_empty" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">TH Isle Trash Empty</FormLabel></FormItem>)} />
             </div>
 
             <div className="flex justify-end gap-2 pt-8">
-              <Button variant="outline" onClick={form.handleSubmit((values) => handleFormSubmit(values, true))}>Save Draft</Button>
-              <Button onClick={form.handleSubmit((values) => handleFormSubmit(values, false))}>Submit Report</Button>
+              <Button type="submit">Submit Report</Button>
             </div>
           </form>
         </Form>
       </CardContent>
     </Card>
   )
+}
+
+// A simple multi-select component
+function MultiSelect({ options, selected, onChange }: { options: {value: string, label: string}[], selected: string[], onChange: (selected: string[]) => void }) {
+  const [open, setOpen] = React.useState(false);
+
+  const handleSelect = (value: string) => {
+    const newSelected = selected.includes(value)
+      ? selected.filter((item) => item !== value)
+      : [...selected, value];
+    onChange(newSelected);
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-full justify-between"
+        >
+          <span className="truncate">
+            {selected.length > 0 ? selected.join(", ") : "Select panels..."}
+          </span>
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+        <Command>
+          <CommandInput placeholder="Search panels..." />
+          <CommandEmpty>No panel found.</CommandEmpty>
+          <CommandGroup>
+            {options.map((option) => (
+              <CommandItem
+                key={option.value}
+                value={option.value}
+                onSelect={(currentValue) => {
+                  handleSelect(currentValue);
+                }}
+              >
+                <Check
+                  className={cn(
+                    "mr-2 h-4 w-4",
+                    selected.includes(option.value) ? "opacity-100" : "opacity-0"
+                  )}
+                />
+                {option.label}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
 }

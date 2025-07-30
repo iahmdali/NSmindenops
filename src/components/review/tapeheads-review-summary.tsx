@@ -40,6 +40,8 @@ export function TapeheadsReviewSummary({
         average_mph: 0,
         total_downtime: 0,
         total_spin_outs: 0,
+        total_unique_panels: 0,
+        nested_panel_count: 0,
       }
     }
 
@@ -68,6 +70,11 @@ export function TapeheadsReviewSummary({
     }, 0);
 
     const average_mph = total_hours_worked > 0 ? (total_meters / total_hours_worked).toFixed(2) : 0;
+    
+    const uniquePanels = new Set<string>();
+    submissions.forEach(s => s.panels_worked_on?.forEach(p => uniquePanels.add(p)));
+
+    const nested_panel_count = submissions.reduce((acc, s) => acc + (s.nested_panels?.length || 0), 0);
 
     return {
       total_meters,
@@ -76,6 +83,8 @@ export function TapeheadsReviewSummary({
       average_mph,
       total_downtime,
       total_spin_outs,
+      total_unique_panels: uniquePanels.size,
+      nested_panel_count,
     }
   }, [submissions])
 
@@ -84,17 +93,31 @@ export function TapeheadsReviewSummary({
       <CardHeader>
         <CardTitle className="font-headline">Final Shift Report</CardTitle>
         <CardDescription>
-          Shift Lead Authority: Full editing control over all final report metrics and summaries.
+          Aggregated review and report finalization for the selected shift.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <Accordion type="single" collapsible className="w-full" defaultValue="file-system">
+          <AccordionItem value="file-system">
+            <AccordionTrigger>
+               <div className="flex items-center gap-3">
+                <BookOpen className="h-5 w-5 text-primary"/>
+                <h4 className="text-md font-semibold text-primary">File System Module: OE &amp; Section Creation</h4>
+               </div>
+            </AccordionTrigger>
+            <AccordionContent>
+              <TapeheadsOeTracker entries={oeEntries} onEntriesChange={onOeEntriesChange} />
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+        
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="total-meters">Total Meters (Shift Lead Editable)</Label>
+            <Label htmlFor="total-meters">Total Meters (Editable)</Label>
             <Input id="total-meters" defaultValue={summary.total_meters} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="total-tapes">Total Tapes (Shift Lead Editable)</Label>
+            <Label htmlFor="total-tapes">Total Tapes (Editable)</Label>
             <Input id="total-tapes" defaultValue={summary.total_tapes} />
           </div>
           <div className="space-y-2">
@@ -105,37 +128,32 @@ export function TapeheadsReviewSummary({
             <Label htmlFor="avg-mph">Average MPMH</Label>
             <Input id="avg-mph" value={`${summary.average_mph} m/hr`} readOnly className="bg-muted font-mono text-blue-600 font-bold"/>
           </div>
+           <div className="space-y-2">
+            <Label>Total Spin Outs</Label>
+            <Input value={summary.total_spin_outs} readOnly className="bg-muted font-mono"/>
+          </div>
           <div className="space-y-2">
-            <Label htmlFor="total-downtime">Total Downtime</Label>
-            <Input id="total-downtime" value={`${summary.total_downtime} min`} readOnly className="bg-muted font-mono"/>
+            <Label>Total Downtime</Label>
+            <Input value={`${summary.total_downtime} min`} readOnly className="bg-muted font-mono"/>
           </div>
            <div className="space-y-2">
-            <Label htmlFor="total-spin-outs">Total Spin Outs</Label>
-            <Input id="total-spin-outs" value={summary.total_spin_outs} readOnly className="bg-muted font-mono"/>
+            <Label>Unique Panels Worked</Label>
+            <Input value={summary.total_unique_panels} readOnly className="bg-muted font-mono"/>
+          </div>
+           <div className="space-y-2">
+            <Label>Nested Panel Count</Label>
+            <Input value={summary.nested_panel_count} readOnly className="bg-muted font-mono"/>
           </div>
         </div>
+        
         <div className="space-y-2">
-            <Label htmlFor="lead-comments">Shift-wide Comments (Optional)</Label>
+            <Label htmlFor="lead-comments">Shift-wide Comments</Label>
             <Textarea id="lead-comments" placeholder="Add any shift-wide observations, notes, or comments..."/>
         </div>
-        
-        <Accordion type="single" collapsible className="w-full" defaultValue="oe-tracker">
-          <AccordionItem value="oe-tracker">
-            <AccordionTrigger>
-               <div className="flex items-center gap-3">
-                <BookOpen className="h-5 w-5 text-primary"/>
-                <h4 className="text-md font-semibold text-primary">OE Entries and Section-Level Panel Counts</h4>
-               </div>
-            </AccordionTrigger>
-            <AccordionContent>
-              <TapeheadsOeTracker entries={oeEntries} onEntriesChange={onOeEntriesChange} />
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
 
          <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <Label htmlFor="op-summary">Operational Summary (Shift Lead Full Authority)</Label>
+              <Label htmlFor="op-summary">Final Summary Preview</Label>
               <Button variant="ghost" size="sm" onClick={onGenerateSummary} disabled={isGeneratingSummary}>
                 <Sparkles className="mr-2 h-4 w-4"/>
                 {isGeneratingSummary ? "Generating..." : "Generate with AI"}
@@ -146,7 +164,7 @@ export function TapeheadsReviewSummary({
               value={generatedSummary} 
               onChange={(e) => onGeneratedSummaryChange(e.target.value)}
               placeholder="Click 'Generate with AI' to create a summary of the shift's activities." 
-              className="min-h-[100px]"
+              className="min-h-[100px] bg-muted/50"
             />
         </div>
          <div className="space-y-2">

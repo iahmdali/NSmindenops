@@ -1,19 +1,19 @@
 
 "use client"
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PlusCircle, Trash2 } from "lucide-react";
+import { PlusCircle, Trash2, Edit, Check } from "lucide-react";
 
 export interface OeEntry {
     id: string;
     oeNumber: string;
-    sections: number;
-    panels: Record<string, number>;
+    totalSections: number;
+    sections: { id: string; panels: number }[];
 }
 
 interface TapeheadsOeTrackerProps {
@@ -22,27 +22,30 @@ interface TapeheadsOeTrackerProps {
 }
 
 
-const generateSectionIds = (oeNumber: string, sections: number): string[] => {
-    if (!oeNumber || oeNumber.length < 3 || sections <= 0) return [];
+const generateSectionIds = (oeNumber: string, totalSections: number): { id: string, panels: number }[] => {
+    if (!oeNumber || totalSections <= 0) return [];
+    
     const oeBaseMatch = oeNumber.match(/^([A-Z]+[0-9]+)/);
     if (!oeBaseMatch) return [];
     
     const oeBase = oeBaseMatch[1];
-    const lastThree = oeNumber.slice(-3);
-    if (isNaN(parseInt(lastThree, 10))) return [];
+    const existingSailNumbers = new Set<string>(); // In a real app, this would come from a DB query
 
-    const sailIdentifier = lastThree.slice(-1); // The 'X' in 00X
-    const sailNumberPrefix = lastThree.slice(0, 1); // The '0' in 00X or '2' in 20X for the second sail
+    // Find the next available sail number prefix (0xx, 2xx, 4xx)
+    let sailNumPrefix = 0;
+    while(existingSailNumbers.has(`${oeBase}-${String(sailNumPrefix).padStart(1,'0')}01`)) {
+        sailNumPrefix += 2;
+    }
 
-    const ids: string[] = [];
+    const ids: { id: string, panels: number }[] = [];
 
-    // Head panel is always '00' + identifier, but adjusted for multi-sail OEs
-    ids.push(`${oeBase}-${sailNumberPrefix}0${sailIdentifier}`);
+    // Head panel
+    ids.push({ id: `${oeBase}-${String(sailNumPrefix)}01`, panels: 0 });
 
-    // Subsequent sections increment the middle digit
-    for (let i = 1; i < sections; i++) {
-        const panelSequence = 10 * i;
-        ids.push(`${oeBase}-${panelSequence + parseInt(sailNumberPrefix,10)}${sailIdentifier}`);
+    // Subsequent sections
+    for (let i = 1; i < totalSections; i++) {
+        const panelSequence = i * 10;
+        ids.push({ id: `${oeBase}-${panelSequence + sailNumPrefix}1`, panels: 0 });
     }
 
     return ids;
@@ -55,8 +58,8 @@ export function TapeheadsOeTracker({ entries, onEntriesChange }: TapeheadsOeTrac
         const newEntry: OeEntry = {
             id: `oe_${Date.now()}`,
             oeNumber: "",
-            sections: 0,
-            panels: {},
+            totalSections: 0,
+            sections: [],
         };
         onEntriesChange([...entries, newEntry]);
     };
@@ -69,9 +72,8 @@ export function TapeheadsOeTracker({ entries, onEntriesChange }: TapeheadsOeTrac
         const updatedEntries = entries.map(entry => {
             if (entry.id === id) {
                  const newEntry = { ...entry, [field]: value };
-                 // when sections or oeNumber changes, reset panels
-                 if(field === 'sections' || field === 'oeNumber') {
-                    newEntry.panels = {};
+                 if(field === 'oeNumber' || field === 'totalSections') {
+                    newEntry.sections = generateSectionIds(newEntry.oeNumber, newEntry.totalSections);
                  }
                  return newEntry;
             }
@@ -79,116 +81,134 @@ export function TapeheadsOeTracker({ entries, onEntriesChange }: TapeheadsOeTrac
         });
         onEntriesChange(updatedEntries);
     };
-    
-    const updatePanelCount = (entryId: string, sectionId: string, count: number) => {
-         const updatedEntries = entries.map(entry => {
+
+    const updateSection = (entryId: string, sectionId: string, updatedValues: { id?: string, panels?: number }) => {
+        onEntriesChange(entries.map(entry => {
             if (entry.id === entryId) {
                 return {
                     ...entry,
-                    panels: {
-                        ...entry.panels,
-                        [sectionId]: count,
-                    },
+                    sections: entry.sections.map(section => 
+                        section.id === sectionId ? { ...section, ...updatedValues } : section
+                    ),
                 };
             }
             return entry;
-        });
-        onEntriesChange(updatedEntries);
-    }
+        }));
+    };
 
     return (
-        <div className="space-y-4 p-4">
+        <div className="space-y-4 p-4 bg-muted/20 rounded-lg">
             {entries.map((entry) => (
                 <OeEntryCard 
                     key={entry.id} 
                     entry={entry} 
                     onUpdate={updateEntry}
-                    onPanelUpdate={updatePanelCount}
+                    onSectionUpdate={updateSection}
                     onRemove={removeEntry}
                 />
             ))}
             <Button variant="outline" size="sm" onClick={addEntry}>
-                <PlusCircle className="mr-2 h-4 w-4" /> Add OE Entry
+                <PlusCircle className="mr-2 h-4 w-4" /> Add New OE Job
             </Button>
         </div>
     );
 }
 
 
-function OeEntryCard({ entry, onUpdate, onPanelUpdate, onRemove }: { entry: OeEntry, onUpdate: (id: string, field: keyof OeEntry, value: any) => void, onPanelUpdate: (entryId: string, sectionId: string, count: number) => void, onRemove: (id: string) => void }) {
+function OeEntryCard({ 
+    entry, 
+    onUpdate, 
+    onSectionUpdate,
+    onRemove 
+}: { 
+    entry: OeEntry, 
+    onUpdate: (id: string, field: keyof OeEntry, value: any) => void, 
+    onSectionUpdate: (entryId: string, sectionId: string, updatedValues: { id?: string, panels?: number }) => void, 
+    onRemove: (id: string) => void 
+}) {
+    const [isEditing, setIsEditing] = useState<string | null>(null);
+    const [editableId, setEditableId] = useState('');
     
-    const sectionIds = useMemo(() => generateSectionIds(entry.oeNumber, entry.sections), [entry.oeNumber, entry.sections]);
+    const handleEdit = (sectionId: string) => {
+        setEditableId(sectionId);
+        setIsEditing(sectionId);
+    };
     
-    const [oeBase, oeSuffix] = useMemo(() => {
-        const parts = entry.oeNumber.split('-');
-        if (parts.length === 2) {
-            return [parts[0], parts[1]];
-        }
-        return [entry.oeNumber, ''];
-    }, [entry.oeNumber]);
-
-    const handleOeChange = (base: string, suffix: string) => {
-        const newOeNumber = suffix ? `${base}-${suffix}` : base;
-        onUpdate(entry.id, 'oeNumber', newOeNumber);
+    const handleSave = (sectionId: string) => {
+        onSectionUpdate(entry.id, sectionId, { id: editableId });
+        setIsEditing(null);
     };
 
+
     return (
-        <Card className="bg-muted/50 p-4 relative">
+        <Card className="bg-background p-4 relative">
+             <Button variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive" onClick={() => onRemove(entry.id)}><Trash2 className="size-4"/></Button>
             <div className="flex items-end gap-4 mb-4">
                  <div className="grid gap-1.5 flex-1">
-                    <Label htmlFor={`oe-base-${entry.id}`}>OE Number</Label>
-                    <div className="flex items-center gap-2">
-                        <Input 
-                            id={`oe-base-${entry.id}`}
-                            placeholder="e.g., OUK23456"
-                            value={oeBase}
-                            onChange={(e) => handleOeChange(e.target.value, oeSuffix)}
-                        />
-                        <span className="text-muted-foreground">-</span>
-                        <Input 
-                            id={`oe-suffix-${entry.id}`}
-                            placeholder="001"
-                            value={oeSuffix}
-                            onChange={(e) => handleOeChange(oeBase, e.target.value)}
-                            className="w-24"
-                        />
-                    </div>
+                    <Label htmlFor={`oe-number-${entry.id}`}>OE Number (e.g., OAUS32162)</Label>
+                    <Input 
+                        id={`oe-number-${entry.id}`}
+                        placeholder="Enter OE Base..."
+                        value={entry.oeNumber}
+                        onChange={(e) => onUpdate(entry.id, 'oeNumber', e.target.value)}
+                    />
                 </div>
                  <div className="grid gap-1.5">
-                    <Label htmlFor={`oe-sections-${entry.id}`}>Number of Sections</Label>
+                    <Label htmlFor={`oe-sections-${entry.id}`}>Total Sections</Label>
                     <Input
                         id={`oe-sections-${entry.id}`}
                         type="number"
-                        value={entry.sections}
-                        onChange={(e) => onUpdate(entry.id, 'sections', parseInt(e.target.value, 10) || 0)}
+                        value={entry.totalSections}
+                        onChange={(e) => onUpdate(entry.id, 'totalSections', parseInt(e.target.value, 10) || 0)}
                         className="w-32"
                     />
                 </div>
-                <Button variant="ghost" size="icon" className="text-destructive" onClick={() => onRemove(entry.id)}><Trash2 className="size-4"/></Button>
             </div>
             
-            {sectionIds.length > 0 && (
+            {entry.sections.length > 0 && (
                 <div>
-                    <Label>Section-Level Panel Counts</Label>
+                    <Label className="text-sm font-medium">Generated Sections</Label>
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead className="w-[150px]">Section ID</TableHead>
-                                <TableHead>Panels in Section</TableHead>
+                                <TableHead>Section Code</TableHead>
+                                <TableHead>Number of Panels</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {sectionIds.map(sectionId => (
-                                <TableRow key={sectionId}>
-                                    <TableCell className="font-mono">{sectionId}</TableCell>
+                            {entry.sections.map(section => (
+                                <TableRow key={section.id}>
+                                    <TableCell>
+                                        {isEditing === section.id ? (
+                                            <Input 
+                                                value={editableId} 
+                                                onChange={(e) => setEditableId(e.target.value)}
+                                                className="font-mono h-8"
+                                            />
+                                        ) : (
+                                            <span className="font-mono">{section.id}</span>
+                                        )}
+                                    </TableCell>
                                     <TableCell>
                                         <Input
                                             type="number"
-                                            placeholder="Enter panel count"
-                                            value={entry.panels[sectionId] || ''}
-                                            onChange={(e) => onPanelUpdate(entry.id, sectionId, parseInt(e.target.value, 10) || 0)}
-                                            className="w-48"
+                                            placeholder="0"
+                                            value={section.panels}
+                                            onChange={(e) => onSectionUpdate(entry.id, section.id, { panels: parseInt(e.target.value) || 0 })}
+                                            className="w-32 h-8"
                                         />
+                                    </TableCell>
+                                     <TableCell className="text-right">
+                                        {isEditing === section.id ? (
+                                            <Button size="sm" variant="outline" onClick={() => handleSave(section.id)}>
+                                                <Check className="size-4"/>
+                                            </Button>
+                                        ) : (
+                                            <Button size="sm" variant="ghost" onClick={() => handleEdit(section.id)}>
+                                               <Edit className="size-4"/>
+                                            </Button>
+                                        )}
                                     </TableCell>
                                 </TableRow>
                             ))}
