@@ -133,7 +133,17 @@ function addGantryData(progress: ProgressNode[], allOeNumbers: string[]) {
     const reports = gantryReportsData.filter(r => r.molds?.some(m => m.sails.some(s => allOeNumbers.map(o => o.toLowerCase()).includes(s.sail_number.toLowerCase()))));
     if (reports.length === 0) return;
 
-    const allSails = reports.flatMap(r => r.molds || []).flatMap(m => m.sails.filter(s => allOeNumbers.map(o => o.toLowerCase()).includes(s.sail_number.toLowerCase())).map(sail => ({ ...sail, reportDate: r.date, moldNumber: m.mold_number })));
+    const allSails = reports.flatMap(report => 
+        (report.molds || []).flatMap(mold => 
+            mold.sails
+                .filter(sail => allOeNumbers.map(o => o.toLowerCase()).includes(sail.sail_number.toLowerCase()))
+                .map(sail => ({
+                    ...sail,
+                    reportDate: report.date,
+                    moldNumber: mold.mold_number,
+                }))
+        )
+    );
 
     progress.push({
         id: 'gantry',
