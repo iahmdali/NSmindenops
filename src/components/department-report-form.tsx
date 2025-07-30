@@ -5,6 +5,7 @@ import type { Department } from "@/lib/types"
 import { GantryReportForm } from "./gantry-report-form"
 import { GraphicsReportForm } from "./graphics-report-form"
 import { FilmsReportForm } from "./films-report-form"
+import { TapeheadsOperatorForm } from "./tapeheads-operator-form"
 
 interface DepartmentReportFormProps {
   department: Department;
@@ -26,8 +27,10 @@ export function DepartmentReportForm({ department }: DepartmentReportFormProps) 
   if (department === 'Films') {
     return <FilmsReportForm />;
   }
+
+  if (department === 'Tapeheads') {
+    return <TapeheadsOperatorForm />;
+  }
   
   return <GenericReportForm department={department} />;
 }
-
-    

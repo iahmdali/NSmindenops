@@ -1,5 +1,6 @@
 import { DepartmentReportForm } from "@/components/department-report-form";
 import { PageHeader } from "@/components/page-header";
+import { TapeheadsWorkDashboard } from "@/components/tapeheads-work-dashboard";
 import type { Department } from "@/lib/types";
 import { notFound } from "next/navigation";
 
@@ -19,6 +20,10 @@ export default function ReportPage({ params }: { params: { department: string } 
   
   if (departmentName === 'Graphics') {
     return <DepartmentReportForm department={departmentName} />;
+  }
+
+  if (departmentName === 'Tapeheads') {
+    return <TapeheadsWorkDashboard />;
   }
   
   return (

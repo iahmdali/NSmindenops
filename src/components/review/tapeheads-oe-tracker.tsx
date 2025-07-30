@@ -10,7 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
+import { addOeJob } from '@/lib/oe-data';
 
 const sectionSchema = z.object({
   id: z.string(),
@@ -37,7 +38,7 @@ export function TapeheadsOeTracker() {
     },
   });
 
-  const { fields, append, remove, replace } = useFieldArray({
+  const { fields, replace } = useFieldArray({
     control: form.control,
     name: 'sections',
   });
@@ -55,23 +56,6 @@ export function TapeheadsOeTracker() {
     
     const newSections = Array.from({ length: totalSections }, (_, i) => {
         let sectionId;
-        if (i === 0) {
-            sectionId = '001';
-        } else {
-            const lastDigit = (i % 10).toString();
-            const middleDigit = Math.floor(i / 10).toString();
-            sectionId = `1${middleDigit}${lastDigit}`;
-        }
-        
-        // This handles cases for section 1-9 to be 101, 102 etc. and 10 to be 110
-         if (i > 0 && i < 10) {
-             sectionId = `10${i}`;
-         } else if (i >= 10) {
-             const lastDigit = (i % 10).toString();
-             const middleDigit = Math.floor(i / 10).toString();
-             sectionId = `1${middleDigit}${lastDigit}`;
-         }
-
         if (i === 0) sectionId = '001';
         else if (i > 0 && i < 10) sectionId = `10${i}`;
         else {
@@ -80,10 +64,9 @@ export function TapeheadsOeTracker() {
             sectionId = `1${middleDigit}${lastDigit}`.slice(0, 3).padStart(3, '1');
         }
 
-
         return {
             id: `section-${Date.now()}-${i}`,
-            sectionId: i === 0 ? '001' : `1${Math.floor((i-1)/10)}${(i-1)%10}`,
+            sectionId,
             panels: 1,
         };
     });
@@ -92,15 +75,10 @@ export function TapeheadsOeTracker() {
   
 
   const onSubmit = (data: OeTrackerFormValues) => {
-    const fullOes = data.sections.map(s => ({
-      ...s,
-      fullOe: `${data.oeBase}-${s.sectionId}`,
-    }));
+    // Add the newly created job to our mock data store
+    addOeJob(data);
     
-    console.log({
-      oeBase: data.oeBase,
-      sections: fullOes,
-    });
+    console.log("Job created:", data);
 
     toast({
       title: 'OE Job Initialized',
@@ -197,9 +175,6 @@ export function TapeheadsOeTracker() {
                         </FormItem>
                       )}
                     />
-                    <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
                   </div>
                 ))}
               </div>
@@ -216,4 +191,3 @@ export function TapeheadsOeTracker() {
     </Card>
   );
 }
-
