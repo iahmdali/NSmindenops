@@ -17,6 +17,7 @@ import { tapeheadsSubmissions } from "@/lib/data";
 import { graphicsTasksData } from "@/lib/graphics-data";
 import { gantryReportsData } from "@/lib/gantry-data";
 import { filmsReportsData } from "@/lib/films-data";
+import { qcInspectionData } from "@/lib/qc-data";
 
 const aggregateDataForOE = (oeNumber: string): ProgressNode[] => {
   if (!oeNumber) return [];
@@ -32,27 +33,49 @@ const aggregateDataForOE = (oeNumber: string): ProgressNode[] => {
   );
 
   if (gantryReportsForOE.length > 0) {
-    nodes.push({
+    const gantryNode: ProgressNode = {
       id: 'gantry',
       name: 'Gantry',
-      status: 'Completed', // Simplified status for the department level
-      children: gantryReportsForOE.flatMap(report =>
+      status: 'In Progress', // Default status
+      children: []
+    };
+
+    const allGantrySailsDone = gantryReportsForOE.every(report =>
+        report.molds?.every(mold =>
+            mold.sails
+                .filter(sail => sail.sail_number.toLowerCase().includes(cleanOeNumber))
+                .every(sail => sail.stage_of_process === 'Finished')
+        )
+    );
+    if (allGantrySailsDone) {
+        gantryNode.status = 'Completed';
+    }
+
+    gantryNode.children = gantryReportsForOE.flatMap(report =>
         (report.molds || []).flatMap(mold =>
           mold.sails
             .filter(sail => sail.sail_number.toLowerCase().includes(cleanOeNumber))
-            .map(sail => ({
-              id: `gantry-${report.id}-${mold.id}-${sail.sail_number}`,
-              name: `Mold ${mold.mold_number} - Sail ${sail.sail_number}`,
-              status: sail.stage_of_process || 'Unknown Stage',
-              details: {
-                Date: report.date,
-                Shift: report.shift,
-                "Recorded Issues": sail.issues || 'None',
+            .map(sail => {
+              // Find corresponding Films data
+              const filmPrep = filmsReportsData.find(filmReport => 
+                filmReport.sail_preparations.some(p => p.sail_number.toLowerCase().includes(cleanOeNumber) && p.gantry_mold === mold.mold_number)
+              )?.sail_preparations[0];
+
+              return {
+                id: `gantry-${report.id}-${mold.id}-${sail.sail_number}`,
+                name: `Mold ${mold.mold_number} - Sail ${sail.sail_number}`,
+                status: sail.stage_of_process || 'Unknown Stage',
+                details: {
+                  "Gantry Report Date": report.date,
+                  "Film Prep Date": filmPrep ? new Date(filmPrep.prep_date).toLocaleDateString() : "N/A",
+                  "Film Status": filmPrep ? (filmPrep.status_done ? 'Done' : 'In Progress') : "N/A",
+                  "Gantry Issues": sail.issues || 'None',
+                }
               }
-            }))
+            })
         )
       )
-    });
+    nodes.push(gantryNode);
   }
   
   // 2. Films Data
@@ -64,16 +87,16 @@ const aggregateDataForOE = (oeNumber: string): ProgressNode[] => {
     nodes.push({
       id: 'films',
       name: 'Films',
-      status: 'Completed',
+      status: filmsReportsForOE.every(r => r.sail_preparations.every(p => p.status_done)) ? 'Completed' : 'In Progress',
       children: filmsReportsForOE.flatMap(report => 
         report.sail_preparations
         .filter(prep => prep.sail_number.toLowerCase().includes(cleanOeNumber))
         .map(prep => ({
-          id: `films-${report.report_date}-${prep.sail_number}`,
+          id: `films-${prep.prep_date}-${prep.sail_number}`,
           name: `Sail Prep for ${prep.sail_number}`,
           status: prep.status_done ? 'Done' : 'In Progress',
           details: {
-            Date: report.report_date,
+            Date: new Date(prep.prep_date).toLocaleDateString(),
             "Shift Lead": report.shift_lead_name,
             "Gantry/Mold": prep.gantry_mold,
             "Issue Notes": prep.issue_notes || 'None',
@@ -92,7 +115,7 @@ const aggregateDataForOE = (oeNumber: string): ProgressNode[] => {
     nodes.push({
       id: "tapeheads",
       name: "Tapeheads",
-      status: "Completed", // Simplified
+      status: tapeheadsReportsForOE.every(r => r.end_of_shift_status === 'Completed') ? "Completed" : "In Progress",
       children: tapeheadsReportsForOE.map((report) => ({
         id: `tapeheads-${report.id}`,
         name: `Operator: ${report.operatorName} on ${report.th_number}`,
@@ -159,10 +182,59 @@ const aggregateDataForOE = (oeNumber: string): ProgressNode[] => {
       children: children
     });
   }
+
+  // 5. QC Data
+  const qcReportForOE = qcInspectionData.find(qc => qc.oe_number.toLowerCase().includes(cleanOeNumber));
+  if (qcReportForOE) {
+      const getStatus = (score: number) => {
+          if (score >= 100) return "Fail";
+          if (score >= 61) return "Requires Reinspection";
+          return "Pass";
+      }
+      const status = getStatus(qcReportForOE.totalScore);
+      nodes.push({
+          id: 'qc',
+          name: 'QC',
+          status: status,
+          children: [{
+              id: `qc-${qcReportForOE.oe_number}`,
+              name: `Inspection for ${qcReportForOE.oe_number}`,
+              status: status,
+              details: {
+                  "Inspection Date": new Date(qcReportForOE.inspection_date).toLocaleDateString(),
+                  "Inspector": qcReportForOE.inspector_name,
+                  "Total Score": qcReportForOE.totalScore,
+                  "Final Decision": qcReportForOE.reinspection_notes || 'N/A'
+              }
+          }]
+      })
+  }
+
+  // 6. Shipping (placeholder)
+  const isReadyForShipping = graphicsTasksData
+    .filter(t => t.tagId.toLowerCase().includes(cleanOeNumber))
+    .every(t => t.isFinished && t.status === 'done');
+
+  if (isReadyForShipping && qcReportForOE?.totalScore < 100) {
+       nodes.push({
+          id: 'shipping',
+          name: 'Shipping',
+          status: 'Ready for Pickup',
+          children: [{
+              id: `shipping-${oeNumber}`,
+              name: 'Ready for Shipping',
+              status: 'Awaiting Pickup',
+              details: {
+                  "Notification Sent": "Yes"
+              }
+          }]
+      })
+  }
+
   
   // Sort nodes for consistent order: Gantry -> Films -> Tapeheads -> Graphics
   nodes.sort((a, b) => {
-    const order = ['Gantry', 'Films', 'Tapeheads', 'Graphics'];
+    const order = ['Gantry', 'Films', 'Tapeheads', 'Graphics', 'QC', 'Shipping'];
     return order.indexOf(a.name) - order.indexOf(b.name);
   });
 

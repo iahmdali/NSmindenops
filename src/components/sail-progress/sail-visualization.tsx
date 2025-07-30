@@ -14,6 +14,9 @@ const statusStyles: Record<string, string> = {
   "Done": "bg-green-100 text-green-800 border-green-500",
   "In Progress": "bg-blue-100 text-blue-800 border-blue-500",
   "default": "bg-gray-100 text-gray-800 border-gray-400",
+  "Pass": "bg-green-100 text-green-800 border-green-500",
+  "Fail": "bg-red-100 text-red-800 border-red-500",
+  "Requires Reinspection": "bg-yellow-100 text-yellow-800 border-yellow-500",
 };
 
 function getStatusClass(status?: string) {
@@ -25,8 +28,8 @@ function getStatusClass(status?: string) {
 export function SailVisualization({ nodes }: SailVisualizationProps) {
   // We can create a more complex structure if needed.
   // For now, we'll create a few "panels" and assign department data to them.
-  const panelCount = 5; 
-  const departments = ['Gantry', 'Films', 'Tapeheads', 'Graphics', 'Shipping'];
+  const panelCount = 6; 
+  const departments = ['Gantry', 'Films', 'Tapeheads', 'Graphics', 'QC', 'Shipping'];
   
   const getPanelData = (index: number): ProgressNode | undefined => {
       const deptName = departments[index];

@@ -1,4 +1,5 @@
 
+
 export interface GantryReport {
   id: number;
   date: string;
@@ -36,21 +37,12 @@ export interface GantryReport {
 
 const personnelList = ["Alice", "Bob", "Charlie", "David", "Eve", "Frank"];
 const zoneLeadsList = ["Lead A", "Lead B", "Lead C"];
-const moldNumbers = ["100", "105", "109", "110", "111"];
+const moldNumbers = ["Gantry 4/MOLD 105", "Gantry 6/MOLD 109", "Gantry 6/MOLD 110", "Gantry 7/MOLD 111", "Gantry 8/MOLD 100"];
 const stages = ["Layup", "Curing", "Trimming", "Inspection", "Finished"];
 const issues = ["Delamination", "Wrinkles", "Contamination", "Porosity", ""];
 const downtimeReasons = ["Machine Error", "Material Shortage", "Shift Change", "Lunch", "Planned Maintenance"];
 
-const generateSailNumber = () => {
-  const type = Math.random();
-  if (type < 0.5) { // Sail
-    return `SL-2024-00${Math.floor(Math.random() * 9) + 1}`;
-  } else if (type < 0.8) { // Panel
-    return `PN-2024-${Math.floor(Math.random() * 5) + 1}00`;
-  } else { // Scarf
-    return `SC-2024-${Math.floor(Math.random() * 899) + 100}`;
-  }
-};
+const oeNumbers = ["OE-12345", "OE-67890", "OE-ABCDE"];
 
 const generateRandomData = (days: number): GantryReport[] => {
   const reports: GantryReport[] = [];
@@ -85,8 +77,8 @@ const generateRandomData = (days: number): GantryReport[] => {
         molds: moldNumbers.map((mold_number, m_idx) => ({
             id: reportId * 10 + m_idx,
             mold_number,
-            sails: Array.from({ length: Math.floor(Math.random() * 5) + 1 }, () => ({
-                sail_number: generateSailNumber(),
+            sails: Array.from({ length: Math.floor(Math.random() * 2) + 1 }, (_, s_idx) => ({
+                sail_number: oeNumbers[(i + s_idx) % oeNumbers.length],
                 stage_of_process: stages[Math.floor(Math.random() * stages.length)],
                 issues: issues[Math.floor(Math.random() * issues.length)],
             })),
@@ -105,7 +97,4 @@ const generateRandomData = (days: number): GantryReport[] => {
   return reports;
 };
 
-export const gantryReportsData: GantryReport[] = generateRandomData(30);
-
-
-    
+export const gantryReportsData: GantryReport[] = generateRandomData(5);
