@@ -4,7 +4,7 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm, useFieldArray, useWatch } from "react-hook-form"
 import * as z from "zod"
-import { PlusCircle, Trash2 } from "lucide-react"
+import { PlusCircle, Trash2, Check } from "lucide-react"
 import React from "react";
 
 import { Button } from "@/components/ui/button"
