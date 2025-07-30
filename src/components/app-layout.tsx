@@ -204,18 +204,6 @@ function MainSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              isActive={pathname === "/review/tapeheads"}
-              tooltip="Review"
-            >
-              <Link href="/review/tapeheads">
-                <ClipboardList />
-                <span>Tapeheads Review</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
               isActive={pathname.startsWith("/qc")}
               tooltip="QC Inspection"
             >
