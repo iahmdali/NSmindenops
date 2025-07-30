@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import * as React from "react";
@@ -108,7 +109,7 @@ function MainSidebar() {
     if (pathname.startsWith('/report')) {
       setReportsOpen(true);
     }
-    if (pathname.startsWith('/analytics')) {
+    if (pathname.startsWith('/analytics') || pathname.startsWith('/review')) {
       setAnalyticsOpen(true);
     }
   }, [pathname]);
@@ -172,10 +173,10 @@ function MainSidebar() {
            <SidebarMenuItem>
             <SidebarMenuButton
               onClick={() => setAnalyticsOpen(!isAnalyticsOpen)}
-              isActive={pathname.startsWith("/analytics")}
+              isActive={pathname.startsWith("/analytics") || pathname.startsWith('/review')}
             >
               <AreaChart />
-              <span>Analytics</span>
+              <span>Review & Analytics</span>
               <ChevronDown
                 className={cn(
                   "ml-auto h-4 w-4 transition-transform duration-200",
@@ -185,19 +186,16 @@ function MainSidebar() {
             </SidebarMenuButton>
             {isAnalyticsOpen && (
               <SidebarMenuSub>
-                {analyticsDepartments.map((dept) => (
-                  <SidebarMenuSubItem key={dept.name}>
-                    <SidebarMenuSubButton
-                      asChild
-                      isActive={pathname === dept.href}
-                    >
-                      <Link href={dept.href}>
-                        <dept.icon />
-                        <span>{dept.name}</span>
-                      </Link>
-                    </SidebarMenuSubButton>
-                  </SidebarMenuSubItem>
-                ))}
+                <SidebarMenuSubItem>
+                   <SidebarMenuSubButton asChild isActive={pathname === '/review/tapeheads'}>
+                        <Link href="/review/tapeheads"><Users /><span>Tapeheads Review</span></Link>
+                   </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+                <SidebarMenuSubItem>
+                   <SidebarMenuSubButton asChild isActive={pathname.startsWith('/analytics')}>
+                        <Link href="/analytics/pregger"><AreaChart/><span>Department Analytics</span></Link>
+                   </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
               </SidebarMenuSub>
             )}
           </SidebarMenuItem>
