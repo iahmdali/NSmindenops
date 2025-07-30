@@ -22,7 +22,18 @@ const statusStyles = {
   "In Progress": "bg-blue-100 text-blue-800 border-blue-200",
   Completed: "bg-green-100 text-green-800 border-green-200",
   Done: "bg-green-100 text-green-800 border-green-200",
+  "Pass": "bg-green-100 text-green-800 border-green-200",
+  "Fail": "bg-red-100 text-red-800 border-red-500",
+  "Requires Reinspection": "bg-yellow-100 text-yellow-800 border-yellow-500",
+  "Ready for Pickup": "bg-primary/20 text-primary border-primary/50",
+  "Awaiting Pickup": "bg-primary/20 text-primary border-primary/50"
 };
+
+function getStatusClass(status?: string) {
+  if (!status) return statusStyles.default;
+  const statusKey = Object.keys(statusStyles).find(key => status.toLowerCase().includes(key.toLowerCase()));
+  return statusKey ? statusStyles[statusKey as keyof typeof statusStyles] : statusStyles.default;
+}
 
 export function ProgressTree({ nodes }: ProgressTreeProps) {
   return (
@@ -41,13 +52,14 @@ export function ProgressTree({ nodes }: ProgressTreeProps) {
 function TreeNode({ node }: { node: ProgressNode }) {
   const hasChildren = node.children && node.children.length > 0;
   
-  const statusClass = statusStyles[node.status as keyof typeof statusStyles] || statusStyles.default;
+  const statusClass = getStatusClass(node.status);
+  const isCompleted = node.status === 'Completed' || node.status === 'Done' || node.status === 'Pass' || node.status === 'Ready for Pickup';
 
   return (
     <div className="relative">
       {/* Circle on the vertical line */}
       <div className="absolute -left-[2.1rem] top-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-background border-2 border-primary">
-        {node.status === 'Completed' || node.status === 'Done' ? (
+        {isCompleted ? (
           <CheckCircle className="h-5 w-5 text-green-600" />
         ) : (
           <Milestone className="h-5 w-5 text-primary" />
