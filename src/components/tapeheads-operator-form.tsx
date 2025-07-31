@@ -33,7 +33,7 @@ import { useRouter } from "next/navigation"
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group"
 import { tapeheadsSubmissions } from "@/lib/tapeheads-data"
 import type { Report, WorkItem } from "@/lib/types"
-import { oeJobs } from "@/lib/oe-data"
+import { oeJobs, getOeSection, markPanelsAsCompleted } from "@/lib/oe-data"
 
 const problemSchema = z.object({
   problem_reason: z.string().min(1, "Problem reason is required."),
@@ -248,6 +248,13 @@ export function TapeheadsOperatorForm({ reportToEdit, onFormSubmit }: TapeheadsO
   }, [watchStartTime, watchEndTime, totalMetersProduced, form]);
   
   function onSubmit(values: OperatorFormValues) {
+    // Logic to update panel statuses
+    values.workItems.forEach(item => {
+        if (item.endOfShiftStatus === 'Completed') {
+            markPanelsAsCompleted(item.oeNumber, item.section, item.panelsWorkedOn);
+        }
+    });
+
     const reportData: Partial<Report> = {
         id: reportToEdit?.id || `rpt_${Date.now()}`,
         date: values.date,
@@ -380,14 +387,20 @@ function WorkItemCard({ index, remove, control, isEditMode }: { index: number, r
 
   const availableOes = useMemo(() => [...new Set(oeJobs.map(j => j.oeBase))], []);
   const availableSails = useMemo(() => watchOeNumber ? oeJobs.filter(j => j.oeBase === watchOeNumber).map(j => j.sectionId) : [], [watchOeNumber]);
+  
   const panelOptions = useMemo(() => {
       if (!watchOeNumber || !watchSection) return [];
-      const sail = oeJobs.find(j => j.oeBase === watchOeNumber && j.sectionId === watchSection);
+      const sail = getOeSection(watchOeNumber, watchSection);
       if (!sail) return [];
       
       const options: MultiSelectOption[] = [];
+      const completedPanels = sail.completedPanels || [];
+
       for (let i = sail.panelStart; i <= sail.panelEnd; i++) {
-          options.push({ value: `P${i}`, label: `P${i}` });
+          const panelId = `P${i}`;
+          if (!completedPanels.includes(panelId)) {
+            options.push({ value: panelId, label: panelId });
+          }
       }
       return options;
   }, [watchOeNumber, watchSection]);
@@ -409,7 +422,7 @@ function WorkItemCard({ index, remove, control, isEditMode }: { index: number, r
             )} />
             <FormField control={control} name={`workItems.${index}.panelsWorkedOn`} render={({ field }) => {
                 const handleIndividualChange = (value: string) => field.onChange(value ? [value] : []);
-                return <FormItem><FormLabel>Panels Worked On</FormLabel>{watchPanelWorkType === 'nested' ? <MultiSelect options={panelOptions} selected={field.value} onChange={field.onChange} placeholder="Select panels..." /> : <Select onValueChange={handleIndividualChange} value={field.value?.[0] || ""} disabled={panelOptions.length === 0}><FormControl><SelectTrigger><SelectValue placeholder="Select a panel" /></SelectTrigger></FormControl><SelectContent>{panelOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent></Select>}<FormMessage /></FormItem>
+                return <FormItem><FormLabel>Panels Worked On</FormLabel>{watchPanelWorkType === 'nested' ? <MultiSelect options={panelOptions} selected={field.value} onChange={field.onChange} placeholder="Select panels..." /> : <Select onValueChange={handleIndividualChange} value={field.value?.[0] || ""} disabled={panelOptions.length === 0}><FormControl><SelectTrigger><SelectValue placeholder={panelOptions.length > 0 ? "Select a panel" : "All panels complete"} /></SelectTrigger></FormControl><SelectContent>{panelOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent></Select>}<FormMessage /></FormItem>
             }}/>
         </div>
          {watchPanelWorkType === 'nested' && (
