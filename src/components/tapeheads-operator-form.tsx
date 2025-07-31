@@ -25,7 +25,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { DatePicker } from "@/components/ui/date-picker"
 import { useToast } from "@/hooks/use-toast"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { PlusCircle, Trash2, Check } from "lucide-react"
+import { PlusCircle, Trash2 } from "lucide-react"
 import { Checkbox } from "./ui/checkbox"
 import { Separator } from "./ui/separator"
 import React, { useEffect } from "react"
@@ -220,6 +220,85 @@ export function TapeheadsOperatorForm() {
                          <FormField control={form.control} name="section" render={({ field }) => (<FormItem><FormLabel>Section ID</FormLabel><FormControl><Input placeholder="e.g. 001" {...field} /></FormControl><FormMessage /></FormItem>)} />
                          <FormField control={form.control} name="panelCount" render={({ field }) => (<FormItem><FormLabel>Number of Panels</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     </div>
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t">
+                        <FormField
+                            control={form.control}
+                            name="panelWorkType"
+                            render={({ field }) => (
+                                <FormItem className="space-y-3">
+                                    <FormLabel>Work Type</FormLabel>
+                                    <FormControl>
+                                        <RadioGroup
+                                        onValueChange={field.onChange}
+                                        defaultValue={field.value}
+                                        className="flex items-center space-x-4"
+                                        >
+                                        <FormItem className="flex items-center space-x-2 space-y-0">
+                                            <FormControl><RadioGroupItem value="individual" /></FormControl>
+                                            <FormLabel className="font-normal">Individual</FormLabel>
+                                        </FormItem>
+                                        <FormItem className="flex items-center space-x-2 space-y-0">
+                                            <FormControl><RadioGroupItem value="nested" /></FormControl>
+                                            <FormLabel className="font-normal">Nested</FormLabel>
+                                        </FormItem>
+                                        </RadioGroup>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="panelsWorkedOn"
+                            render={({ field }) => {
+                            const handleIndividualChange = (value: string) => {
+                                    field.onChange(value ? [value] : []);
+                                };
+
+                                return (
+                                    <FormItem>
+                                        <FormLabel>Panels Worked On</FormLabel>
+                                        {watchPanelWorkType === 'nested' ? (
+                                            <MultiSelect
+                                                options={panelOptions}
+                                                selected={field.value}
+                                                onChange={field.onChange}
+                                                placeholder="Select panels..."
+                                            />
+                                        ) : (
+                                            <Select onValueChange={handleIndividualChange} value={field.value?.[0] || ""}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Select a panel" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {panelOptions.map(opt => (
+                                                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        )}
+                                        <FormMessage />
+                                    </FormItem>
+                                )
+                            }}
+                        />
+                    </div>
+                     {watchPanelWorkType === 'nested' && (
+                        <div className="space-y-2 pt-4 border-t">
+                            <FormLabel>Nested Panel Details</FormLabel>
+                            {nestedPanelFields.map((field, index) => (
+                                <div key={field.id} className="flex items-center gap-2">
+                                    <FormField control={form.control} name={`nestedPanels.${index}`} render={({ field }) => (
+                                        <Input {...field} placeholder="e.g. P1a, P2b..." />
+                                    )} />
+                                    <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removeNestedPanel(index)}><Trash2 className="size-4" /></Button>
+                                </div>
+                            ))}
+                            <Button type="button" variant="outline" size="sm" onClick={() => appendNestedPanel('')}><PlusCircle className="mr-2 h-4 w-4"/>Add Nested Panel</Button>
+                        </div>
+                    )}
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-4 border-t">
                         <FormField control={form.control} name="thNumber" render={({ field }) => (<FormItem><FormLabel>TH Number</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select TH..." /></SelectTrigger></FormControl><SelectContent>{[...Array(10)].map((_,i) => <SelectItem key={i} value={`TH-${i+1}`}>TH-{i+1}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="operatorName" render={({ field }) => (<FormItem><FormLabel>Operator Name</FormLabel><FormControl><Input placeholder="Your name" {...field} /></FormControl><FormMessage /></FormItem>)} />
@@ -227,9 +306,8 @@ export function TapeheadsOperatorForm() {
                         <FormField control={form.control} name="endOfShiftStatus" render={({ field }) => (<FormItem><FormLabel>End of Shift Status</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="Completed">Completed</SelectItem><SelectItem value="In Progress">In Progress</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
                     </div>
                     {watchStatus === "In Progress" && (
-                        <div className="grid grid-cols-2 gap-4 pt-4 border-t">
-                            <FormField control={form.control} name="oeOutputEstimate" render={({ field }) => (<FormItem><FormLabel>OE Output Estimate</FormLabel><FormControl><Input type="number" placeholder="e.g., 500" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={form.control} name="layer" render={({ field }) => (<FormItem><FormLabel>Layer</FormLabel><FormControl><Input placeholder="e.g., 5 of 12" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
+                             <FormField control={form.control} name="layer" render={({ field }) => (<FormItem><FormLabel>Layer</FormLabel><FormControl><Input placeholder="e.g., 5 of 12" {...field} /></FormControl><FormMessage /></FormItem>)} />
                         </div>
                     )}
                 </div>
@@ -265,88 +343,6 @@ export function TapeheadsOperatorForm() {
                     ))}
                     <Button type="button" variant="outline" size="sm" onClick={() => appendProblem({ title: '', duration: 0 })}><PlusCircle className="mr-2 h-4 w-4"/>Add Problem</Button>
                 </div>
-            </Section>
-
-            <Section title="Panel & Layer Details">
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                     <FormField
-                        control={form.control}
-                        name="panelWorkType"
-                        render={({ field }) => (
-                            <FormItem className="space-y-3">
-                                <FormLabel>Work Type</FormLabel>
-                                <FormControl>
-                                    <RadioGroup
-                                    onValueChange={field.onChange}
-                                    defaultValue={field.value}
-                                    className="flex items-center space-x-4"
-                                    >
-                                    <FormItem className="flex items-center space-x-2 space-y-0">
-                                        <FormControl><RadioGroupItem value="individual" /></FormControl>
-                                        <FormLabel className="font-normal">Individual</FormLabel>
-                                    </FormItem>
-                                    <FormItem className="flex items-center space-x-2 space-y-0">
-                                        <FormControl><RadioGroupItem value="nested" /></FormControl>
-                                        <FormLabel className="font-normal">Nested</FormLabel>
-                                    </FormItem>
-                                    </RadioGroup>
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                        />
-                      <FormField
-                        control={form.control}
-                        name="panelsWorkedOn"
-                        render={({ field }) => {
-                           const handleIndividualChange = (value: string) => {
-                                field.onChange(value ? [value] : []);
-                            };
-
-                            return (
-                                <FormItem>
-                                    <FormLabel>Panels Worked On</FormLabel>
-                                    {watchPanelWorkType === 'nested' ? (
-                                        <MultiSelect
-                                            options={panelOptions}
-                                            selected={field.value}
-                                            onChange={field.onChange}
-                                            placeholder="Select panels..."
-                                        />
-                                    ) : (
-                                        <Select onValueChange={handleIndividualChange} value={field.value?.[0] || ""}>
-                                             <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Select a panel" />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                {panelOptions.map(opt => (
-                                                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    )}
-                                    <FormMessage />
-                                </FormItem>
-                            )
-                        }}
-                    />
-                </div>
-                 {watchPanelWorkType === 'nested' && (
-                    <div className="space-y-2 pt-4">
-                        <FormLabel>Nested Panel Details</FormLabel>
-                         {nestedPanelFields.map((field, index) => (
-                            <div key={field.id} className="flex items-center gap-2">
-                                <FormField control={form.control} name={`nestedPanels.${index}`} render={({ field }) => (
-                                    <Input {...field} placeholder="e.g. P1a, P2b..." />
-                                )} />
-                                <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removeNestedPanel(index)}><Trash2 className="size-4" /></Button>
-                            </div>
-                        ))}
-                        <Button type="button" variant="outline" size="sm" onClick={() => appendNestedPanel('')}><PlusCircle className="mr-2 h-4 w-4"/>Add Nested Panel</Button>
-                    </div>
-                 )}
             </Section>
             
             <Section title="End-of-Shift Checklist">

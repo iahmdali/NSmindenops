@@ -10,8 +10,16 @@ import { Badge } from './ui/badge';
 import { CheckCircle, Edit } from 'lucide-react';
 import { tapeheadsSubmissions } from '@/lib/tapeheads-data';
 import type { Report } from '@/lib/types';
+import { Progress } from './ui/progress';
 
 function SubmittedReportCard({ report }: { report: Report }) {
+    const checklistItems = report.checklist_items ? Object.values(report.checklist_items) : [];
+    const checklistCompleted = checklistItems.filter(Boolean).length;
+    const checklistTotal = checklistItems.length;
+    const checklistPercentage = checklistTotal > 0 ? (checklistCompleted / checklistTotal) * 100 : 0;
+    
+    const panelText = report.panels_worked_on?.join(', ');
+
     return (
         <Card className="shadow-md transition-all hover:shadow-lg">
             <CardHeader>
@@ -19,7 +27,7 @@ function SubmittedReportCard({ report }: { report: Report }) {
                     <div>
                         <CardTitle className="text-lg">{report.oeNumber}-{report.section}</CardTitle>
                         <CardDescription>
-                            <span className="font-semibold">Operator:</span> {report.operatorName} on {report.thNumber}
+                            <span className="font-semibold">Panels:</span> {panelText}
                         </CardDescription>
                     </div>
                      <Badge variant={'secondary'}>
@@ -28,8 +36,17 @@ function SubmittedReportCard({ report }: { report: Report }) {
                     </Badge>
                 </div>
             </CardHeader>
-            <CardContent>
-                <p className="text-sm text-muted-foreground">{report.total_meters}m produced in {report.hoursWorked}h. Status: {report.endOfShiftStatus}</p>
+            <CardContent className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                    {report.total_meters}m produced on {report.th_number}
+                </p>
+                <div>
+                     <div className="flex justify-between items-center mb-1">
+                        <span className="text-xs font-medium text-muted-foreground">Checklist</span>
+                        <span className="text-xs font-semibold">{checklistPercentage.toFixed(0)}%</span>
+                    </div>
+                    <Progress value={checklistPercentage} className="h-2" />
+                </div>
             </CardContent>
         </Card>
     );
