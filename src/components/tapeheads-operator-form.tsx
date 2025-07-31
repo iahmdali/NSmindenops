@@ -52,7 +52,6 @@ const tapeheadsOperatorSchema = z.object({
   materialType: z.string().min(1, "Material type is required."),
   endOfShiftStatus: z.string().min(1, "Status is required."),
   
-  oeOutputEstimate: z.coerce.number().optional(),
   layer: z.string().optional(),
 
   shiftStartTime: z.string().min(1, "Start time is required."),
@@ -220,7 +219,7 @@ export function TapeheadsOperatorForm() {
                          <FormField control={form.control} name="section" render={({ field }) => (<FormItem><FormLabel>Section ID</FormLabel><FormControl><Input placeholder="e.g. 001" {...field} /></FormControl><FormMessage /></FormItem>)} />
                          <FormField control={form.control} name="panelCount" render={({ field }) => (<FormItem><FormLabel>Number of Panels</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     </div>
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t">
                         <FormField
                             control={form.control}
                             name="panelWorkType"
@@ -291,7 +290,7 @@ export function TapeheadsOperatorForm() {
                             {nestedPanelFields.map((field, index) => (
                                 <div key={field.id} className="flex items-center gap-2">
                                     <FormField control={form.control} name={`nestedPanels.${index}`} render={({ field }) => (
-                                        <Input {...field} placeholder="e.g. P1a, P2b..." />
+                                        <Input {...field} value={field.value ?? ''} placeholder="e.g. P1a, P2b..." />
                                     )} />
                                     <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removeNestedPanel(index)}><Trash2 className="size-4" /></Button>
                                 </div>
