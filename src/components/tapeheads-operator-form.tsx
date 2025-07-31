@@ -180,6 +180,45 @@ export function TapeheadsOperatorForm({ reportToEdit, onFormSubmit }: TapeheadsO
   const watchWorkItems = useWatch({ control: form.control, name: "workItems" });
 
   useEffect(() => {
+    // Check for takeover state on component mount
+    const takeoverStateJSON = localStorage.getItem('tapeheadsTakeoverState');
+    if (takeoverStateJSON) {
+        const takeoverState = JSON.parse(takeoverStateJSON);
+        const { report, workItemToContinue } = takeoverState;
+
+        // Populate the form with data from the takeover state
+        form.reset({
+            date: new Date(), // Set to current date for the new shift
+            shift: "1", // Or prompt for new shift
+            shiftLeadName: report.shiftLeadName, // Keep lead name or clear
+            thNumber: report.thNumber,
+            operatorName: "", // Clear for new operator
+            shiftStartTime: "", // Clear for new operator
+            shiftEndTime: "", // Clear for new operator
+            workItems: [{
+                ...workItemToContinue,
+                metersProduced: workItemToContinue.total_meters,
+                tapesUsed: workItemToContinue.total_tapes,
+                hadSpinOut: workItemToContinue.had_spin_out,
+                spinOutDuration: workItemToContinue.spin_out_duration_minutes,
+                problems: workItemToContinue.issues,
+                panelWorkType: workItemToContinue.nestedPanels && workItemToContinue.nestedPanels.length > 0 ? 'nested' : 'individual',
+            }],
+            checklist: checklistItems.reduce((acc, item) => ({...acc, [item.id]: false}), {})
+        });
+
+        // Clear the state from localStorage so it's not reused
+        localStorage.removeItem('tapeheadsTakeoverState');
+
+        toast({
+            title: "Taking Over Task",
+            description: `Continuing work on ${workItemToContinue.oeNumber}-${workItemToContinue.section}. Please enter your details.`,
+        });
+    }
+  }, [form, toast]);
+
+
+  useEffect(() => {
     if (reportToEdit) {
       form.reset(defaultValues as OperatorFormValues);
     }
