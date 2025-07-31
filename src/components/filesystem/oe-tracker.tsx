@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from 'react';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
@@ -11,23 +11,22 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { addOeJob } from '@/lib/oe-data';
+import { PlusCircle, Trash2 } from 'lucide-react';
 
 const sectionSchema = z.object({
-  id: z.string(),
-  sectionId: z.string().min(1, 'Suffix is required.').length(3, 'Must be 3 digits.'),
+  sectionId: z.string().min(1, 'Section ID is required.').length(3, 'Must be 3 digits.'),
   panels: z.coerce.number().min(1, 'At least one panel is required.'),
 });
 
 const oeTrackerSchema = z.object({
   oeBase: z.string().min(1, 'OE Base is required.'),
-  sections: z.array(sectionSchema).min(1, 'At least one section is required.'),
+  sections: z.array(sectionSchema).min(1, 'At least one section must be added.'),
 });
 
 type OeTrackerFormValues = z.infer<typeof oeTrackerSchema>;
 
 export function OeTracker() {
   const { toast } = useToast();
-  const [totalSections, setTotalSections] = useState(1);
 
   const form = useForm<OeTrackerFormValues>({
     resolver: zodResolver(oeTrackerSchema),
@@ -37,54 +36,20 @@ export function OeTracker() {
     },
   });
 
-  const { fields, replace } = useFieldArray({
+  const { fields, append, remove, replace } = useFieldArray({
     control: form.control,
     name: 'sections',
   });
-
-  const generateSections = () => {
-    const oeBase = form.getValues('oeBase');
-    if (!oeBase) {
-      toast({
-        title: 'OE Base Required',
-        description: 'Please enter an OE Base number before generating sections.',
-        variant: 'destructive',
-      });
-      return;
-    }
-    
-    const newSections = Array.from({ length: totalSections }, (_, i) => {
-        let sectionId;
-        if (i === 0) sectionId = '001';
-        else if (i > 0 && i < 10) sectionId = `10${i}`;
-        else {
-             const lastDigit = ((i-9) % 10).toString();
-             const middleDigit = Math.floor((i-9) / 10).toString();
-            sectionId = `1${middleDigit}${lastDigit}`.slice(0, 3).padStart(3, '1');
-        }
-
-        return {
-            id: `section-${Date.now()}-${i}`,
-            sectionId,
-            panels: 1,
-        };
-    });
-    replace(newSections);
-  };
   
-
   const onSubmit = (data: OeTrackerFormValues) => {
     addOeJob(data);
     
-    console.log("Job created:", data);
-
     toast({
       title: 'OE Job Initialized',
       description: `${data.oeBase} with ${data.sections.length} sections has been created.`,
     });
     form.reset();
     replace([]);
-    setTotalSections(1);
   };
 
   return (
@@ -92,91 +57,86 @@ export function OeTracker() {
       <CardHeader>
         <CardTitle>OE & Section Initialization</CardTitle>
         <CardDescription>
-          Register a new OE job and define its sections for the Tapeheads department.
+          Register a new OE job and add its sections incrementally.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <div className="flex items-end gap-4">
-              <FormField
-                control={form.control}
-                name="oeBase"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>OE Number</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., OAUS32162" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormItem>
-                <FormLabel>Total Sections</FormLabel>
-                <Input
-                  type="number"
-                  value={totalSections}
-                  onChange={(e) => setTotalSections(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                  min="1"
-                />
-              </FormItem>
-              <Button type="button" onClick={generateSections}>
-                Generate Sections
-              </Button>
-            </div>
+            <FormField
+              control={form.control}
+              name="oeBase"
+              render={({ field }) => (
+                <FormItem className="max-w-sm">
+                  <FormLabel>OE Number</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., OAUS32162" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-            {fields.length > 0 && (
-              <div className="space-y-4 pt-4 border-t">
-                <FormLabel className="text-base font-medium">Generated Sections</FormLabel>
-                {fields.map((field, index) => (
-                  <div key={field.id} className="flex items-end gap-4 p-4 border rounded-md bg-muted/30">
-                     <div className='flex items-end gap-2 flex-1'>
-                        <FormField
-                            control={form.control}
-                            name={`oeBase`}
-                            render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>OE Base</FormLabel>
-                                <FormControl>
-                                <Input {...field} disabled />
-                                </FormControl>
-                            </FormItem>
-                            )}
-                        />
-                        <span className='mb-2'>-</span>
-                        <FormField
-                            control={form.control}
-                            name={`sections.${index}.sectionId`}
-                            render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Section ID</FormLabel>
-                                <FormControl>
-                                <Input {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                            )}
-                        />
-                     </div>
-
-                    <FormField
-                      control={form.control}
-                      name={`sections.${index}.panels`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Number of Panels</FormLabel>
-                          <FormControl>
-                            <Input type="number" {...field} min="1"/>
-                          </FormControl>
-                           <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                ))}
+            <div className="space-y-4 pt-4 border-t">
+              <div className="flex justify-between items-center">
+                <FormLabel className="text-base font-medium">Job Sections</FormLabel>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => append({ sectionId: '', panels: 1 })}
+                >
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Add Section
+                </Button>
               </div>
-            )}
+              
+              {fields.length === 0 && (
+                <div className="text-center text-sm text-muted-foreground py-6">
+                  No sections added yet.
+                </div>
+              )}
+
+              {fields.map((field, index) => (
+                <div key={field.id} className="flex items-end gap-4 p-4 border rounded-md bg-muted/30">
+                   <div className='flex items-end gap-2 flex-1'>
+                      <div className="font-medium text-muted-foreground text-sm self-center pb-2">
+                        {form.getValues('oeBase') || 'OE...'} -
+                      </div>
+                      <FormField
+                          control={form.control}
+                          name={`sections.${index}.sectionId`}
+                          render={({ field }) => (
+                          <FormItem>
+                              <FormLabel>Section ID</FormLabel>
+                              <FormControl>
+                              <Input placeholder="e.g., 001" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                          </FormItem>
+                          )}
+                      />
+                   </div>
+
+                  <FormField
+                    control={form.control}
+                    name={`sections.${index}.panels`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Number of Panels</FormLabel>
+                        <FormControl>
+                          <Input type="number" {...field} min="1"/>
+                        </FormControl>
+                         <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => remove(index)}>
+                    <Trash2 className="size-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
 
             <div className="flex justify-end">
               <Button type="submit" disabled={fields.length === 0}>
