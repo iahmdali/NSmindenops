@@ -175,26 +175,28 @@ export function TapeheadsReviewSummary() {
 
 
   const summaryStats = useMemo(() => {
-    const allWorkItems = submissions.flatMap(s => s.workItems || []);
+    const allWorkItemsWithTh = submissions.flatMap(s => 
+        (s.workItems || []).map(item => ({...item, thNumber: s.thNumber}))
+    );
     
-    const totalMeters = allWorkItems.reduce((sum, item) => sum + item.total_meters, 0);
-    const totalTapes = allWorkItems.reduce((sum, item) => sum + item.total_tapes, 0);
+    const totalMeters = allWorkItemsWithTh.reduce((sum, item) => sum + item.total_meters, 0);
+    const totalTapes = allWorkItemsWithTh.reduce((sum, item) => sum + item.total_tapes, 0);
     const totalHours = submissions.reduce((sum, s) => sum + (s.hoursWorked || 0), 0);
     
-    const totalSpinOuts = allWorkItems.filter(item => item.had_spin_out).length;
-    const spinOutDowntime = allWorkItems.reduce((sum, item) => sum + (item.spin_out_duration_minutes || 0), 0);
+    const totalSpinOuts = allWorkItemsWithTh.filter(item => item.had_spin_out).length;
+    const spinOutDowntime = allWorkItemsWithTh.reduce((sum, item) => sum + (item.spin_out_duration_minutes || 0), 0);
     
-    const problemDowntime = allWorkItems.reduce((sum, item) => sum + (item.issues?.reduce((iSum, i) => iSum + (i.duration_minutes || 0), 0) || 0), 0);
+    const problemDowntime = allWorkItemsWithTh.reduce((sum, item) => sum + (item.issues?.reduce((iSum, i) => iSum + (i.duration_minutes || 0), 0) || 0), 0);
     const totalDowntime = spinOutDowntime + problemDowntime;
 
-    const allPanels = allWorkItems.flatMap(item => item.panelsWorkedOn || []);
+    const allPanels = allWorkItemsWithTh.flatMap(item => item.panelsWorkedOn || []);
     const uniquePanelsWorked = new Set(allPanels).size;
-    const nestedPanelCount = allWorkItems.reduce((sum, item) => sum + (item.nestedPanels?.length || 0), 0);
+    const nestedPanelCount = allWorkItemsWithTh.reduce((sum, item) => sum + (item.nestedPanels?.length || 0), 0);
     
     const averageMpmh = totalHours > 0 ? (totalMeters / totalHours) : 0;
     
-    const workOrdersProcessed = allWorkItems.reduce((acc, item) => {
-        const key = `${item.oeNumber || 'N/A'}-${item.section || 'N/A'}`;
+    const workOrdersProcessed = allWorkItemsWithTh.reduce((acc, item) => {
+        const key = `${item.oeNumber || 'N/A'}-${item.section || 'N/A'} on ${item.thNumber}`;
         if (!acc[key]) {
             acc[key] = new Set<string>();
         }
@@ -278,9 +280,9 @@ export function TapeheadsReviewSummary() {
                       <CardHeader className="p-4">
                           <CardTitle>Work Orders Processed</CardTitle>
                           <CardDescription className="space-y-1 pt-2">
-                              {Object.entries(summaryStats.workOrdersProcessed).map(([oeSection, panels]) => (
-                                  <div key={oeSection} className="text-xs">
-                                      <span className="font-bold">{oeSection}:</span>
+                              {Object.entries(summaryStats.workOrdersProcessed).map(([key, panels]) => (
+                                  <div key={key} className="text-xs">
+                                      <span className="font-bold">{key}:</span>
                                       <span className="text-muted-foreground ml-2">{Array.from(panels).join(', ')}</span>
                                   </div>
                               ))}
