@@ -29,7 +29,7 @@ const reviewSchema = z.object({
 
 type ReviewFormValues = z.infer<typeof reviewSchema>;
 
-function OperatorSubmissionCard({ report }: { report: Report }) {
+function OperatorSubmissionCard({ report, onDelete }: { report: Report, onDelete: (id: string) => void }) {
     const calculateHours = (startTimeStr?: string, endTimeStr?: string): number => {
         if (!startTimeStr || !endTimeStr) return 0;
         const [startH, startM] = startTimeStr.split(':').map(Number);
@@ -55,7 +55,7 @@ function OperatorSubmissionCard({ report }: { report: Report }) {
                     </div>
                     <div className="flex gap-2">
                         <Button variant="ghost" size="icon" className="h-7 w-7"><Edit className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => onDelete(report.id)}><Trash2 className="h-4 w-4" /></Button>
                     </div>
                 </div>
             </CardHeader>
@@ -112,6 +112,20 @@ export function TapeheadsReviewSummary() {
     setSubmissions(filtered);
     setAiSummary(''); 
   };
+
+  const handleDeleteReport = (id: string) => {
+    // Find the index in the global data store
+    const reportIndex = tapeheadsSubmissions.findIndex(report => report.id === id);
+    if(reportIndex !== -1) {
+        tapeheadsSubmissions.splice(reportIndex, 1);
+        toast({
+            title: "Report Deleted",
+            description: "The operator submission has been removed.",
+        });
+    }
+    // Refresh the local state
+    handleLoadSubmissions();
+  };
   
   useEffect(() => {
     handleLoadSubmissions();
@@ -139,7 +153,16 @@ export function TapeheadsReviewSummary() {
   const summaryStats = useMemo(() => {
     const totalMeters = submissions.reduce((sum, s) => sum + (s.total_meters || 0), 0);
     const totalTapes = submissions.reduce((sum, s) => sum + (s.total_tapes || 0), 0);
-    const totalHours = submissions.reduce((sum, s) => sum + (s.hoursWorked || 0), 0);
+    const totalHours = submissions.reduce((sum, s) => {
+        if (!s.shiftStartTime || !s.shiftEndTime) return sum;
+        const [startH, startM] = s.shiftStartTime.split(':').map(Number);
+        const [endH, endM] = s.shiftEndTime.split(':').map(Number);
+        const startDate = new Date(0, 0, 0, startH, startM);
+        let endDate = new Date(0, 0, 0, endH, endM);
+        if (endDate < startDate) endDate.setDate(endDate.getDate() + 1);
+        const diff = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60);
+        return sum + parseFloat(diff.toFixed(1));
+    }, 0);
     
     const totalSpinOuts = submissions.filter(s => s.had_spin_out).length;
     const spinOutDowntime = submissions.reduce((sum, s) => sum + (s.spin_out_duration_minutes || 0), 0);
@@ -147,16 +170,27 @@ export function TapeheadsReviewSummary() {
     const problemDowntime = submissions.reduce((sum, s) => sum + (s.issues?.reduce((iSum, i) => iSum + (i.duration_minutes || 0), 0) || 0), 0);
     const totalDowntime = spinOutDowntime + problemDowntime;
 
-    const allPanels = submissions.flatMap(s => s.panels_worked_on || []);
+    const allPanels = submissions.flatMap(s => s.panelsWorkedOn || []);
     const uniquePanelsWorked = new Set(allPanels).size;
-    const nestedPanelCount = submissions.reduce((sum, s) => sum + (s.nested_panels?.length || 0), 0);
-
+    const nestedPanelCount = submissions.reduce((sum, s) => sum + (s.nestedPanels?.length || 0), 0);
+    
     const averageMpmh = totalHours > 0 ? (totalMeters / totalHours) : 0;
+    
+    const workOrdersProcessed = submissions.reduce((acc, s) => {
+        const key = s.oeNumber || 'N/A';
+        if (!acc[key]) {
+            acc[key] = new Set<string>();
+        }
+        s.panelsWorkedOn?.forEach(p => acc[key].add(p));
+        return acc;
+    }, {} as Record<string, Set<string>>);
+
 
     return {
       totalMeters, totalTapes, totalHours, totalDowntime,
       totalSpinOuts, uniquePanelsWorked, nestedPanelCount,
-      averageMpmh: averageMpmh.toFixed(1)
+      averageMpmh: averageMpmh.toFixed(1),
+      workOrdersProcessed
     };
   }, [submissions]);
 
@@ -181,7 +215,6 @@ export function TapeheadsReviewSummary() {
               <div className="flex flex-wrap items-end gap-4">
                 <FormField control={form.control} name="date" render={({ field }) => (<FormItem><FormLabel>Date</FormLabel><FormControl><DatePicker value={field.value} onChange={field.onChange} /></FormControl></FormItem>)} />
                 <FormField control={form.control} name="shift" render={({ field }) => (<FormItem><FormLabel>Shift</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="1">Shift 1</SelectItem><SelectItem value="2">Shift 2</SelectItem><SelectItem value="3">Shift 3</SelectItem></SelectContent></Select></FormItem>)} />
-                <Button type="button" onClick={handleLoadSubmissions}>Load Submissions</Button>
               </div>
             </CardContent>
           </Card>
@@ -205,7 +238,7 @@ export function TapeheadsReviewSummary() {
 
               <Card>
                 <CardHeader><CardTitle>Shift Totals & Averages</CardTitle></CardHeader>
-                <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <CardContent className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
                   <Card><CardHeader className="p-4"><CardTitle>{summaryStats.totalMeters}m</CardTitle><CardDescription>Total Meters</CardDescription></CardHeader></Card>
                   <Card><CardHeader className="p-4"><CardTitle>{summaryStats.totalHours}h</CardTitle><CardDescription>Total Hours</CardDescription></CardHeader></Card>
                   <Card><CardHeader className="p-4"><CardTitle>{summaryStats.totalDowntime}m</CardTitle><CardDescription>Total Downtime</CardDescription></CardHeader></Card>
@@ -214,13 +247,26 @@ export function TapeheadsReviewSummary() {
                   <Card><CardHeader className="p-4"><CardTitle>{summaryStats.totalSpinOuts}</CardTitle><CardDescription>Spin Outs</CardDescription></CardHeader></Card>
                   <Card><CardHeader className="p-4"><CardTitle>{summaryStats.uniquePanelsWorked}</CardTitle><CardDescription>Unique Panels</CardDescription></CardHeader></Card>
                   <Card><CardHeader className="p-4"><CardTitle>{summaryStats.nestedPanelCount}</CardTitle><CardDescription>Nested Panels</CardDescription></CardHeader></Card>
+                  <Card className="col-span-2 xl:col-span-2">
+                      <CardHeader className="p-4">
+                          <CardTitle>Work Orders Processed</CardTitle>
+                          <CardDescription className="space-y-1 pt-2">
+                              {Object.entries(summaryStats.workOrdersProcessed).map(([oe, panels]) => (
+                                  <div key={oe} className="text-xs">
+                                      <span className="font-bold">{oe}:</span>
+                                      <span className="text-muted-foreground ml-2">{Array.from(panels).join(', ')}</span>
+                                  </div>
+                              ))}
+                          </CardDescription>
+                      </CardHeader>
+                  </Card>
                 </CardContent>
               </Card>
               
                <Card>
-                    <CardHeader><CardTitle>Operator Submissions</CardTitle></CardHeader>
+                    <CardHeader><CardTitle>Operator Submissions ({submissions.length})</CardTitle></CardHeader>
                     <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {submissions.map(report => <OperatorSubmissionCard key={report.id} report={report} />)}
+                        {submissions.map(report => <OperatorSubmissionCard key={report.id} report={report} onDelete={handleDeleteReport} />)}
                     </CardContent>
                </Card>
 
@@ -242,3 +288,4 @@ export function TapeheadsReviewSummary() {
     </div>
   );
 }
+
