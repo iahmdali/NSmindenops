@@ -27,12 +27,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { PlusCircle, Trash2, Check } from "lucide-react"
 import { Checkbox } from "./ui/checkbox"
 import { Separator } from "./ui/separator"
-import React, { useEffect } from "react"
-import { MultiSelect } from "./ui/multi-select"
+import React, { useEffect, useMemo } from "react"
+import { MultiSelect, MultiSelectOption } from "./ui/multi-select"
 import { useRouter } from "next/navigation"
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group"
 import { tapeheadsSubmissions } from "@/lib/tapeheads-data"
 import type { Report } from "@/lib/types"
+import { oeJobs } from "@/lib/oe-data"
 
 const problemSchema = z.object({
   problem_reason: z.string().min(1, "Problem reason is required."),
@@ -44,9 +45,8 @@ const tapeheadsOperatorSchema = z.object({
   shift: z.string().min(1),
   shiftLeadName: z.string().min(1, "Shift lead name is required."),
   oeNumber: z.string().min(1, "OE Number is required."),
-  section: z.string().min(1, "Section ID is required."),
-  panelCount: z.coerce.number().min(1, "Panel count is required"),
-
+  section: z.string().min(1, "Sail # is required."),
+  
   thNumber: z.string().min(1, "TH Number is required."),
   operatorName: z.string().min(1, "Operator name is required."),
   materialType: z.string().min(1, "Material type is required."),
@@ -125,7 +125,6 @@ export function TapeheadsOperatorForm() {
       shiftLeadName: "",
       oeNumber: "",
       section: "",
-      panelCount: 1,
       thNumber: "",
       operatorName: "",
       materialType: "",
@@ -150,7 +149,8 @@ export function TapeheadsOperatorForm() {
   const watchEndTime = useWatch({ control: form.control, name: "shiftEndTime" });
   const watchMetersProduced = useWatch({ control: form.control, name: "metersProduced" });
   const watchPanelWorkType = useWatch({ control: form.control, name: "panelWorkType"});
-  const watchPanelCount = useWatch({ control: form.control, name: "panelCount" });
+  const watchOeNumber = useWatch({ control: form.control, name: "oeNumber" });
+  const watchSection = useWatch({ control: form.control, name: "section" });
 
   useEffect(() => {
     if (watchStartTime && watchEndTime) {
@@ -174,6 +174,38 @@ export function TapeheadsOperatorForm() {
    useEffect(() => {
     form.setValue("panelsWorkedOn", []);
   }, [watchPanelWorkType, form]);
+
+  useEffect(() => {
+      form.setValue('section', '');
+      form.setValue('panelsWorkedOn', []);
+  }, [watchOeNumber, form]);
+
+   useEffect(() => {
+    form.setValue('panelsWorkedOn', []);
+  }, [watchSection, form]);
+
+
+  const availableOes = useMemo(() => {
+      const uniqueOes = [...new Set(oeJobs.map(j => j.oeBase))];
+      return uniqueOes;
+  }, []);
+
+  const availableSails = useMemo(() => {
+      if (!watchOeNumber) return [];
+      return oeJobs.filter(j => j.oeBase === watchOeNumber);
+  }, [watchOeNumber]);
+
+  const panelOptions = useMemo(() => {
+      if (!watchOeNumber || !watchSection) return [];
+      const sail = oeJobs.find(j => j.oeBase === watchOeNumber && j.sectionId === watchSection);
+      if (!sail) return [];
+      
+      const options: MultiSelectOption[] = [];
+      for (let i = sail.panelStart; i <= sail.panelEnd; i++) {
+          options.push({ value: `P${i}`, label: `P${i}` });
+      }
+      return options;
+  }, [watchOeNumber, watchSection]);
 
 
   function onSubmit(values: OperatorFormValues) {
@@ -212,9 +244,6 @@ export function TapeheadsOperatorForm() {
     });
     router.push('/report/tapeheads');
   }
-  
-  const panelOptions = Array.from({ length: watchPanelCount || 0 }, (_, i) => ({ value: `P${i + 1}`, label: `P${i + 1}` }));
-
 
   return (
     <Card>
@@ -235,10 +264,9 @@ export function TapeheadsOperatorForm() {
 
             <Section title="Operator & Work Order Details">
                 <div className="p-4 border rounded-lg space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                         <FormField control={form.control} name="oeNumber" render={({ field }) => (<FormItem><FormLabel>OE Number</FormLabel><FormControl><Input placeholder="e.g. OAUS32162" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                         <FormField control={form.control} name="section" render={({ field }) => (<FormItem><FormLabel>Section ID</FormLabel><FormControl><Input placeholder="e.g. 001" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                         <FormField control={form.control} name="panelCount" render={({ field }) => (<FormItem><FormLabel>Number of Panels</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                         <FormField control={form.control} name="oeNumber" render={({ field }) => (<FormItem><FormLabel>OE Number</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select an OE..." /></SelectTrigger></FormControl><SelectContent>{availableOes.map(oe => <SelectItem key={oe} value={oe}>{oe}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                         <FormField control={form.control} name="section" render={({ field }) => (<FormItem><FormLabel>Sail #</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value} disabled={!watchOeNumber}><FormControl><SelectTrigger><SelectValue placeholder="Select a Sail #" /></SelectTrigger></FormControl><SelectContent>{availableSails.map(sail => <SelectItem key={sail.id} value={sail.sectionId}>{sail.sectionId}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
                     </div>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t">
                         <FormField
@@ -286,7 +314,7 @@ export function TapeheadsOperatorForm() {
                                                 placeholder="Select panels..."
                                             />
                                         ) : (
-                                            <Select onValueChange={handleIndividualChange} value={field.value?.[0] || ""}>
+                                            <Select onValueChange={handleIndividualChange} value={field.value?.[0] || ""} disabled={panelOptions.length === 0}>
                                                 <FormControl>
                                                     <SelectTrigger>
                                                         <SelectValue placeholder="Select a panel" />

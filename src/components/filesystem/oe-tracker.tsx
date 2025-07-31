@@ -86,18 +86,14 @@ export function OeTracker() {
   const onFinalSubmit = () => {
     if (!reviewData) return;
     
-    const jobData = {
-        oeBase: reviewData.oeBase,
-        sections: reviewData.sections.map(s => {
-            const panelCount = s.panelEnd - s.panelStart + 1;
-            return {
-                sectionId: s.sectionId,
-                panels: panelCount // The data store expects a number
-            }
-        })
-    };
-    
-    addOeJob(jobData);
+    addOeJob({
+      oeBase: reviewData.oeBase,
+      sections: reviewData.sections.map(s => ({
+        sectionId: s.sectionId,
+        panelStart: s.panelStart,
+        panelEnd: s.panelEnd,
+      })),
+    });
     
     toast({
       title: 'OE Job Initialized',
