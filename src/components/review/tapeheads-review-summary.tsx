@@ -177,7 +177,7 @@ export function TapeheadsReviewSummary() {
     const averageMpmh = totalHours > 0 ? (totalMeters / totalHours) : 0;
     
     const workOrdersProcessed = submissions.reduce((acc, s) => {
-        const key = s.oeNumber || 'N/A';
+        const key = `${s.oeNumber || 'N/A'}-${s.section || 'N/A'}`;
         if (!acc[key]) {
             acc[key] = new Set<string>();
         }
@@ -251,9 +251,9 @@ export function TapeheadsReviewSummary() {
                       <CardHeader className="p-4">
                           <CardTitle>Work Orders Processed</CardTitle>
                           <CardDescription className="space-y-1 pt-2">
-                              {Object.entries(summaryStats.workOrdersProcessed).map(([oe, panels]) => (
-                                  <div key={oe} className="text-xs">
-                                      <span className="font-bold">{oe}:</span>
+                              {Object.entries(summaryStats.workOrdersProcessed).map(([oeSection, panels]) => (
+                                  <div key={oeSection} className="text-xs">
+                                      <span className="font-bold">{oeSection}:</span>
                                       <span className="text-muted-foreground ml-2">{Array.from(panels).join(', ')}</span>
                                   </div>
                               ))}
@@ -288,4 +288,3 @@ export function TapeheadsReviewSummary() {
     </div>
   );
 }
-
