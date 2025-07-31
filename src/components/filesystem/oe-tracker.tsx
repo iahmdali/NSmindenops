@@ -14,13 +14,13 @@ import { addOeJob } from '@/lib/oe-data';
 import { PlusCircle, Trash2 } from 'lucide-react';
 
 const sectionSchema = z.object({
-  sectionId: z.string().min(1, 'Section ID is required.').length(3, 'Must be 3 digits.'),
+  sectionId: z.string().min(1, 'Sail # is required.').length(3, 'Must be 3 digits.'),
   panels: z.coerce.number().min(1, 'At least one panel is required.'),
 });
 
 const oeTrackerSchema = z.object({
-  oeBase: z.string().min(1, 'OE Base is required.'),
-  sections: z.array(sectionSchema).min(1, 'At least one section must be added.'),
+  oeBase: z.string().min(1, 'OE Number is required.'),
+  sections: z.array(sectionSchema).min(1, 'At least one sail must be added.'),
 });
 
 type OeTrackerFormValues = z.infer<typeof oeTrackerSchema>;
@@ -46,7 +46,7 @@ export function OeTracker() {
     
     toast({
       title: 'OE Job Initialized',
-      description: `${data.oeBase} with ${data.sections.length} sections has been created.`,
+      description: `Job for ${data.oeBase} has been created.`,
     });
     form.reset();
     replace([]);
@@ -55,9 +55,9 @@ export function OeTracker() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>OE & Section Initialization</CardTitle>
+        <CardTitle>OE & Sail Initialization</CardTitle>
         <CardDescription>
-          Register a new OE job and add its sections incrementally.
+          Register a new OE and define the individual sails and their panel counts.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -79,7 +79,7 @@ export function OeTracker() {
 
             <div className="space-y-4 pt-4 border-t">
               <div className="flex justify-between items-center">
-                <FormLabel className="text-base font-medium">Job Sections</FormLabel>
+                <FormLabel className="text-base font-medium">Sails for this OE</FormLabel>
                 <Button 
                   type="button" 
                   variant="outline" 
@@ -87,13 +87,13 @@ export function OeTracker() {
                   onClick={() => append({ sectionId: '', panels: 1 })}
                 >
                   <PlusCircle className="mr-2 h-4 w-4" />
-                  Add Section
+                  Add Sail
                 </Button>
               </div>
               
               {fields.length === 0 && (
                 <div className="text-center text-sm text-muted-foreground py-6">
-                  No sections added yet.
+                  No sails added yet.
                 </div>
               )}
 
@@ -108,7 +108,7 @@ export function OeTracker() {
                           name={`sections.${index}.sectionId`}
                           render={({ field }) => (
                           <FormItem>
-                              <FormLabel>Section ID</FormLabel>
+                              <FormLabel>Sail # (3-digit)</FormLabel>
                               <FormControl>
                               <Input placeholder="e.g., 001" {...field} />
                               </FormControl>
