@@ -376,6 +376,7 @@ export function TapeheadsOperatorForm({ reportToEdit, onFormSubmit }: TapeheadsO
 }
 
 function WorkItemCard({ index, remove, control, isEditMode }: { index: number, remove: (index: number) => void, control: any, isEditMode: boolean }) {
+  const { toast } = useToast();
   const watchOeNumber = useWatch({ control, name: `workItems.${index}.oeNumber` });
   const watchSection = useWatch({ control, name: `workItems.${index}.section` });
   const watchPanelWorkType = useWatch({ control, name: `workItems.${index}.panelWorkType`});
@@ -384,6 +385,26 @@ function WorkItemCard({ index, remove, control, isEditMode }: { index: number, r
   
   const { fields: problemFields, append: appendProblem, remove: removeProblem } = useFieldArray({ control: control, name: `workItems.${index}.problems` });
   const { fields: nestedPanelFields, append: appendNestedPanel, remove: removeNestedPanel } = useFieldArray({ control: control, name: `workItems.${index}.nestedPanels` });
+
+  useEffect(() => {
+    if (watchOeNumber && watchSection && !isEditMode) {
+      const isInProgress = tapeheadsSubmissions.some(report =>
+        report.workItems?.some(item =>
+          item.oeNumber === watchOeNumber &&
+          item.section === watchSection &&
+          item.endOfShiftStatus === 'In Progress'
+        )
+      );
+
+      if (isInProgress) {
+        toast({
+          title: "Work In Progress",
+          description: `This sail is already in progress. Check the dashboard to 'Take Over'.`,
+          variant: "destructive",
+        });
+      }
+    }
+  }, [watchOeNumber, watchSection, toast, isEditMode]);
 
   const availableOes = useMemo(() => [...new Set(oeJobs.map(j => j.oeBase))], []);
   const availableSails = useMemo(() => watchOeNumber ? oeJobs.filter(j => j.oeBase === watchOeNumber).map(j => j.sectionId) : [], [watchOeNumber]);
