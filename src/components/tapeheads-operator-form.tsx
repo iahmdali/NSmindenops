@@ -142,13 +142,19 @@ export function TapeheadsOperatorForm({ reportToEdit, onFormSubmit }: TapeheadsO
     
     // Map from Report structure to form structure
     const workItems = (reportToEdit.workItems || []).map(item => ({
-        ...item,
+        oeNumber: item.oeNumber,
         section: item.section,
+        materialType: item.materialType,
+        endOfShiftStatus: item.endOfShiftStatus,
+        layer: item.layer,
         metersProduced: item.total_meters,
         tapesUsed: item.total_tapes,
+        hadSpinOut: item.had_spin_out,
         spinOutDuration: item.spin_out_duration_minutes,
         problems: item.issues,
         panelWorkType: item.nestedPanels && item.nestedPanels.length > 0 ? 'nested' : 'individual',
+        panelsWorkedOn: item.panelsWorkedOn,
+        nestedPanels: item.nestedPanels
     }));
 
 
@@ -334,7 +340,7 @@ function WorkItemCard({ index, remove, control, isEditMode }: { index: number, r
   const { fields: nestedPanelFields, append: appendNestedPanel, remove: removeNestedPanel } = useFieldArray({ control: control, name: `workItems.${index}.nestedPanels` });
 
   const availableOes = useMemo(() => [...new Set(oeJobs.map(j => j.oeBase))], []);
-  const availableSails = useMemo(() => watchOeNumber ? oeJobs.filter(j => j.oeBase === watchOeNumber) : [], [watchOeNumber]);
+  const availableSails = useMemo(() => watchOeNumber ? oeJobs.filter(j => j.oeBase === watchOeNumber).map(j => j.sectionId) : [], [watchOeNumber]);
   const panelOptions = useMemo(() => {
       if (!watchOeNumber || !watchSection) return [];
       const sail = oeJobs.find(j => j.oeBase === watchOeNumber && j.sectionId === watchSection);
@@ -353,7 +359,7 @@ function WorkItemCard({ index, remove, control, isEditMode }: { index: number, r
       <div className="space-y-4">
          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
              <FormField control={control} name={`workItems.${index}.oeNumber`} render={({ field }) => (<FormItem><FormLabel>OE Number</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select an OE..." /></SelectTrigger></FormControl><SelectContent>{availableOes.map(oe => <SelectItem key={oe} value={oe}>{oe}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
-             <FormField control={control} name={`workItems.${index}.section`} render={({ field }) => (<FormItem><FormLabel>Sail #</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value} disabled={!watchOeNumber}><FormControl><SelectTrigger><SelectValue placeholder="Select a Sail #" /></SelectTrigger></FormControl><SelectContent>{availableSails.map(sail => <SelectItem key={sail.id} value={sail.sectionId}>{sail.sectionId}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+             <FormField control={control} name={`workItems.${index}.section`} render={({ field }) => (<FormItem><FormLabel>Sail #</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value} disabled={!watchOeNumber}><FormControl><SelectTrigger><SelectValue placeholder="Select a Sail #" /></SelectTrigger></FormControl><SelectContent>{availableSails.map(sailId => <SelectItem key={sailId} value={sailId}>{sailId}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t">
             <FormField control={control} name={`workItems.${index}.panelWorkType`} render={({ field }) => (
