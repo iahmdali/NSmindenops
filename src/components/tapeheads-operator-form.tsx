@@ -21,10 +21,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
 import { DatePicker } from "@/components/ui/date-picker"
 import { useToast } from "@/hooks/use-toast"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { PlusCircle, Trash2 } from "lucide-react"
 import { Checkbox } from "./ui/checkbox"
 import { Separator } from "./ui/separator"
@@ -33,10 +32,11 @@ import { MultiSelect } from "./ui/multi-select"
 import { useRouter } from "next/navigation"
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group"
 import { tapeheadsSubmissions } from "@/lib/tapeheads-data"
+import type { Report } from "@/lib/types"
 
 const problemSchema = z.object({
-  title: z.string().min(1, "Problem title is required."),
-  duration: z.coerce.number().optional(),
+  problem_reason: z.string().min(1, "Problem reason is required."),
+  duration_minutes: z.coerce.number().optional(),
 });
 
 const tapeheadsOperatorSchema = z.object({
@@ -57,8 +57,8 @@ const tapeheadsOperatorSchema = z.object({
   shiftStartTime: z.string().min(1, "Start time is required."),
   shiftEndTime: z.string().min(1, "End time is required."),
   hoursWorked: z.coerce.number().optional(),
-  metersProduced: z.coerce.number().min(0),
-  tapesUsed: z.coerce.number().min(0),
+  metersProduced: z.coerce.number().min(0, "Meters must be a positive number."),
+  tapesUsed: z.coerce.number().min(0, "Tapes used must be a positive number."),
   metersPerManHour: z.coerce.number().optional(),
 
   hadSpinOut: z.boolean().default(false),
@@ -177,12 +177,33 @@ export function TapeheadsOperatorForm() {
 
 
   function onSubmit(values: OperatorFormValues) {
-    const newReport = {
+    const newReport: Partial<Report> = {
         id: `rpt_${Date.now()}`,
+        date: values.date,
+        shift: parseInt(values.shift, 10) as 1 | 2 | 3,
+        shiftLeadName: values.shiftLeadName,
+        oeNumber: values.oeNumber,
+        section: values.section,
+        thNumber: values.thNumber,
+        operatorName: values.operatorName,
+        materialType: values.materialType,
+        endOfShiftStatus: values.endOfShiftStatus,
+        layer: values.layer,
+        shiftStartTime: values.shiftStartTime,
+        shiftEndTime: values.shiftEndTime,
+        hoursWorked: values.hoursWorked,
+        total_meters: values.metersProduced,
+        total_tapes: values.tapesUsed,
+        metersPerManHour: values.metersPerManHour,
+        had_spin_out: values.hadSpinOut,
+        spin_out_duration_minutes: values.spinOutDuration,
+        issues: values.problems,
+        panelsWorkedOn: values.panelsWorkedOn,
+        nestedPanels: values.nestedPanels,
+        checklist: values.checklist,
         status: 'Submitted',
-        ...values
     };
-    tapeheadsSubmissions.unshift(newReport as any);
+    tapeheadsSubmissions.unshift(newReport as Report);
 
     console.log(values);
     toast({
@@ -219,7 +240,7 @@ export function TapeheadsOperatorForm() {
                          <FormField control={form.control} name="section" render={({ field }) => (<FormItem><FormLabel>Section ID</FormLabel><FormControl><Input placeholder="e.g. 001" {...field} /></FormControl><FormMessage /></FormItem>)} />
                          <FormField control={form.control} name="panelCount" render={({ field }) => (<FormItem><FormLabel>Number of Panels</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t">
                         <FormField
                             control={form.control}
                             name="panelWorkType"
@@ -329,18 +350,18 @@ export function TapeheadsOperatorForm() {
                 <div className="space-y-4">
                     <FormField control={form.control} name="hadSpinOut" render={({ field }) => (<FormItem className="flex items-center gap-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>Had Spin Out?</FormLabel></FormItem>)} />
                     {watchHadSpinout && (
-                        <FormField control={form.control} name="spinOutDuration" render={({ field }) => (<FormItem className="max-w-xs"><FormLabel>Spin Out Duration (minutes)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="spinOutDuration" render={({ field }) => (<FormItem className="max-w-xs"><FormLabel>Spin Out Duration (minutes)</FormLabel><FormControl><Input type="number" value={field.value ?? ''} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>)} />
                     )}
 
                     <h4 className="font-medium pt-2">Problems</h4>
                     {problemFields.map((field, index) => (
                         <div key={field.id} className="flex items-end gap-4 p-4 border rounded-md">
-                            <FormField control={form.control} name={`problems.${index}.title`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Problem Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={form.control} name={`problems.${index}.duration`} render={({ field }) => (<FormItem><FormLabel>Duration (min)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name={`problems.${index}.problem_reason`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Problem Reason</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name={`problems.${index}.duration_minutes`} render={({ field }) => (<FormItem><FormLabel>Duration (min)</FormLabel><FormControl><Input type="number" value={field.value ?? ''} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>)} />
                             <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removeProblem(index)}><Trash2 className="size-4" /></Button>
                         </div>
                     ))}
-                    <Button type="button" variant="outline" size="sm" onClick={() => appendProblem({ title: '', duration: 0 })}><PlusCircle className="mr-2 h-4 w-4"/>Add Problem</Button>
+                    <Button type="button" variant="outline" size="sm" onClick={() => appendProblem({ problem_reason: '', duration_minutes: 0 })}><PlusCircle className="mr-2 h-4 w-4"/>Add Problem</Button>
                 </div>
             </Section>
             
