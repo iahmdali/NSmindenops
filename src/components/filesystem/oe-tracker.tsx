@@ -80,7 +80,7 @@ export function OeTracker() {
 
     toast({
       title: 'OE Job Initialized',
-      description: `${data.oeBase} with ${data.sections.length} sections has been created and is now available in the Tapeheads Dashboard.`,
+      description: `${data.oeBase} with ${data.sections.length} sections has been created.`,
     });
     form.reset();
     replace([]);

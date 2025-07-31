@@ -13,12 +13,12 @@ import type { Report } from '@/lib/types';
 import { Progress } from './ui/progress';
 
 function SubmittedReportCard({ report }: { report: Report }) {
-    const checklistItems = report.checklist_items ? Object.values(report.checklist_items) : [];
+    const checklistItems = report.checklist ? Object.values(report.checklist) : [];
     const checklistCompleted = checklistItems.filter(Boolean).length;
     const checklistTotal = checklistItems.length;
     const checklistPercentage = checklistTotal > 0 ? (checklistCompleted / checklistTotal) * 100 : 0;
     
-    const panelText = report.panels_worked_on?.join(', ');
+    const panelText = report.panelsWorkedOn?.join(', ');
 
     return (
         <Card className="shadow-md transition-all hover:shadow-lg">
@@ -37,8 +37,8 @@ function SubmittedReportCard({ report }: { report: Report }) {
                 </div>
             </CardHeader>
             <CardContent className="space-y-3">
-                <p className="text-sm text-muted-foreground">
-                    {report.total_meters}m produced on {report.th_number}
+                 <p className="text-sm text-muted-foreground">
+                    {report.metersProduced}m produced on {report.thNumber}
                 </p>
                 <div>
                      <div className="flex justify-between items-center mb-1">
@@ -53,13 +53,14 @@ function SubmittedReportCard({ report }: { report: Report }) {
 }
 
 export function TapeheadsWorkDashboard() {
-    const [reports, setReports] = useState<Report[]>([]);
+    const [reports, setReports] = useState<Report[]>(tapeheadsSubmissions);
 
     useEffect(() => {
         const interval = setInterval(() => {
-            const currentReports = tapeheadsSubmissions as Report[];
-            if (reports.length !== currentReports.length) {
-                 setReports([...currentReports]);
+            // A simple way to check for changes is to serialize and compare.
+            // This is not super efficient for large objects, but fine for this mock scenario.
+            if (JSON.stringify(reports) !== JSON.stringify(tapeheadsSubmissions)) {
+                 setReports([...tapeheadsSubmissions]);
             }
         }, 500);
         
