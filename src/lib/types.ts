@@ -20,6 +20,8 @@ export interface Report {
   status: 'Submitted' | 'Approved' | 'Requires Attention';
   comments?: string;
   leadComments?: string;
+  endOfShiftStatus?: 'Completed' | 'In Progress';
+  layer?: string;
   // Department-specific fields
   [key: string]: any;
 }

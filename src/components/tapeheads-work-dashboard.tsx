@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from './page-header';
 import Link from 'next/link';
 import { Badge } from './ui/badge';
-import { CheckCircle, Edit } from 'lucide-react';
+import { CheckCircle, Edit, ChevronsRight } from 'lucide-react';
 import { tapeheadsSubmissions } from '@/lib/tapeheads-data';
 import type { Report } from '@/lib/types';
 import { Progress } from './ui/progress';
@@ -30,15 +30,22 @@ function SubmittedReportCard({ report }: { report: Report }) {
                             <span className="font-semibold">Panels:</span> {panelText}
                         </CardDescription>
                     </div>
-                     <Badge variant={'secondary'}>
+                     {report.endOfShiftStatus === 'Completed' ? (
+                         <Badge variant="default">
                            <CheckCircle className="mr-1 h-3 w-3" />
-                           Submitted
-                    </Badge>
+                           Completed
+                        </Badge>
+                     ) : (
+                        <Badge variant="outline" className="border-amber-500 text-amber-600">
+                           <ChevronsRight className="mr-1 h-3 w-3"/>
+                           In Progress {report.layer && `(${report.layer})`}
+                        </Badge>
+                     )}
                 </div>
             </CardHeader>
             <CardContent className="space-y-3">
                  <p className="text-sm text-muted-foreground">
-                    {report.metersProduced}m produced on {report.thNumber}
+                    {report.total_meters}m produced on {report.thNumber}
                 </p>
                 <div>
                      <div className="flex justify-between items-center mb-1">
@@ -57,8 +64,6 @@ export function TapeheadsWorkDashboard() {
 
     useEffect(() => {
         const interval = setInterval(() => {
-            // A simple way to check for changes is to serialize and compare.
-            // This is not super efficient for large objects, but fine for this mock scenario.
             if (JSON.stringify(reports) !== JSON.stringify(tapeheadsSubmissions)) {
                  setReports([...tapeheadsSubmissions]);
             }
