@@ -12,16 +12,39 @@ export interface DepartmentData {
   data: ShiftData[];
 }
 
+export interface WorkItem {
+    oeNumber: string;
+    section: string;
+    materialType: string;
+    endOfShiftStatus: 'Completed' | 'In Progress';
+    layer?: string;
+    total_meters: number;
+    total_tapes: number;
+    had_spin_out: boolean;
+    spin_out_duration_minutes?: number;
+    issues?: { problem_reason: string; duration_minutes?: number }[];
+    panelsWorkedOn: string[];
+    nestedPanels?: string[];
+}
+
 export interface Report {
   id: string;
   operatorName: string;
   shift: Shift;
+  thNumber: string;
   date: Date;
   status: 'Submitted' | 'Approved' | 'Requires Attention';
   comments?: string;
   leadComments?: string;
+  shiftLeadName?: string;
+  shiftStartTime?: string;
+  shiftEndTime?: string;
+  hoursWorked?: number;
+  workItems?: WorkItem[];
+  // Deprecated fields - will be removed later
   endOfShiftStatus?: 'Completed' | 'In Progress';
   layer?: string;
+  total_meters: number;
   // Department-specific fields
   [key: string]: any;
 }

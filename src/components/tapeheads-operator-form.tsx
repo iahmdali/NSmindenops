@@ -2,7 +2,7 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm, useFieldArray, useWatch, Controller } from "react-hook-form"
+import { useForm, useFieldArray, useWatch } from "react-hook-form"
 import * as z from "zod"
 import { Button } from "@/components/ui/button"
 import {
@@ -24,7 +24,7 @@ import {
 import { DatePicker } from "@/components/ui/date-picker"
 import { useToast } from "@/hooks/use-toast"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { PlusCircle, Trash2, Check } from "lucide-react"
+import { PlusCircle, Trash2 } from "lucide-react"
 import { Checkbox } from "./ui/checkbox"
 import { Separator } from "./ui/separator"
 import React, { useEffect, useMemo } from "react"
@@ -32,7 +32,7 @@ import { MultiSelect, MultiSelectOption } from "./ui/multi-select"
 import { useRouter } from "next/navigation"
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group"
 import { tapeheadsSubmissions } from "@/lib/tapeheads-data"
-import type { Report } from "@/lib/types"
+import type { Report, WorkItem } from "@/lib/types"
 import { oeJobs } from "@/lib/oe-data"
 
 const problemSchema = z.object({
@@ -40,34 +40,36 @@ const problemSchema = z.object({
   duration_minutes: z.coerce.number().optional(),
 });
 
+const workItemSchema = z.object({
+  oeNumber: z.string().min(1, "OE Number is required."),
+  section: z.string().min(1, "Sail # is required."),
+  materialType: z.string().min(1, "Material type is required."),
+  endOfShiftStatus: z.string().min(1, "Status is required."),
+  layer: z.string().optional(),
+  metersProduced: z.coerce.number().min(0, "Meters must be a positive number."),
+  tapesUsed: z.coerce.number().min(0, "Tapes used must be a positive number."),
+  hadSpinOut: z.boolean().default(false),
+  spinOutDuration: z.coerce.number().optional(),
+  problems: z.array(problemSchema).optional(),
+  panelWorkType: z.enum(["individual", "nested"]).default("individual"),
+  panelsWorkedOn: z.array(z.string()).min(1, "At least one panel must be selected."),
+  nestedPanels: z.array(z.string()).optional(),
+});
+
+
 const tapeheadsOperatorSchema = z.object({
   date: z.date(),
   shift: z.string().min(1),
   shiftLeadName: z.string().min(1, "Shift lead name is required."),
-  oeNumber: z.string().min(1, "OE Number is required."),
-  section: z.string().min(1, "Sail # is required."),
-  
   thNumber: z.string().min(1, "TH Number is required."),
   operatorName: z.string().min(1, "Operator name is required."),
-  materialType: z.string().min(1, "Material type is required."),
-  endOfShiftStatus: z.string().min(1, "Status is required."),
-  
-  layer: z.string().optional(),
 
   shiftStartTime: z.string().min(1, "Start time is required."),
   shiftEndTime: z.string().min(1, "End time is required."),
   hoursWorked: z.coerce.number().optional(),
-  metersProduced: z.coerce.number().min(0, "Meters must be a positive number."),
-  tapesUsed: z.coerce.number().min(0, "Tapes used must be a positive number."),
   metersPerManHour: z.coerce.number().optional(),
 
-  hadSpinOut: z.boolean().default(false),
-  spinOutDuration: z.coerce.number().optional(),
-  problems: z.array(problemSchema).optional(),
-  
-  panelWorkType: z.enum(["individual", "nested"]).default("individual"),
-  panelsWorkedOn: z.array(z.string()).min(1, "At least one panel must be selected."),
-  nestedPanels: z.array(z.string()).optional(),
+  workItems: z.array(workItemSchema).min(1, "At least one work item must be added."),
 
   checklist: z.object({
     smoothFuseFull: z.boolean().default(false),
@@ -131,30 +133,30 @@ export function TapeheadsOperatorForm({ reportToEdit, onFormSubmit }: TapeheadsO
           date: new Date(),
           shift: "1",
           shiftLeadName: "",
-          oeNumber: "",
-          section: "",
           thNumber: "",
           operatorName: "",
-          materialType: "",
-          endOfShiftStatus: "Completed",
-          metersProduced: 0,
-          tapesUsed: 0,
-          problems: [],
-          panelWorkType: "individual" as "individual" | "nested",
-          panelsWorkedOn: [],
-          nestedPanels: [],
+          workItems: [],
           checklist: checklistItems.reduce((acc, item) => ({...acc, [item.id]: false}), {})
       };
     }
+    
+    // Map from Report structure to form structure
+    const workItems = (reportToEdit.workItems || []).map(item => ({
+        ...item,
+        section: item.section,
+        metersProduced: item.total_meters,
+        tapesUsed: item.total_tapes,
+        spinOutDuration: item.spin_out_duration_minutes,
+        problems: item.issues,
+        panelWorkType: item.nestedPanels && item.nestedPanels.length > 0 ? 'nested' : 'individual',
+    }));
+
 
     return {
       ...reportToEdit,
       date: new Date(reportToEdit.date),
       shift: String(reportToEdit.shift),
-      metersProduced: reportToEdit.total_meters,
-      tapesUsed: reportToEdit.total_tapes,
-      problems: reportToEdit.issues,
-      spinOutDuration: reportToEdit.spin_out_duration_minutes,
+      workItems: workItems,
     };
   }, [reportToEdit]);
 
@@ -162,26 +164,24 @@ export function TapeheadsOperatorForm({ reportToEdit, onFormSubmit }: TapeheadsO
   const form = useForm<OperatorFormValues>({
     resolver: zodResolver(tapeheadsOperatorSchema),
     defaultValues: defaultValues,
+    mode: "onBlur",
   });
 
-  const { fields: problemFields, append: appendProblem, remove: removeProblem } = useFieldArray({ control: form.control, name: "problems" });
-  const { fields: nestedPanelFields, append: appendNestedPanel, remove: removeNestedPanel } = useFieldArray({ control: form.control, name: "nestedPanels" });
+  const { fields: workItemFields, append: appendWorkItem, remove: removeWorkItem } = useFieldArray({ control: form.control, name: "workItems" });
 
-
-  const watchStatus = useWatch({ control: form.control, name: "endOfShiftStatus" });
-  const watchHadSpinout = useWatch({ control: form.control, name: "hadSpinOut" });
   const watchStartTime = useWatch({ control: form.control, name: "shiftStartTime" });
   const watchEndTime = useWatch({ control: form.control, name: "shiftEndTime" });
-  const watchMetersProduced = useWatch({ control: form.control, name: "metersProduced" });
-  const watchPanelWorkType = useWatch({ control: form.control, name: "panelWorkType"});
-  const watchOeNumber = useWatch({ control: form.control, name: "oeNumber" });
-  const watchSection = useWatch({ control: form.control, name: "section" });
+  const watchWorkItems = useWatch({ control: form.control, name: "workItems" });
 
   useEffect(() => {
     if (reportToEdit) {
-      form.reset(defaultValues);
+      form.reset(defaultValues as OperatorFormValues);
     }
   }, [reportToEdit, form, defaultValues]);
+  
+  const totalMetersProduced = useMemo(() => {
+    return (watchWorkItems || []).reduce((sum, item) => sum + (item.metersProduced || 0), 0);
+  }, [watchWorkItems]);
 
   useEffect(() => {
     if (watchStartTime && watchEndTime) {
@@ -194,83 +194,44 @@ export function TapeheadsOperatorForm({ reportToEdit, onFormSubmit }: TapeheadsO
       const hours = parseFloat((diffMs / (1000 * 60 * 60)).toFixed(1));
       form.setValue("hoursWorked", hours);
 
-      if (hours > 0 && watchMetersProduced > 0) {
-        form.setValue("metersPerManHour", parseFloat((watchMetersProduced / hours).toFixed(1)));
+      if (hours > 0 && totalMetersProduced > 0) {
+        form.setValue("metersPerManHour", parseFloat((totalMetersProduced / hours).toFixed(1)));
       } else {
         form.setValue("metersPerManHour", 0);
       }
     }
-  }, [watchStartTime, watchEndTime, watchMetersProduced, form]);
+  }, [watchStartTime, watchEndTime, totalMetersProduced, form]);
   
-   useEffect(() => {
-    if (!isEditMode) {
-      form.setValue("panelsWorkedOn", []);
-    }
-  }, [watchPanelWorkType, form, isEditMode]);
-
-  useEffect(() => {
-    if (!isEditMode) {
-      form.setValue('section', '');
-      form.setValue('panelsWorkedOn', []);
-    }
-  }, [watchOeNumber, form, isEditMode]);
-
-   useEffect(() => {
-    if (!isEditMode) {
-      form.setValue('panelsWorkedOn', []);
-    }
-  }, [watchSection, form, isEditMode]);
-
-
-  const availableOes = useMemo(() => {
-      const uniqueOes = [...new Set(oeJobs.map(j => j.oeBase))];
-      return uniqueOes;
-  }, []);
-
-  const availableSails = useMemo(() => {
-      if (!watchOeNumber) return [];
-      return oeJobs.filter(j => j.oeBase === watchOeNumber);
-  }, [watchOeNumber]);
-
-  const panelOptions = useMemo(() => {
-      if (!watchOeNumber || !watchSection) return [];
-      const sail = oeJobs.find(j => j.oeBase === watchOeNumber && j.sectionId === watchSection);
-      if (!sail) return [];
-      
-      const options: MultiSelectOption[] = [];
-      for (let i = sail.panelStart; i <= sail.panelEnd; i++) {
-          options.push({ value: `P${i}`, label: `P${i}` });
-      }
-      return options;
-  }, [watchOeNumber, watchSection]);
-
-
   function onSubmit(values: OperatorFormValues) {
     const reportData: Partial<Report> = {
         id: reportToEdit?.id || `rpt_${Date.now()}`,
         date: values.date,
         shift: parseInt(values.shift, 10) as 1 | 2 | 3,
         shiftLeadName: values.shiftLeadName,
-        oeNumber: values.oeNumber,
-        section: values.section,
         thNumber: values.thNumber,
         operatorName: values.operatorName,
-        materialType: values.materialType,
-        endOfShiftStatus: values.endOfShiftStatus,
-        layer: values.layer,
         shiftStartTime: values.shiftStartTime,
         shiftEndTime: values.shiftEndTime,
         hoursWorked: values.hoursWorked,
-        total_meters: values.metersProduced,
-        total_tapes: values.tapesUsed,
         metersPerManHour: values.metersPerManHour,
-        had_spin_out: values.hadSpinOut,
-        spin_out_duration_minutes: values.spinOutDuration,
-        issues: values.problems,
-        panelsWorkedOn: values.panelsWorkedOn,
-        nestedPanels: values.nestedPanels,
+        workItems: values.workItems.map(item => ({
+            oeNumber: item.oeNumber,
+            section: item.section,
+            materialType: item.materialType,
+            endOfShiftStatus: item.endOfShiftStatus as 'Completed' | 'In Progress',
+            layer: item.layer,
+            total_meters: item.metersProduced,
+            total_tapes: item.tapesUsed,
+            had_spin_out: item.hadSpinOut,
+            spin_out_duration_minutes: item.spinOutDuration,
+            issues: item.problems,
+            panelsWorkedOn: item.panelsWorkedOn,
+            nestedPanels: item.nestedPanels,
+        })),
         checklist: values.checklist,
         status: 'Submitted',
+        // This is now calculated from workItems, but kept for compatibility for now
+        total_meters: (values.workItems || []).reduce((sum, item) => sum + (item.metersProduced || 0), 0),
     };
     
     if (onFormSubmit) {
@@ -282,7 +243,7 @@ export function TapeheadsOperatorForm({ reportToEdit, onFormSubmit }: TapeheadsO
 
     toast({
       title: isEditMode ? "Report Updated!" : "Operator Work Submitted!",
-      description: `Your entry for ${values.oeNumber}-${values.section} has been ${isEditMode ? 'updated' : 'recorded'}.`,
+      description: `Your entry for ${values.operatorName} has been ${isEditMode ? 'updated' : 'recorded'}.`,
     });
   }
 
@@ -305,137 +266,43 @@ export function TapeheadsOperatorForm({ reportToEdit, onFormSubmit }: TapeheadsO
               </div>
             </Section>
 
-            <Section title="Operator & Work Order Details">
-                <div className="p-4 border rounded-lg space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                         <FormField control={form.control} name="oeNumber" render={({ field }) => (<FormItem><FormLabel>OE Number</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select an OE..." /></SelectTrigger></FormControl><SelectContent>{availableOes.map(oe => <SelectItem key={oe} value={oe}>{oe}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
-                         <FormField control={form.control} name="section" render={({ field }) => (<FormItem><FormLabel>Sail #</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value} disabled={!watchOeNumber}><FormControl><SelectTrigger><SelectValue placeholder="Select a Sail #" /></SelectTrigger></FormControl><SelectContent>{availableSails.map(sail => <SelectItem key={sail.id} value={sail.sectionId}>{sail.sectionId}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+            <Section title="Operator Details">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField control={form.control} name="thNumber" render={({ field }) => (<FormItem><FormLabel>TH Number</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select TH..." /></SelectTrigger></FormControl><SelectContent>{[...Array(10)].map((_,i) => <SelectItem key={i} value={`TH-${i+1}`}>TH-{i+1}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                  <FormField control={form.control} name="operatorName" render={({ field }) => (<FormItem><FormLabel>Operator Name</FormLabel><FormControl><Input placeholder="Your name" {...field} /></FormControl><FormMessage /></FormItem>)} />
+              </div>
+            </Section>
+            
+            <Section title="Time Tracking">
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField control={form.control} name="shiftStartTime" render={({ field }) => (<FormItem><FormLabel>Shift Start Time</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                      <FormField control={form.control} name="shiftEndTime" render={({ field }) => (<FormItem><FormLabel>Shift End Time</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     </div>
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t">
-                        <FormField
-                            control={form.control}
-                            name="panelWorkType"
-                            render={({ field }) => (
-                                <FormItem className="space-y-3">
-                                    <FormLabel>Work Type</FormLabel>
-                                    <FormControl>
-                                        <RadioGroup
-                                        onValueChange={field.onChange}
-                                        defaultValue={field.value}
-                                        className="flex items-center space-x-4"
-                                        >
-                                        <FormItem className="flex items-center space-x-2 space-y-0">
-                                            <FormControl><RadioGroupItem value="individual" /></FormControl>
-                                            <FormLabel className="font-normal">Individual</FormLabel>
-                                        </FormItem>
-                                        <FormItem className="flex items-center space-x-2 space-y-0">
-                                            <FormControl><RadioGroupItem value="nested" /></FormControl>
-                                            <FormLabel className="font-normal">Nested</FormLabel>
-                                        </FormItem>
-                                        </RadioGroup>
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="panelsWorkedOn"
-                            render={({ field }) => {
-                            const handleIndividualChange = (value: string) => {
-                                    field.onChange(value ? [value] : []);
-                                };
-
-                                return (
-                                    <FormItem>
-                                        <FormLabel>Panels Worked On</FormLabel>
-                                        {watchPanelWorkType === 'nested' ? (
-                                            <MultiSelect
-                                                options={panelOptions}
-                                                selected={field.value}
-                                                onChange={field.onChange}
-                                                placeholder="Select panels..."
-                                            />
-                                        ) : (
-                                            <Select onValueChange={handleIndividualChange} value={field.value?.[0] || ""} disabled={panelOptions.length === 0}>
-                                                <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Select a panel" />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    {panelOptions.map(opt => (
-                                                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        )}
-                                        <FormMessage />
-                                    </FormItem>
-                                )
-                            }}
-                        />
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField control={form.control} name="hoursWorked" render={({ field }) => (<FormItem><FormLabel>Hours Worked</FormLabel><FormControl><Input type="number" {...field} readOnly className="bg-muted/70" /></FormControl><FormMessage /></FormItem>)} />
+                      <FormField control={form.control} name="metersPerManHour" render={({ field }) => (<FormItem><FormLabel>Meters/Man-Hour</FormLabel><FormControl><Input type="number" {...field} readOnly className="bg-muted/70" /></FormControl><FormMessage /></FormItem>)} />
                     </div>
-                     {watchPanelWorkType === 'nested' && (
-                        <div className="space-y-2 pt-4 border-t">
-                            <FormLabel>Nested Panel Details</FormLabel>
-                            {nestedPanelFields.map((field, index) => (
-                                <div key={field.id} className="flex items-center gap-2">
-                                    <FormField control={form.control} name={`nestedPanels.${index}`} render={({ field }) => (
-                                        <Input {...field} value={field.value ?? ''} placeholder="e.g. P1a, P2b..." />
-                                    )} />
-                                    <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removeNestedPanel(index)}><Trash2 className="size-4" /></Button>
-                                </div>
-                            ))}
-                            <Button type="button" variant="outline" size="sm" onClick={() => appendNestedPanel('')}><PlusCircle className="mr-2 h-4 w-4"/>Add Nested Panel</Button>
-                        </div>
-                    )}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-4 border-t">
-                        <FormField control={form.control} name="thNumber" render={({ field }) => (<FormItem><FormLabel>TH Number</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select TH..." /></SelectTrigger></FormControl><SelectContent>{[...Array(10)].map((_,i) => <SelectItem key={i} value={`TH-${i+1}`}>TH-{i+1}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="operatorName" render={({ field }) => (<FormItem><FormLabel>Operator Name</FormLabel><FormControl><Input placeholder="Your name" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="materialType" render={({ field }) => (<FormItem><FormLabel>Material Type</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select material..." /></SelectTrigger></FormControl><SelectContent><SelectItem value="Kevlar">Kevlar</SelectItem><SelectItem value="Polyester">Polyester</SelectItem><SelectItem value="Carbon">Carbon</SelectItem><SelectItem value="Aramid">Aramid</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="endOfShiftStatus" render={({ field }) => (<FormItem><FormLabel>End of Shift Status</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="Completed">Completed</SelectItem><SelectItem value="In Progress">In Progress</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
-                    </div>
-                    {watchStatus === "In Progress" && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
-                             <FormField control={form.control} name="layer" render={({ field }) => (<FormItem><FormLabel>Layer</FormLabel><FormControl><Input placeholder="e.g., 5 of 12" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        </div>
-                    )}
-                </div>
-              </Section>
-
-              <Section title="Time and Output Tracking">
-                 <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                    <FormField control={form.control} name="shiftStartTime" render={({ field }) => (<FormItem><FormLabel>Shift Start Time</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                    <FormField control={form.control} name="shiftEndTime" render={({ field }) => (<FormItem><FormLabel>Shift End Time</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                    <FormField control={form.control} name="hoursWorked" render={({ field }) => (<FormItem><FormLabel>Hours Worked</FormLabel><FormControl><Input type="number" {...field} readOnly className="bg-muted/70" /></FormControl><FormMessage /></FormItem>)} />
-                    <FormField control={form.control} name="metersProduced" render={({ field }) => (<FormItem><FormLabel>Meters Produced</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                    <FormField control={form.control} name="tapesUsed" render={({ field }) => (<FormItem><FormLabel>Tapes Used</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
                  </div>
-                  <div className="w-full md:w-1/5">
-                     <FormField control={form.control} name="metersPerManHour" render={({ field }) => (<FormItem><FormLabel>Meters/Man-Hour</FormLabel><FormControl><Input type="number" {...field} readOnly className="bg-muted/70" /></FormControl><FormMessage /></FormItem>)} />
-                 </div>
-              </Section>
-
-              <Section title="Issues">
-                  <div className="space-y-4">
-                      <FormField control={form.control} name="hadSpinOut" render={({ field }) => (<FormItem className="flex items-center gap-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>Had Spin Out?</FormLabel></FormItem>)} />
-                      {watchHadSpinout && (
-                          <FormField control={form.control} name="spinOutDuration" render={({ field }) => (<FormItem className="max-w-xs"><FormLabel>Spin Out Duration (minutes)</FormLabel><FormControl><Input type="number" value={field.value ?? ''} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>)} />
-                      )}
-
-                      <h4 className="font-medium pt-2">Problems</h4>
-                      {problemFields.map((field, index) => (
-                          <div key={field.id} className="flex items-end gap-4 p-4 border rounded-md">
-                              <FormField control={form.control} name={`problems.${index}.problem_reason`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Problem Reason</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                              <FormField control={form.control} name={`problems.${index}.duration_minutes`} render={({ field }) => (<FormItem><FormLabel>Duration (min)</FormLabel><FormControl><Input type="number" value={field.value ?? ''} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>)} />
-                              <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removeProblem(index)}><Trash2 className="size-4" /></Button>
-                          </div>
-                      ))}
-                      <Button type="button" variant="outline" size="sm" onClick={() => appendProblem({ problem_reason: '', duration_minutes: 0 })}><PlusCircle className="mr-2 h-4 w-4"/>Add Problem</Button>
-                  </div>
               </Section>
               
+              <div>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold text-primary">Work Items</h3>
+                  <Button type="button" variant="outline" size="sm" onClick={() => appendWorkItem({ oeNumber: '', section: '', materialType: '', endOfShiftStatus: 'Completed', metersProduced: 0, tapesUsed: 0, panelsWorkedOn: [], panelWorkType: 'individual', nestedPanels: [], hadSpinOut: false, problems: [] })}>
+                      <PlusCircle className="mr-2 h-4 w-4" /> Add Work Item
+                  </Button>
+                </div>
+                 {form.formState.errors.workItems && (
+                    <p className="text-sm font-medium text-destructive">{form.formState.errors.workItems.message}</p>
+                 )}
+                <div className="space-y-4">
+                  {workItemFields.map((field, index) => (
+                    <WorkItemCard key={field.id} index={index} remove={removeWorkItem} control={form.control} isEditMode={isEditMode} />
+                  ))}
+                </div>
+              </div>
+
               <Section title="End-of-Shift Checklist">
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                       {checklistItems.map(item => (
@@ -454,4 +321,92 @@ export function TapeheadsOperatorForm({ reportToEdit, onFormSubmit }: TapeheadsO
         </CardContent>
     </Card>
   )
+}
+
+function WorkItemCard({ index, remove, control, isEditMode }: { index: number, remove: (index: number) => void, control: any, isEditMode: boolean }) {
+  const watchOeNumber = useWatch({ control, name: `workItems.${index}.oeNumber` });
+  const watchSection = useWatch({ control, name: `workItems.${index}.section` });
+  const watchPanelWorkType = useWatch({ control, name: `workItems.${index}.panelWorkType`});
+  const watchStatus = useWatch({ control, name: `workItems.${index}.endOfShiftStatus` });
+  const watchHadSpinout = useWatch({ control, name: `workItems.${index}.hadSpinOut` });
+  
+  const { fields: problemFields, append: appendProblem, remove: removeProblem } = useFieldArray({ control: control, name: `workItems.${index}.problems` });
+  const { fields: nestedPanelFields, append: appendNestedPanel, remove: removeNestedPanel } = useFieldArray({ control: control, name: `workItems.${index}.nestedPanels` });
+
+  const availableOes = useMemo(() => [...new Set(oeJobs.map(j => j.oeBase))], []);
+  const availableSails = useMemo(() => watchOeNumber ? oeJobs.filter(j => j.oeBase === watchOeNumber) : [], [watchOeNumber]);
+  const panelOptions = useMemo(() => {
+      if (!watchOeNumber || !watchSection) return [];
+      const sail = oeJobs.find(j => j.oeBase === watchOeNumber && j.sectionId === watchSection);
+      if (!sail) return [];
+      
+      const options: MultiSelectOption[] = [];
+      for (let i = sail.panelStart; i <= sail.panelEnd; i++) {
+          options.push({ value: `P${i}`, label: `P${i}` });
+      }
+      return options;
+  }, [watchOeNumber, watchSection]);
+
+  return (
+    <Card className="bg-muted/30 p-4 relative">
+       <Button type="button" variant="ghost" size="icon" className="text-destructive absolute top-2 right-2" onClick={() => remove(index)}><Trash2 className="size-4" /></Button>
+      <div className="space-y-4">
+         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+             <FormField control={control} name={`workItems.${index}.oeNumber`} render={({ field }) => (<FormItem><FormLabel>OE Number</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select an OE..." /></SelectTrigger></FormControl><SelectContent>{availableOes.map(oe => <SelectItem key={oe} value={oe}>{oe}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+             <FormField control={control} name={`workItems.${index}.section`} render={({ field }) => (<FormItem><FormLabel>Sail #</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value} disabled={!watchOeNumber}><FormControl><SelectTrigger><SelectValue placeholder="Select a Sail #" /></SelectTrigger></FormControl><SelectContent>{availableSails.map(sail => <SelectItem key={sail.id} value={sail.sectionId}>{sail.sectionId}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t">
+            <FormField control={control} name={`workItems.${index}.panelWorkType`} render={({ field }) => (
+                <FormItem className="space-y-3"><FormLabel>Work Type</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex items-center space-x-4">
+                    <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="individual" /></FormControl><FormLabel className="font-normal">Individual</FormLabel></FormItem>
+                    <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="nested" /></FormControl><FormLabel className="font-normal">Nested</FormLabel></FormItem>
+                </RadioGroup></FormControl><FormMessage /></FormItem>
+            )} />
+            <FormField control={control} name={`workItems.${index}.panelsWorkedOn`} render={({ field }) => {
+                const handleIndividualChange = (value: string) => field.onChange(value ? [value] : []);
+                return <FormItem><FormLabel>Panels Worked On</FormLabel>{watchPanelWorkType === 'nested' ? <MultiSelect options={panelOptions} selected={field.value} onChange={field.onChange} placeholder="Select panels..." /> : <Select onValueChange={handleIndividualChange} value={field.value?.[0] || ""} disabled={panelOptions.length === 0}><FormControl><SelectTrigger><SelectValue placeholder="Select a panel" /></SelectTrigger></FormControl><SelectContent>{panelOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent></Select>}<FormMessage /></FormItem>
+            }}/>
+        </div>
+         {watchPanelWorkType === 'nested' && (
+            <div className="space-y-2 pt-4 border-t"><FormLabel>Nested Panel Details</FormLabel>
+                {nestedPanelFields.map((field: any, nestedIndex: number) => (
+                    <div key={field.id} className="flex items-center gap-2">
+                        <FormField control={control} name={`workItems.${index}.nestedPanels.${nestedIndex}`} render={({ field }) => <Input {...field} value={field.value ?? ''} placeholder="e.g. P1a, P2b..." />} />
+                        <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removeNestedPanel(nestedIndex)}><Trash2 className="size-4" /></Button>
+                    </div>
+                ))}
+                <Button type="button" variant="outline" size="sm" onClick={() => appendNestedPanel('')}><PlusCircle className="mr-2 h-4 w-4"/>Add Nested Panel</Button>
+            </div>
+        )}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
+            <FormField control={control} name={`workItems.${index}.materialType`} render={({ field }) => (<FormItem><FormLabel>Material Type</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select material..." /></SelectTrigger></FormControl><SelectContent><SelectItem value="Kevlar">Kevlar</SelectItem><SelectItem value="Polyester">Polyester</SelectItem><SelectItem value="Carbon">Carbon</SelectItem><SelectItem value="Aramid">Aramid</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+            <FormField control={control} name={`workItems.${index}.endOfShiftStatus`} render={({ field }) => (<FormItem><FormLabel>End of Shift Status</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="Completed">Completed</SelectItem><SelectItem value="In Progress">In Progress</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+        </div>
+        {watchStatus === "In Progress" && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
+                 <FormField control={control} name={`workItems.${index}.layer`} render={({ field }) => (<FormItem><FormLabel>Layer</FormLabel><FormControl><Input placeholder="e.g., 5 of 12" {...field} /></FormControl><FormMessage /></FormItem>)} />
+            </div>
+        )}
+         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
+             <FormField control={control} name={`workItems.${index}.metersProduced`} render={({ field }) => (<FormItem><FormLabel>Meters Produced</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
+             <FormField control={control} name={`workItems.${index}.tapesUsed`} render={({ field }) => (<FormItem><FormLabel>Tapes Used</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
+         </div>
+          <div className="space-y-4 pt-4 border-t">
+              <FormField control={control} name={`workItems.${index}.hadSpinOut`} render={({ field }) => (<FormItem className="flex items-center gap-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>Had Spin Out?</FormLabel></FormItem>)} />
+              {watchHadSpinout && (
+                  <FormField control={control} name={`workItems.${index}.spinOutDuration`} render={({ field }) => (<FormItem className="max-w-xs"><FormLabel>Spin Out Duration (minutes)</FormLabel><FormControl><Input type="number" value={field.value ?? ''} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>)} />
+              )}
+              <h4 className="font-medium pt-2">Problems</h4>
+              {problemFields.map((field: any, problemIndex: number) => (
+                  <div key={field.id} className="flex items-end gap-4 p-4 border rounded-md">
+                      <FormField control={control} name={`workItems.${index}.problems.${problemIndex}.problem_reason`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Problem Reason</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                      <FormField control={control} name={`workItems.${index}.problems.${problemIndex}.duration_minutes`} render={({ field }) => (<FormItem><FormLabel>Duration (min)</FormLabel><FormControl><Input type="number" value={field.value ?? ''} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>)} />
+                      <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removeProblem(problemIndex)}><Trash2 className="size-4" /></Button>
+                  </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={() => appendProblem({ problem_reason: '', duration_minutes: 0 })}><PlusCircle className="mr-2 h-4 w-4"/>Add Problem</Button>
+          </div>
+      </div>
+    </Card>
+  );
 }

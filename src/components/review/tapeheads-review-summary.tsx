@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { DatePicker } from '@/components/ui/date-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { tapeheadsSubmissions } from '@/lib/tapeheads-data';
-import type { Report } from '@/lib/types';
+import type { Report, WorkItem } from '@/lib/types';
 import { isSameDay } from 'date-fns';
 import { Textarea } from '../ui/textarea';
 import { useToast } from '@/hooks/use-toast';
@@ -52,8 +52,8 @@ function OperatorSubmissionCard({ report, onDelete, onEdit }: { report: Report, 
             <CardHeader>
                 <div className="flex justify-between items-start">
                     <div>
-                        <CardTitle className="text-base">{report.oeNumber}-{report.section}</CardTitle>
-                        <CardDescription>{report.operatorName} on {report.thNumber}</CardDescription>
+                        <CardTitle className="text-base">{report.operatorName}</CardTitle>
+                        <CardDescription>on {report.thNumber} for {hours}h</CardDescription>
                     </div>
                     <div className="flex gap-2">
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(report)}><Edit className="h-4 w-4" /></Button>
@@ -61,21 +61,26 @@ function OperatorSubmissionCard({ report, onDelete, onEdit }: { report: Report, 
                     </div>
                 </div>
             </CardHeader>
-            <CardContent className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                <div className="flex justify-between"><span className="text-muted-foreground">Material:</span> <span className="font-medium">{report.materialType}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Meters:</span> <span className="font-medium">{report.total_meters}m</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Hours:</span> <span className="font-medium">{hours}h</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Status:</span> <Badge variant={report.endOfShiftStatus === 'Completed' ? 'default' : 'outline'}>{report.endOfShiftStatus}</Badge></div>
-                <div className="col-span-2"><span className="text-muted-foreground">Panels:</span> <span className="font-medium">{report.panelsWorkedOn?.join(', ')}</span></div>
-                {report.nestedPanels && report.nestedPanels.length > 0 && (
-                     <div className="col-span-2"><span className="text-muted-foreground">Nested:</span> <span className="font-medium">{report.nestedPanels.join(', ')}</span></div>
-                )}
-                {report.had_spin_out && (
-                    <div className="col-span-2 text-destructive font-semibold">Spin-Out reported ({report.spin_out_duration_minutes || 0} min)</div>
-                )}
-                {report.issues && report.issues.length > 0 && (
-                     <div className="col-span-2 text-destructive/80 font-semibold">Problem: {report.issues[0].problem_reason} ({report.issues[0].duration_minutes || 0} min)</div>
-                )}
+            <CardContent className="space-y-3">
+              {report.workItems?.map((item, index) => (
+                <div key={index} className="p-2 border rounded-md bg-muted/30 text-sm">
+                   <div className="flex justify-between font-semibold">
+                       <span>{item.oeNumber}-{item.section}</span>
+                       <Badge variant={item.endOfShiftStatus === 'Completed' ? 'default' : 'outline'}>
+                         {item.endOfShiftStatus} {item.endOfShiftStatus === 'In Progress' && `(${item.layer})`}
+                       </Badge>
+                   </div>
+                   <div className="text-xs text-muted-foreground mt-1">
+                      {item.panelsWorkedOn.join(', ')}
+                   </div>
+                    <div className="text-xs mt-1">
+                      {item.total_meters}m on {item.materialType}
+                   </div>
+                   {item.had_spin_out && (
+                     <div className="text-xs text-destructive font-semibold mt-1">Spin-Out ({item.spin_out_duration_minutes || 0} min)</div>
+                   )}
+                </div>
+              ))}
             </CardContent>
         </Card>
     )
@@ -170,37 +175,30 @@ export function TapeheadsReviewSummary() {
 
 
   const summaryStats = useMemo(() => {
-    const totalMeters = submissions.reduce((sum, s) => sum + (s.total_meters || 0), 0);
-    const totalTapes = submissions.reduce((sum, s) => sum + (s.total_tapes || 0), 0);
-    const totalHours = submissions.reduce((sum, s) => {
-        if (!s.shiftStartTime || !s.shiftEndTime) return sum;
-        const [startH, startM] = s.shiftStartTime.split(':').map(Number);
-        const [endH, endM] = s.shiftEndTime.split(':').map(Number);
-        const startDate = new Date(0, 0, 0, startH, startM);
-        let endDate = new Date(0, 0, 0, endH, endM);
-        if (endDate < startDate) endDate.setDate(endDate.getDate() + 1);
-        const diff = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60);
-        return sum + parseFloat(diff.toFixed(1));
-    }, 0);
+    const allWorkItems = submissions.flatMap(s => s.workItems || []);
     
-    const totalSpinOuts = submissions.filter(s => s.had_spin_out).length;
-    const spinOutDowntime = submissions.reduce((sum, s) => sum + (s.spin_out_duration_minutes || 0), 0);
+    const totalMeters = allWorkItems.reduce((sum, item) => sum + item.total_meters, 0);
+    const totalTapes = allWorkItems.reduce((sum, item) => sum + item.total_tapes, 0);
+    const totalHours = submissions.reduce((sum, s) => sum + (s.hoursWorked || 0), 0);
     
-    const problemDowntime = submissions.reduce((sum, s) => sum + (s.issues?.reduce((iSum, i) => iSum + (i.duration_minutes || 0), 0) || 0), 0);
+    const totalSpinOuts = allWorkItems.filter(item => item.had_spin_out).length;
+    const spinOutDowntime = allWorkItems.reduce((sum, item) => sum + (item.spin_out_duration_minutes || 0), 0);
+    
+    const problemDowntime = allWorkItems.reduce((sum, item) => sum + (item.issues?.reduce((iSum, i) => iSum + (i.duration_minutes || 0), 0) || 0), 0);
     const totalDowntime = spinOutDowntime + problemDowntime;
 
-    const allPanels = submissions.flatMap(s => s.panelsWorkedOn || []);
+    const allPanels = allWorkItems.flatMap(item => item.panelsWorkedOn || []);
     const uniquePanelsWorked = new Set(allPanels).size;
-    const nestedPanelCount = submissions.reduce((sum, s) => sum + (s.nestedPanels?.length || 0), 0);
+    const nestedPanelCount = allWorkItems.reduce((sum, item) => sum + (item.nestedPanels?.length || 0), 0);
     
     const averageMpmh = totalHours > 0 ? (totalMeters / totalHours) : 0;
     
-    const workOrdersProcessed = submissions.reduce((acc, s) => {
-        const key = `${s.oeNumber || 'N/A'}-${s.section || 'N/A'}`;
+    const workOrdersProcessed = allWorkItems.reduce((acc, item) => {
+        const key = `${item.oeNumber || 'N/A'}-${item.section || 'N/A'}`;
         if (!acc[key]) {
             acc[key] = new Set<string>();
         }
-        s.panelsWorkedOn?.forEach(p => acc[key].add(p));
+        item.panelsWorkedOn?.forEach(p => acc[key].add(p));
         return acc;
     }, {} as Record<string, Set<string>>);
 

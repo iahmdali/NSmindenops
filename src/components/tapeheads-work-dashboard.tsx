@@ -9,28 +9,28 @@ import Link from 'next/link';
 import { Badge } from './ui/badge';
 import { CheckCircle, Edit, ChevronsRight } from 'lucide-react';
 import { tapeheadsSubmissions } from '@/lib/tapeheads-data';
-import type { Report } from '@/lib/types';
+import type { Report, WorkItem } from '@/lib/types';
 import { Progress } from './ui/progress';
 
-function SubmittedReportCard({ report }: { report: Report }) {
+function SubmittedReportCard({ report, workItem, itemIndex }: { report: Report, workItem: WorkItem, itemIndex: number }) {
     const checklistItems = report.checklist ? Object.values(report.checklist) : [];
     const checklistCompleted = checklistItems.filter(Boolean).length;
     const checklistTotal = checklistItems.length;
     const checklistPercentage = checklistTotal > 0 ? (checklistCompleted / checklistTotal) * 100 : 0;
     
-    const panelText = report.panelsWorkedOn?.join(', ');
+    const panelText = workItem.panelsWorkedOn?.join(', ');
 
     return (
         <Card className="shadow-md transition-all hover:shadow-lg">
             <CardHeader>
                 <div className="flex justify-between items-start">
                     <div>
-                        <CardTitle className="text-lg">{report.oeNumber}-{report.section}</CardTitle>
+                        <CardTitle className="text-lg">{workItem.oeNumber}-{workItem.section}</CardTitle>
                         <CardDescription>
                             <span className="font-semibold">Panels:</span> {panelText}
                         </CardDescription>
                     </div>
-                     {report.endOfShiftStatus === 'Completed' ? (
+                     {workItem.endOfShiftStatus === 'Completed' ? (
                          <Badge variant="default">
                            <CheckCircle className="mr-1 h-3 w-3" />
                            Completed
@@ -38,14 +38,14 @@ function SubmittedReportCard({ report }: { report: Report }) {
                      ) : (
                         <Badge variant="outline" className="border-amber-500 text-amber-600">
                            <ChevronsRight className="mr-1 h-3 w-3"/>
-                           In Progress {report.layer && `(${report.layer})`}
+                           In Progress {workItem.layer && `(${workItem.layer})`}
                         </Badge>
                      )}
                 </div>
             </CardHeader>
             <CardContent className="space-y-3">
                  <p className="text-sm text-muted-foreground">
-                    {report.total_meters}m produced on {report.thNumber}
+                    <span className="font-medium">{report.operatorName}</span> on {report.thNumber}
                 </p>
                 <div>
                      <div className="flex justify-between items-center mb-1">
@@ -71,6 +71,10 @@ export function TapeheadsWorkDashboard() {
         
         return () => clearInterval(interval);
     }, [reports]);
+    
+    const allWorkItems = reports.flatMap(report => 
+        (report.workItems || []).map((workItem, index) => ({ report, workItem, id: `${report.id}-${index}` }))
+    );
 
     return (
         <div className="space-y-6">
@@ -85,8 +89,8 @@ export function TapeheadsWorkDashboard() {
             
             <h2 className="text-xl font-semibold tracking-tight">Recent Submissions</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {reports.length > 0 ? (
-                    reports.map(report => <SubmittedReportCard key={report.id} report={report} />)
+                {allWorkItems.length > 0 ? (
+                    allWorkItems.map(({ report, workItem, id }, index) => <SubmittedReportCard key={id} report={report} workItem={workItem} itemIndex={index} />)
                 ) : (
                     <Card className="col-span-full">
                         <CardContent className="p-6 text-center text-muted-foreground">
