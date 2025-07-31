@@ -112,31 +112,56 @@ const checklistItems = [
     { id: 'thIsleTrashEmpty', label: 'TH Isle Trash Empty' },
 ] as const;
 
+interface TapeheadsOperatorFormProps {
+  reportToEdit?: Report;
+  onFormSubmit?: (report: Report) => void;
+  onCancel?: () => void;
+}
 
-export function TapeheadsOperatorForm() {
+
+export function TapeheadsOperatorForm({ reportToEdit, onFormSubmit }: TapeheadsOperatorFormProps) {
   const { toast } = useToast();
   const router = useRouter();
   
+  const isEditMode = !!reportToEdit;
+
+  const defaultValues = useMemo(() => {
+    if (!reportToEdit) {
+      return {
+          date: new Date(),
+          shift: "1",
+          shiftLeadName: "",
+          oeNumber: "",
+          section: "",
+          thNumber: "",
+          operatorName: "",
+          materialType: "",
+          endOfShiftStatus: "Completed",
+          metersProduced: 0,
+          tapesUsed: 0,
+          problems: [],
+          panelWorkType: "individual" as "individual" | "nested",
+          panelsWorkedOn: [],
+          nestedPanels: [],
+          checklist: checklistItems.reduce((acc, item) => ({...acc, [item.id]: false}), {})
+      };
+    }
+
+    return {
+      ...reportToEdit,
+      date: new Date(reportToEdit.date),
+      shift: String(reportToEdit.shift),
+      metersProduced: reportToEdit.total_meters,
+      tapesUsed: reportToEdit.total_tapes,
+      problems: reportToEdit.issues,
+      spinOutDuration: reportToEdit.spin_out_duration_minutes,
+    };
+  }, [reportToEdit]);
+
+
   const form = useForm<OperatorFormValues>({
     resolver: zodResolver(tapeheadsOperatorSchema),
-    defaultValues: {
-      date: new Date(),
-      shift: "1",
-      shiftLeadName: "",
-      oeNumber: "",
-      section: "",
-      thNumber: "",
-      operatorName: "",
-      materialType: "",
-      endOfShiftStatus: "Completed",
-      metersProduced: 0,
-      tapesUsed: 0,
-      problems: [],
-      panelWorkType: "individual",
-      panelsWorkedOn: [],
-      nestedPanels: [],
-      checklist: checklistItems.reduce((acc, item) => ({...acc, [item.id]: false}), {})
-    },
+    defaultValues: defaultValues,
   });
 
   const { fields: problemFields, append: appendProblem, remove: removeProblem } = useFieldArray({ control: form.control, name: "problems" });
@@ -151,6 +176,12 @@ export function TapeheadsOperatorForm() {
   const watchPanelWorkType = useWatch({ control: form.control, name: "panelWorkType"});
   const watchOeNumber = useWatch({ control: form.control, name: "oeNumber" });
   const watchSection = useWatch({ control: form.control, name: "section" });
+
+  useEffect(() => {
+    if (reportToEdit) {
+      form.reset(defaultValues);
+    }
+  }, [reportToEdit, form, defaultValues]);
 
   useEffect(() => {
     if (watchStartTime && watchEndTime) {
@@ -172,17 +203,23 @@ export function TapeheadsOperatorForm() {
   }, [watchStartTime, watchEndTime, watchMetersProduced, form]);
   
    useEffect(() => {
-    form.setValue("panelsWorkedOn", []);
-  }, [watchPanelWorkType, form]);
+    if (!isEditMode) {
+      form.setValue("panelsWorkedOn", []);
+    }
+  }, [watchPanelWorkType, form, isEditMode]);
 
   useEffect(() => {
+    if (!isEditMode) {
       form.setValue('section', '');
       form.setValue('panelsWorkedOn', []);
-  }, [watchOeNumber, form]);
+    }
+  }, [watchOeNumber, form, isEditMode]);
 
    useEffect(() => {
-    form.setValue('panelsWorkedOn', []);
-  }, [watchSection, form]);
+    if (!isEditMode) {
+      form.setValue('panelsWorkedOn', []);
+    }
+  }, [watchSection, form, isEditMode]);
 
 
   const availableOes = useMemo(() => {
@@ -209,8 +246,8 @@ export function TapeheadsOperatorForm() {
 
 
   function onSubmit(values: OperatorFormValues) {
-    const newReport: Partial<Report> = {
-        id: `rpt_${Date.now()}`,
+    const reportData: Partial<Report> = {
+        id: reportToEdit?.id || `rpt_${Date.now()}`,
         date: values.date,
         shift: parseInt(values.shift, 10) as 1 | 2 | 3,
         shiftLeadName: values.shiftLeadName,
@@ -235,23 +272,29 @@ export function TapeheadsOperatorForm() {
         checklist: values.checklist,
         status: 'Submitted',
     };
-    tapeheadsSubmissions.unshift(newReport as Report);
+    
+    if (onFormSubmit) {
+      onFormSubmit(reportData as Report);
+    } else {
+      tapeheadsSubmissions.unshift(reportData as Report);
+      router.push('/report/tapeheads');
+    }
 
-    console.log(values);
     toast({
-      title: "Operator Work Submitted!",
-      description: `Your entry for ${values.oeNumber}-${values.section} has been recorded.`,
+      title: isEditMode ? "Report Updated!" : "Operator Work Submitted!",
+      description: `Your entry for ${values.oeNumber}-${values.section} has been ${isEditMode ? 'updated' : 'recorded'}.`,
     });
-    router.push('/report/tapeheads');
   }
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Operator Work Entry</CardTitle>
-        <CardDescription>Log your detailed work for this OE section.</CardDescription>
-      </CardHeader>
-      <CardContent>
+       {!isEditMode && (
+          <CardHeader>
+            <CardTitle>Operator Work Entry</CardTitle>
+            <CardDescription>Log your detailed work for this OE section.</CardDescription>
+          </CardHeader>
+        )}
+      <CardContent className={isEditMode ? "pt-6" : ""}>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             <Section title="Shift Details">
@@ -359,9 +402,9 @@ export function TapeheadsOperatorForm() {
                         </div>
                     )}
                 </div>
-            </Section>
+              </Section>
 
-            <Section title="Time and Output Tracking">
+              <Section title="Time and Output Tracking">
                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                     <FormField control={form.control} name="shiftStartTime" render={({ field }) => (<FormItem><FormLabel>Shift Start Time</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     <FormField control={form.control} name="shiftEndTime" render={({ field }) => (<FormItem><FormLabel>Shift End Time</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
@@ -372,43 +415,43 @@ export function TapeheadsOperatorForm() {
                   <div className="w-full md:w-1/5">
                      <FormField control={form.control} name="metersPerManHour" render={({ field }) => (<FormItem><FormLabel>Meters/Man-Hour</FormLabel><FormControl><Input type="number" {...field} readOnly className="bg-muted/70" /></FormControl><FormMessage /></FormItem>)} />
                  </div>
-            </Section>
+              </Section>
 
-            <Section title="Issues">
-                <div className="space-y-4">
-                    <FormField control={form.control} name="hadSpinOut" render={({ field }) => (<FormItem className="flex items-center gap-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>Had Spin Out?</FormLabel></FormItem>)} />
-                    {watchHadSpinout && (
-                        <FormField control={form.control} name="spinOutDuration" render={({ field }) => (<FormItem className="max-w-xs"><FormLabel>Spin Out Duration (minutes)</FormLabel><FormControl><Input type="number" value={field.value ?? ''} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>)} />
-                    )}
+              <Section title="Issues">
+                  <div className="space-y-4">
+                      <FormField control={form.control} name="hadSpinOut" render={({ field }) => (<FormItem className="flex items-center gap-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>Had Spin Out?</FormLabel></FormItem>)} />
+                      {watchHadSpinout && (
+                          <FormField control={form.control} name="spinOutDuration" render={({ field }) => (<FormItem className="max-w-xs"><FormLabel>Spin Out Duration (minutes)</FormLabel><FormControl><Input type="number" value={field.value ?? ''} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>)} />
+                      )}
 
-                    <h4 className="font-medium pt-2">Problems</h4>
-                    {problemFields.map((field, index) => (
-                        <div key={field.id} className="flex items-end gap-4 p-4 border rounded-md">
-                            <FormField control={form.control} name={`problems.${index}.problem_reason`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Problem Reason</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={form.control} name={`problems.${index}.duration_minutes`} render={({ field }) => (<FormItem><FormLabel>Duration (min)</FormLabel><FormControl><Input type="number" value={field.value ?? ''} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>)} />
-                            <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removeProblem(index)}><Trash2 className="size-4" /></Button>
-                        </div>
-                    ))}
-                    <Button type="button" variant="outline" size="sm" onClick={() => appendProblem({ problem_reason: '', duration_minutes: 0 })}><PlusCircle className="mr-2 h-4 w-4"/>Add Problem</Button>
-                </div>
-            </Section>
-            
-            <Section title="End-of-Shift Checklist">
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {checklistItems.map(item => (
-                         <FormField key={item.id} control={form.control} name={`checklist.${item.id}`} render={({ field }) => (
-                            <FormItem className="flex items-center gap-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>{item.label}</FormLabel></FormItem>
-                         )}/>
-                    ))}
-                </div>
-            </Section>
+                      <h4 className="font-medium pt-2">Problems</h4>
+                      {problemFields.map((field, index) => (
+                          <div key={field.id} className="flex items-end gap-4 p-4 border rounded-md">
+                              <FormField control={form.control} name={`problems.${index}.problem_reason`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Problem Reason</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                              <FormField control={form.control} name={`problems.${index}.duration_minutes`} render={({ field }) => (<FormItem><FormLabel>Duration (min)</FormLabel><FormControl><Input type="number" value={field.value ?? ''} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>)} />
+                              <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removeProblem(index)}><Trash2 className="size-4" /></Button>
+                          </div>
+                      ))}
+                      <Button type="button" variant="outline" size="sm" onClick={() => appendProblem({ problem_reason: '', duration_minutes: 0 })}><PlusCircle className="mr-2 h-4 w-4"/>Add Problem</Button>
+                  </div>
+              </Section>
+              
+              <Section title="End-of-Shift Checklist">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {checklistItems.map(item => (
+                           <FormField key={item.id} control={form.control} name={`checklist.${item.id}`} render={({ field }) => (
+                              <FormItem className="flex items-center gap-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>{item.label}</FormLabel></FormItem>
+                           )}/>
+                      ))}
+                  </div>
+              </Section>
 
-            <div className="flex justify-end">
-                <Button type="submit" size="lg">Submit Operator Entry</Button>
-            </div>
-          </form>
-        </Form>
-      </CardContent>
+              <div className="flex justify-end">
+                  <Button type="submit" size="lg">{isEditMode ? "Save Changes" : "Submit Operator Entry"}</Button>
+              </div>
+            </form>
+          </Form>
+        </CardContent>
     </Card>
   )
 }

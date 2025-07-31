@@ -19,6 +19,8 @@ import { summarizeShift } from '@/ai/flows/summarize-shift-flow';
 import { Badge } from '../ui/badge';
 import { Edit, Trash2 } from 'lucide-react';
 import { Input } from '../ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
+import { TapeheadsOperatorForm } from '../tapeheads-operator-form';
 
 const reviewSchema = z.object({
   date: z.date(),
@@ -29,7 +31,7 @@ const reviewSchema = z.object({
 
 type ReviewFormValues = z.infer<typeof reviewSchema>;
 
-function OperatorSubmissionCard({ report, onDelete }: { report: Report, onDelete: (id: string) => void }) {
+function OperatorSubmissionCard({ report, onDelete, onEdit }: { report: Report, onDelete: (id: string) => void, onEdit: (report: Report) => void }) {
     const calculateHours = (startTimeStr?: string, endTimeStr?: string): number => {
         if (!startTimeStr || !endTimeStr) return 0;
         const [startH, startM] = startTimeStr.split(':').map(Number);
@@ -54,7 +56,7 @@ function OperatorSubmissionCard({ report, onDelete }: { report: Report, onDelete
                         <CardDescription>{report.operatorName} on {report.thNumber}</CardDescription>
                     </div>
                     <div className="flex gap-2">
-                        <Button variant="ghost" size="icon" className="h-7 w-7"><Edit className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(report)}><Edit className="h-4 w-4" /></Button>
                         <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => onDelete(report.id)}><Trash2 className="h-4 w-4" /></Button>
                     </div>
                 </div>
@@ -85,6 +87,8 @@ export function TapeheadsReviewSummary() {
   const [submissions, setSubmissions] = useState<Report[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [aiSummary, setAiSummary] = useState('');
+  const [isEditDialogOpen, setEditDialogOpen] = useState(false);
+  const [reportToEdit, setReportToEdit] = useState<Report | undefined>();
 
   const form = useForm<ReviewFormValues>({
     resolver: zodResolver(reviewSchema),
@@ -126,6 +130,21 @@ export function TapeheadsReviewSummary() {
     // Refresh the local state
     handleLoadSubmissions();
   };
+  
+  const handleEditReport = (report: Report) => {
+    setReportToEdit(report);
+    setEditDialogOpen(true);
+  };
+  
+  const handleUpdateReport = (updatedReport: Report) => {
+    const reportIndex = tapeheadsSubmissions.findIndex(r => r.id === updatedReport.id);
+    if (reportIndex !== -1) {
+        tapeheadsSubmissions[reportIndex] = updatedReport;
+    }
+    setEditDialogOpen(false);
+    setReportToEdit(undefined);
+    handleLoadSubmissions(); // Refresh the list
+  }
   
   useEffect(() => {
     handleLoadSubmissions();
@@ -204,6 +223,16 @@ export function TapeheadsReviewSummary() {
 
   return (
     <div className="space-y-6">
+       <Dialog open={isEditDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Operator Submission</DialogTitle>
+          </DialogHeader>
+          <div className="p-1">
+             <TapeheadsOperatorForm reportToEdit={reportToEdit} onFormSubmit={handleUpdateReport} />
+          </div>
+        </DialogContent>
+      </Dialog>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <Card>
@@ -266,7 +295,7 @@ export function TapeheadsReviewSummary() {
                <Card>
                     <CardHeader><CardTitle>Operator Submissions ({submissions.length})</CardTitle></CardHeader>
                     <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {submissions.map(report => <OperatorSubmissionCard key={report.id} report={report} onDelete={handleDeleteReport} />)}
+                        {submissions.map(report => <OperatorSubmissionCard key={report.id} report={report} onDelete={handleDeleteReport} onEdit={handleEditReport} />)}
                     </CardContent>
                </Card>
 
