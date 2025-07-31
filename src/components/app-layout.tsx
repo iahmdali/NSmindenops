@@ -48,6 +48,7 @@ import {
   AreaChart,
   Waypoints,
   ClipboardCheck,
+  FilePlus,
 } from "lucide-react";
 import { Logo } from "@/components/icons";
 import { cn } from "@/lib/utils";
@@ -109,7 +110,7 @@ function MainSidebar() {
     if (pathname.startsWith('/report')) {
       setReportsOpen(true);
     }
-    if (pathname.startsWith('/analytics') || pathname.startsWith('/review')) {
+    if (pathname.startsWith('/analytics') || pathname.startsWith('/review') || pathname.startsWith('/filesystem')) {
       setAnalyticsOpen(true);
     }
   }, [pathname]);
@@ -173,10 +174,10 @@ function MainSidebar() {
            <SidebarMenuItem>
             <SidebarMenuButton
               onClick={() => setAnalyticsOpen(!isAnalyticsOpen)}
-              isActive={pathname.startsWith("/analytics") || pathname.startsWith('/review')}
+              isActive={pathname.startsWith("/analytics") || pathname.startsWith('/review') || pathname.startsWith('/filesystem')}
             >
               <AreaChart />
-              <span>Review & Analytics</span>
+              <span>Lead Functions</span>
               <ChevronDown
                 className={cn(
                   "ml-auto h-4 w-4 transition-transform duration-200",
@@ -186,6 +187,11 @@ function MainSidebar() {
             </SidebarMenuButton>
             {isAnalyticsOpen && (
               <SidebarMenuSub>
+                <SidebarMenuSubItem>
+                   <SidebarMenuSubButton asChild isActive={pathname === '/filesystem'}>
+                        <Link href="/filesystem"><FilePlus /><span>File System</span></Link>
+                   </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
                 <SidebarMenuSubItem>
                    <SidebarMenuSubButton asChild isActive={pathname === '/review/tapeheads'}>
                         <Link href="/review/tapeheads"><Users /><span>Tapeheads Review</span></Link>

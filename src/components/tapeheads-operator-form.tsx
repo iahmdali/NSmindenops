@@ -25,14 +25,14 @@ import { Textarea } from "@/components/ui/textarea"
 import { DatePicker } from "@/components/ui/date-picker"
 import { useToast } from "@/hooks/use-toast"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { PlusCircle, Trash2 } from "lucide-react"
+import { PlusCircle, Trash2, Check } from "lucide-react"
 import { Checkbox } from "./ui/checkbox"
 import { Separator } from "./ui/separator"
 import React, { useEffect } from "react"
 import { MultiSelect } from "./ui/multi-select"
-import { updateOeSectionStatus, type OeSection } from "@/lib/oe-data"
 import { useRouter } from "next/navigation"
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group"
+import { tapeheadsSubmissions } from "@/lib/tapeheads-data"
 
 const problemSchema = z.object({
   title: z.string().min(1, "Problem title is required."),
@@ -43,20 +43,18 @@ const tapeheadsOperatorSchema = z.object({
   date: z.date(),
   shift: z.string().min(1),
   shiftLeadName: z.string().min(1, "Shift lead name is required."),
-  oeNumber: z.string(),
-  section: z.string(),
+  oeNumber: z.string().min(1, "OE Number is required."),
+  section: z.string().min(1, "Section ID is required."),
+  panelCount: z.coerce.number().min(1, "Panel count is required"),
 
-  // Operator Entry
   thNumber: z.string().min(1, "TH Number is required."),
   operatorName: z.string().min(1, "Operator name is required."),
   materialType: z.string().min(1, "Material type is required."),
   endOfShiftStatus: z.string().min(1, "Status is required."),
   
-  // Conditional fields for "In Progress"
   oeOutputEstimate: z.coerce.number().optional(),
   layer: z.string().optional(),
 
-  // Time and Output
   shiftStartTime: z.string().min(1, "Start time is required."),
   shiftEndTime: z.string().min(1, "End time is required."),
   hoursWorked: z.coerce.number().optional(),
@@ -64,16 +62,14 @@ const tapeheadsOperatorSchema = z.object({
   tapesUsed: z.coerce.number().min(0),
   metersPerManHour: z.coerce.number().optional(),
 
-  // Spin out and Problems
   hadSpinOut: z.boolean().default(false),
   spinOutDuration: z.coerce.number().optional(),
   problems: z.array(problemSchema).optional(),
   
-  // Panel Tracking
   panelWorkType: z.enum(["individual", "nested"]).default("individual"),
   panelsWorkedOn: z.array(z.string()).min(1, "At least one panel must be selected."),
+  nestedPanels: z.array(z.string()).optional(),
 
-  // Checklist
   checklist: z.object({
     smoothFuseFull: z.boolean().default(false),
     bladesGlasses: z.boolean().default(false),
@@ -118,7 +114,7 @@ const checklistItems = [
 ] as const;
 
 
-export function TapeheadsOperatorForm({ oeSection }: { oeSection: OeSection }) {
+export function TapeheadsOperatorForm() {
   const { toast } = useToast();
   const router = useRouter();
   
@@ -128,8 +124,9 @@ export function TapeheadsOperatorForm({ oeSection }: { oeSection: OeSection }) {
       date: new Date(),
       shift: "1",
       shiftLeadName: "",
-      oeNumber: oeSection.oeBase,
-      section: oeSection.sectionId,
+      oeNumber: "",
+      section: "",
+      panelCount: 1,
       thNumber: "",
       operatorName: "",
       materialType: "",
@@ -139,11 +136,14 @@ export function TapeheadsOperatorForm({ oeSection }: { oeSection: OeSection }) {
       problems: [],
       panelWorkType: "individual",
       panelsWorkedOn: [],
+      nestedPanels: [],
       checklist: checklistItems.reduce((acc, item) => ({...acc, [item.id]: false}), {})
     },
   });
 
   const { fields: problemFields, append: appendProblem, remove: removeProblem } = useFieldArray({ control: form.control, name: "problems" });
+  const { fields: nestedPanelFields, append: appendNestedPanel, remove: removeNestedPanel } = useFieldArray({ control: form.control, name: "nestedPanels" });
+
 
   const watchStatus = useWatch({ control: form.control, name: "endOfShiftStatus" });
   const watchHadSpinout = useWatch({ control: form.control, name: "hadSpinOut" });
@@ -151,7 +151,8 @@ export function TapeheadsOperatorForm({ oeSection }: { oeSection: OeSection }) {
   const watchEndTime = useWatch({ control: form.control, name: "shiftEndTime" });
   const watchMetersProduced = useWatch({ control: form.control, name: "metersProduced" });
   const watchPanelWorkType = useWatch({ control: form.control, name: "panelWorkType"});
-  
+  const watchPanelCount = useWatch({ control: form.control, name: "panelCount" });
+
   useEffect(() => {
     if (watchStartTime && watchEndTime) {
       const start = new Date(`1970-01-01T${watchStartTime}:00`);
@@ -172,14 +173,19 @@ export function TapeheadsOperatorForm({ oeSection }: { oeSection: OeSection }) {
   }, [watchStartTime, watchEndTime, watchMetersProduced, form]);
   
    useEffect(() => {
-    // Reset panelsWorkedOn when work type changes
     form.setValue("panelsWorkedOn", []);
   }, [watchPanelWorkType, form]);
 
 
   function onSubmit(values: OperatorFormValues) {
+    const newReport = {
+        id: `rpt_${Date.now()}`,
+        status: 'Submitted',
+        ...values
+    };
+    tapeheadsSubmissions.unshift(newReport as any);
+
     console.log(values);
-    updateOeSectionStatus(oeSection.id, 'in-progress');
     toast({
       title: "Operator Work Submitted!",
       description: `Your entry for ${values.oeNumber}-${values.section} has been recorded.`,
@@ -187,7 +193,7 @@ export function TapeheadsOperatorForm({ oeSection }: { oeSection: OeSection }) {
     router.push('/report/tapeheads');
   }
   
-  const panelOptions = Array.from({ length: oeSection.panels }, (_, i) => ({ value: `P${i + 1}`, label: `P${i + 1}` }));
+  const panelOptions = Array.from({ length: watchPanelCount || 0 }, (_, i) => ({ value: `P${i + 1}`, label: `P${i + 1}` }));
 
 
   return (
@@ -200,16 +206,21 @@ export function TapeheadsOperatorForm({ oeSection }: { oeSection: OeSection }) {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             <Section title="Shift Details">
-               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <FormField control={form.control} name="date" render={({ field }) => (<FormItem><FormLabel>Date</FormLabel><FormControl><DatePicker value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>)} />
                   <FormField control={form.control} name="shift" render={({ field }) => (<FormItem><FormLabel>Shift</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent><SelectItem value="1">Shift 1</SelectItem><SelectItem value="2">Shift 2</SelectItem><SelectItem value="3">Shift 3</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
                   <FormField control={form.control} name="shiftLeadName" render={({ field }) => (<FormItem><FormLabel>Shift Lead Name</FormLabel><FormControl><Input placeholder="Lead's name" {...field} /></FormControl><FormMessage /></FormItem>)} />
               </div>
             </Section>
 
-            <Section title="Operator Entry">
+            <Section title="Operator & Work Order Details">
                 <div className="p-4 border rounded-lg space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                         <FormField control={form.control} name="oeNumber" render={({ field }) => (<FormItem><FormLabel>OE Number</FormLabel><FormControl><Input placeholder="e.g. OAUS32162" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                         <FormField control={form.control} name="section" render={({ field }) => (<FormItem><FormLabel>Section ID</FormLabel><FormControl><Input placeholder="e.g. 001" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                         <FormField control={form.control} name="panelCount" render={({ field }) => (<FormItem><FormLabel>Number of Panels</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-4 border-t">
                         <FormField control={form.control} name="thNumber" render={({ field }) => (<FormItem><FormLabel>TH Number</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select TH..." /></SelectTrigger></FormControl><SelectContent>{[...Array(10)].map((_,i) => <SelectItem key={i} value={`TH-${i+1}`}>TH-{i+1}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="operatorName" render={({ field }) => (<FormItem><FormLabel>Operator Name</FormLabel><FormControl><Input placeholder="Your name" {...field} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="materialType" render={({ field }) => (<FormItem><FormLabel>Material Type</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select material..." /></SelectTrigger></FormControl><SelectContent><SelectItem value="Kevlar">Kevlar</SelectItem><SelectItem value="Polyester">Polyester</SelectItem><SelectItem value="Carbon">Carbon</SelectItem><SelectItem value="Aramid">Aramid</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
@@ -322,6 +333,20 @@ export function TapeheadsOperatorForm({ oeSection }: { oeSection: OeSection }) {
                         }}
                     />
                 </div>
+                 {watchPanelWorkType === 'nested' && (
+                    <div className="space-y-2 pt-4">
+                        <FormLabel>Nested Panel Details</FormLabel>
+                         {nestedPanelFields.map((field, index) => (
+                            <div key={field.id} className="flex items-center gap-2">
+                                <FormField control={form.control} name={`nestedPanels.${index}`} render={({ field }) => (
+                                    <Input {...field} placeholder="e.g. P1a, P2b..." />
+                                )} />
+                                <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removeNestedPanel(index)}><Trash2 className="size-4" /></Button>
+                            </div>
+                        ))}
+                        <Button type="button" variant="outline" size="sm" onClick={() => appendNestedPanel('')}><PlusCircle className="mr-2 h-4 w-4"/>Add Nested Panel</Button>
+                    </div>
+                 )}
             </Section>
             
             <Section title="End-of-Shift Checklist">
@@ -343,5 +368,3 @@ export function TapeheadsOperatorForm({ oeSection }: { oeSection: OeSection }) {
     </Card>
   )
 }
-
-    

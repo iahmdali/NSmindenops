@@ -10,7 +10,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Trash2 } from 'lucide-react';
 import { addOeJob } from '@/lib/oe-data';
 
 const sectionSchema = z.object({
@@ -26,7 +25,7 @@ const oeTrackerSchema = z.object({
 
 type OeTrackerFormValues = z.infer<typeof oeTrackerSchema>;
 
-export function TapeheadsOeTracker() {
+export function OeTracker() {
   const { toast } = useToast();
   const [totalSections, setTotalSections] = useState(1);
 
@@ -75,14 +74,13 @@ export function TapeheadsOeTracker() {
   
 
   const onSubmit = (data: OeTrackerFormValues) => {
-    // Add the newly created job to our mock data store
     addOeJob(data);
     
     console.log("Job created:", data);
 
     toast({
       title: 'OE Job Initialized',
-      description: `${data.oeBase} with ${data.sections.length} sections has been created.`,
+      description: `${data.oeBase} with ${data.sections.length} sections has been created and is now available in the Tapeheads Dashboard.`,
     });
     form.reset();
     replace([]);
@@ -92,7 +90,7 @@ export function TapeheadsOeTracker() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>File System Module – OE & Section Initialization</CardTitle>
+        <CardTitle>OE & Section Initialization</CardTitle>
         <CardDescription>
           Register a new OE job and define its sections for the Tapeheads department.
         </CardDescription>

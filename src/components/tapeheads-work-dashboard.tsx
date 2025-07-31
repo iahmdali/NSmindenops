@@ -4,82 +4,70 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { oeJobs, type OeSection } from "@/lib/oe-data";
 import { PageHeader } from './page-header';
 import Link from 'next/link';
 import { Badge } from './ui/badge';
 import { CheckCircle, Edit } from 'lucide-react';
+import { tapeheadsSubmissions } from '@/lib/tapeheads-data';
+import type { Report } from '@/lib/types';
 
-function OeSectionCard({ section }: { section: OeSection }) {
-    const getStatusClasses = () => {
-        switch(section.status) {
-            case 'completed': return 'border-blue-500 bg-blue-50';
-            case 'in-progress': return 'border-green-500 bg-green-50';
-            default: return 'border-gray-200 bg-white';
-        }
-    }
-
-    const isActionable = section.status === 'pending';
-
+function SubmittedReportCard({ report }: { report: Report }) {
     return (
-        <Card className={`shadow-md transition-all hover:shadow-lg ${getStatusClasses()}`}>
+        <Card className="shadow-md transition-all hover:shadow-lg">
             <CardHeader>
                 <div className="flex justify-between items-start">
                     <div>
-                        <CardTitle className="text-lg">{section.oeBase}-{section.sectionId}</CardTitle>
+                        <CardTitle className="text-lg">{report.oeNumber}-{report.section}</CardTitle>
                         <CardDescription>
-                            <span className="font-semibold">Panels:</span> {section.panels}
+                            <span className="font-semibold">Operator:</span> {report.operatorName} on {report.thNumber}
                         </CardDescription>
                     </div>
-                     {section.status !== 'pending' && (
-                        <Badge variant={section.status === 'in-progress' ? 'default' : 'secondary'}>
-                           {section.status === 'in-progress' && <Edit className="mr-1 h-3 w-3" />}
-                           {section.status === 'completed' && <CheckCircle className="mr-1 h-3 w-3" />}
-                           {section.status === 'in-progress' ? 'Submitted' : 'Finalized'}
-                        </Badge>
-                    )}
+                     <Badge variant={'secondary'}>
+                           <CheckCircle className="mr-1 h-3 w-3" />
+                           Submitted
+                    </Badge>
                 </div>
             </CardHeader>
             <CardContent>
-                <Link href={`/report/tapeheads/entry?oe=${section.oeBase}&section=${section.sectionId}`} passHref>
-                    <Button className="w-full" disabled={!isActionable}>
-                        {isActionable ? 'Enter Work Entry' : 'View Entry'}
-                    </Button>
-                </Link>
+                <p className="text-sm text-muted-foreground">{report.total_meters}m produced in {report.hoursWorked}h. Status: {report.endOfShiftStatus}</p>
             </CardContent>
         </Card>
     );
 }
 
 export function TapeheadsWorkDashboard() {
-    const [jobs, setJobs] = useState<OeSection[]>([]);
+    const [reports, setReports] = useState<Report[]>([]);
 
     useEffect(() => {
-        // In a real app, you'd fetch this data. Here, we're simulating a refresh
-        // by creating a new array from the (potentially mutated) oeJobs source.
         const interval = setInterval(() => {
-            if (jobs.length !== oeJobs.length || jobs !== oeJobs) {
-                 setJobs([...oeJobs]);
+            const currentReports = tapeheadsSubmissions as Report[];
+            if (reports.length !== currentReports.length) {
+                 setReports([...currentReports]);
             }
-        }, 500); // Check for updates every 0.5 seconds
+        }, 500);
         
         return () => clearInterval(interval);
-    }, [jobs]);
+    }, [reports]);
 
     return (
         <div className="space-y-6">
             <PageHeader
                 title="Tapeheads Dashboard"
-                description="Select an OE section to enter your shift work."
-            />
+                description="Record your work for a new OE section or review recent submissions."
+            >
+                <Button asChild size="lg">
+                    <Link href="/report/tapeheads/entry">Record Work</Link>
+                </Button>
+            </PageHeader>
             
+            <h2 className="text-xl font-semibold tracking-tight">Recent Submissions</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {jobs.length > 0 ? (
-                    jobs.map(job => <OeSectionCard key={job.id} section={job} />)
+                {reports.length > 0 ? (
+                    reports.map(report => <SubmittedReportCard key={report.id} report={report} />)
                 ) : (
                     <Card className="col-span-full">
                         <CardContent className="p-6 text-center text-muted-foreground">
-                            No active work items found. Please use the "File System Module" below to initialize a new OE job.
+                            No shift reports have been submitted yet.
                         </CardContent>
                     </Card>
                 )}
