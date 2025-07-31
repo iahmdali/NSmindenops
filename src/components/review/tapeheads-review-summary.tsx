@@ -62,7 +62,7 @@ function OperatorSubmissionCard({ report, onDelete, onEdit }: { report: Report, 
                 </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              {report.workItems?.map((item, index) => (
+              {(report.workItems || []).map((item, index) => (
                 <div key={index} className="p-2 border rounded-md bg-muted/30 text-sm">
                    <div className="flex justify-between font-semibold">
                        <span>{item.oeNumber}-{item.section}</span>
