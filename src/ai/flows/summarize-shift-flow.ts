@@ -70,15 +70,16 @@ const summarizeShiftFlow = ai.defineFlow(
     async (input) => {
         // Pre-process data to add derived values like hours worked and m/hr
         const augmentedData = input.map((report: Report) => {
-            const hours_worked = calculateHours(report.shift_start_time, report.shift_end_time);
-            const meters_per_hour = hours_worked > 0 ? parseFloat((report.total_meters / hours_worked).toFixed(1)) : 0;
+            const hours_worked = calculateHours(report.shiftStartTime, report.shiftEndTime);
+            const total_meters = report.total_meters || 0;
+            const meters_per_hour = hours_worked > 0 ? parseFloat((total_meters / hours_worked).toFixed(1)) : 0;
             return {
                 operator_name: report.operatorName,
-                th_number: report.th_number,
-                total_meters: report.total_meters,
+                th_number: report.thNumber,
+                total_meters: total_meters,
                 hours_worked,
                 meters_per_hour,
-                end_of_shift_status: report.end_of_shift_status,
+                end_of_shift_status: report.endOfShiftStatus,
             };
         });
 
