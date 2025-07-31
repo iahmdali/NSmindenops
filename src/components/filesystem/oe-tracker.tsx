@@ -23,20 +23,39 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Badge } from '../ui/badge';
+import { Alert, AlertDescription } from '../ui/alert';
 
 const sectionSchema = z.object({
   sectionId: z.string().min(1, 'Sail # is required.').length(3, 'Must be 3 digits.'),
   panelStart: z.coerce.number().min(1, 'Start panel is required.'),
   panelEnd: z.coerce.number().min(1, 'End panel is required.'),
-}).refine(data => data.panelEnd >= data.panelStart, {
-    message: "End panel must be greater than or equal to start panel.",
-    path: ["panelEnd"],
 });
 
 const oeTrackerSchema = z.object({
   oeBase: z.string().min(1, 'OE Number is required.'),
   sections: z.array(sectionSchema).min(1, 'At least one sail must be added.'),
+}).refine(data => {
+    // Check that panelEnd is greater than or equal to panelStart for all sections
+    return data.sections.every(section => section.panelEnd >= section.panelStart);
+}, {
+    message: "End panel must be greater than or equal to start panel.",
+    path: ["sections"], // General path, specific pathing is harder here
+})
+.refine(data => {
+    // Check for overlapping panel ranges
+    if (data.sections.length < 2) return true;
+    const sortedSections = [...data.sections].sort((a, b) => a.panelStart - b.panelStart);
+    for (let i = 0; i < sortedSections.length - 1; i++) {
+        if (sortedSections[i].panelEnd >= sortedSections[i+1].panelStart) {
+            return false; // Overlap detected
+        }
+    }
+    return true;
+}, {
+    message: "Panel ranges cannot overlap between sails.",
+    path: ["sections"],
 });
+
 
 type OeTrackerFormValues = z.infer<typeof oeTrackerSchema>;
 
@@ -51,6 +70,7 @@ export function OeTracker() {
       oeBase: '',
       sections: [],
     },
+     mode: "onBlur",
   });
 
   const { fields, append, remove, replace } = useFieldArray({
@@ -127,7 +147,7 @@ export function OeTracker() {
               
               <div className="space-y-4 pt-4 border-t">
                 <div className="flex justify-between items-center">
-                  <FormLabel className="text-base font-medium">Sails for this OE</FormLabel>
+                  <h3 className="text-base font-medium">Sails for this OE</h3>
                   <Button 
                     type="button" 
                     variant="outline" 
@@ -138,7 +158,13 @@ export function OeTracker() {
                     Add Sail
                   </Button>
                 </div>
-
+                 {form.formState.errors.sections && (
+                    <Alert variant="destructive">
+                      <AlertDescription>
+                        {form.formState.errors.sections.message || form.formState.errors.sections.root?.message}
+                      </AlertDescription>
+                    </Alert>
+                )}
                 {fields.map((field, index) => (
                   <div key={field.id} className="flex items-end gap-4 p-4 border rounded-md bg-muted/30">
                      <div className='flex items-end gap-2 flex-grow'>
