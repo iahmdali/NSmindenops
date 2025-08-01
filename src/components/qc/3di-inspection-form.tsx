@@ -131,28 +131,28 @@ export function ThreeDiInspectionForm() {
 
     // Lamination defects
     if (watchedDefects.lamination) {
-      for (const key in watchedDefects.lamination) {
-        const defect = watchedDefects.lamination[key as keyof typeof watchedDefects.lamination];
-        if (defect?.present) {
-          score += Number(defect.severity) || 0;
+        for (const key in watchedDefects.lamination) {
+            const defect = watchedDefects.lamination[key as keyof typeof watchedDefects.lamination];
+            if (defect?.present) {
+                score += Number(defect.severity) || 0;
+            }
         }
-      }
     }
 
     // Structural and cosmetic defects
     const otherCategories: ('structural' | 'cosmetic')[] = ['structural', 'cosmetic'];
     for (const categoryKey of otherCategories) {
-      const category = watchedDefects[categoryKey];
-      if (category) {
-        for (const defectKey in category) {
-          const entries = category[defectKey as keyof typeof category];
-          if (Array.isArray(entries)) {
-            score += entries.reduce((sum, entry) => {
-              return sum + (Number(entry?.severity) || 0);
-            }, 0);
-          }
+        const category = watchedDefects[categoryKey];
+        if (category) {
+            for (const defectKey in category) {
+                const entries = category[defectKey as keyof typeof category];
+                if (Array.isArray(entries)) {
+                    score += entries.reduce((sum, entry) => {
+                        return sum + (Number(entry?.severity) || 0);
+                    }, 0);
+                }
+            }
         }
-      }
     }
 
     return score;
@@ -167,15 +167,21 @@ export function ThreeDiInspectionForm() {
 
   const showReinspection = totalScore >= 61 && totalScore < 100;
 
-  function onSubmit(data: InspectionFormValues) {
+  async function onSubmit(data: InspectionFormValues) {
     console.log({ ...data, totalScore, status: inspectionStatus.text });
+    
+    // Dynamically import the PDF generator only on the client-side
+    const { generatePdf } = await import('@/lib/generate-qc-pdf');
+    await generatePdf(data, { totalScore, statusText: inspectionStatus.text });
+    
     toast({
-      title: 'Inspection Submitted',
+      title: 'Inspection Submitted & PDF Generated',
       description: `OE# ${data.oeNumber} has been submitted with a score of ${totalScore}.`,
     });
   }
 
   const handleExportPdf = async () => {
+    // Dynamically import the PDF generator only on the client-side
     const { generatePdf } = await import('@/lib/generate-qc-pdf');
     const data = methods.getValues();
     await generatePdf(data, { totalScore, statusText: inspectionStatus.text });
