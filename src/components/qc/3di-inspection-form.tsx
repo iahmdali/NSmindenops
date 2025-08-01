@@ -19,7 +19,6 @@ import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 import { Card } from '../ui/card';
 import { defectCategories } from '@/lib/qc-data';
-import { generatePdf } from '@/lib/generate-qc-pdf';
 import { FileDown } from 'lucide-react';
 
 const temperatureSchema = z.object({
@@ -177,7 +176,8 @@ export function ThreeDiInspectionForm() {
     });
   }
 
-  const handleExportPdf = () => {
+  const handleExportPdf = async () => {
+    const { generatePdf } = await import('@/lib/generate-qc-pdf');
     const data = methods.getValues();
     generatePdf(data, { totalScore, statusText: inspectionStatus.text });
   }
