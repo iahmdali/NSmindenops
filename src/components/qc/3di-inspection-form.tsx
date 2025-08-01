@@ -61,7 +61,7 @@ const inspectionFormSchema = z.object({
       noOverlapScarfJoint: automaticDefectSchema,
       majorGlueLine: automaticDefectSchema,
       pocketsShrinkageWaves: automaticDefectSchema,
-      majorShrinkageWaves: automaticDrafectSchema,
+      majorShrinkageWaves: automaticDefectSchema,
       tempStickersNotUpToTemp: automaticDefectSchema,
       debris: automaticDefectSchema,
       exposedInternal: automaticDefectSchema,
@@ -209,4 +209,3 @@ export function ThreeDiInspectionForm() {
     </FormProvider>
   );
 }
-
