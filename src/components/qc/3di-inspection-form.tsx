@@ -32,7 +32,6 @@ const temperatureSchema = z.object({
 const laminationDefectSchema = z.object({
     present: z.boolean().default(false),
     description: z.string().optional(),
-    severity: z.coerce.number().optional(),
 }).optional();
 
 const severityArrayDefectSchema = z.array(z.object({
@@ -128,16 +127,6 @@ export function ThreeDiInspectionForm() {
   const totalScore = useMemo(() => {
     let score = 0;
     if (!watchedDefects) return 0;
-
-    // Lamination defects
-    if (watchedDefects.lamination) {
-        for (const key in watchedDefects.lamination) {
-            const defect = watchedDefects.lamination[key as keyof typeof watchedDefects.lamination];
-            if (defect?.present) {
-                score += Number(defect.severity) || 0;
-            }
-        }
-    }
 
     // Structural and cosmetic defects
     const otherCategories: ('structural' | 'cosmetic')[] = ['structural', 'cosmetic'];

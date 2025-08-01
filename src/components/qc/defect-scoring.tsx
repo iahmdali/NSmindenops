@@ -133,19 +133,6 @@ const LaminationDefectField = ({ control, defectKey, label }: { control: any, de
                             </FormItem>
                         )}
                     />
-                     <FormField
-                        control={control}
-                        name={`${fieldName}.severity`}
-                        render={({ field }) => (
-                            <FormItem className="w-32">
-                                <FormLabel>Score</FormLabel>
-                                <FormControl>
-                                    <Input type="number" placeholder="0" {...field} value={field.value ?? ''} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
                 </div>
             )}
         </div>
