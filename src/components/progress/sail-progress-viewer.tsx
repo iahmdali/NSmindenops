@@ -7,6 +7,7 @@ import { Badge } from "../ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { cn } from "@/lib/utils";
 import { CheckCircle, AlertTriangle, ChevronsRight, PackageSearch, ArrowRight } from "lucide-react";
+import React from 'react';
 
 function DepartmentCard({ dept }: { dept: DepartmentProgress }) {
     const statusConfig = {
