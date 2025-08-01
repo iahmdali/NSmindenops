@@ -84,30 +84,29 @@ export function ThreeDiInspectionForm() {
   const calculateTotalScore = () => {
     let total = 0;
     if (!defects) return 0;
-    
-    // Automatic defects
+
+    // Automatic defects - 61 points each if true
     if (defects.auto) {
-        Object.values(defects.auto).forEach((value: any) => {
-            if (value) total += 61;
-        });
+      total += Object.values(defects.auto).filter(Boolean).length * 61;
     }
-    // Structural and Cosmetic defects
-    ['structural', 'cosmetic'].forEach(category => {
-        if(defects[category as keyof typeof defects]) {
-            const catDefects = defects[category as keyof typeof defects];
-            if (catDefects) {
-              Object.values(catDefects).forEach((defectArray?: number[]) => {
-                  if(defectArray) {
-                      defectArray.forEach((severity) => {
-                          if (severity > 0) {
-                              total += severity;
-                          }
-                      });
-                  }
-              });
-            }
+
+    // Structural defects - sum of severity scores
+    if (defects.structural) {
+      Object.values(defects.structural).forEach((defectArray) => {
+        if (defectArray) {
+          total += defectArray.reduce((sum, severity) => sum + severity, 0);
         }
-    });
+      });
+    }
+
+    // Cosmetic defects - sum of severity scores
+    if (defects.cosmetic) {
+      Object.values(defects.cosmetic).forEach((defectArray) => {
+        if (defectArray) {
+          total += defectArray.reduce((sum, severity) => sum + severity, 0);
+        }
+      });
+    }
 
     return total;
   };
