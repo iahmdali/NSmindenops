@@ -32,11 +32,12 @@ const severityOnlyDefectSchema = z.array(z.object({
   severity: z.coerce.number().min(0).max(10),
 })).max(6).optional();
 
-const singleLaminationDefectSchema = z.object({
-  present: z.boolean().default(false),
-  description: z.string().optional(),
-  severity: z.coerce.number().optional(),
+const laminationDefectSchema = z.object({
+    present: z.boolean().default(false),
+    description: z.string().optional(),
+    severity: z.coerce.number().optional(),
 }).optional();
+
 
 const inspectionFormSchema = z.object({
   inspectionDate: z.date(),
@@ -57,20 +58,20 @@ const inspectionFormSchema = z.object({
   
   defects: z.object({
     lamination: z.object({
-      majorDyneema: singleLaminationDefectSchema,
-      discoloredPanel: singleLaminationDefectSchema,
-      overCooked: singleLaminationDefectSchema,
-      pocketInstallation: singleLaminationDefectSchema,
-      cornersNotLaminated: singleLaminationDefectSchema,
-      noOverlapScarfJoint: singleLaminationDefectSchema,
-      majorGlueLine: singleLaminationDefectSchema,
-      pocketsShrinkageWaves: singleLaminationDefectSchema,
-      majorShrinkageWaves: singleLaminationDefectSchema,
-      tempStickersNotUpToTemp: singleLaminationDefectSchema,
-      debris: singleLaminationDefectSchema,
-      exposedInternal: singleLaminationDefectSchema,
-      gapsInExternalTapes: singleLaminationDefectSchema,
-      zFold: singleLaminationDefectSchema,
+      majorDyneema: laminationDefectSchema,
+      discoloredPanel: laminationDefectSchema,
+      overCooked: laminationDefectSchema,
+      pocketInstallation: laminationDefectSchema,
+      cornersNotLaminated: laminationDefectSchema,
+      noOverlapScarfJoint: laminationDefectSchema,
+      majorGlueLine: laminationDefectSchema,
+      pocketsShrinkageWaves: laminationDefectSchema,
+      majorShrinkageWaves: laminationDefectSchema,
+      tempStickersNotUpToTemp: laminationDefectSchema,
+      debris: laminationDefectSchema,
+      exposedInternal: laminationDefectSchema,
+      gapsInExternalTapes: laminationDefectSchema,
+      zFold: laminationDefectSchema,
     }),
     structural: z.object({
       verticalCreases: severityOnlyDefectSchema,
@@ -146,26 +147,29 @@ export function ThreeDiInspectionForm() {
   const totalScore = useMemo(() => {
     let score = 0;
     if (!watchedDefects) return 0;
-    
+
     // Lamination defects
     if (watchedDefects.lamination) {
-      for (const defectKey in watchedDefects.lamination) {
-        const defect = watchedDefects.lamination[defectKey as keyof typeof watchedDefects.lamination];
-        if (defect?.present) {
-          score += defect.severity || 0;
+      for (const key in watchedDefects.lamination) {
+        const defect = watchedDefects.lamination[key as keyof typeof watchedDefects.lamination];
+        if (defect?.present && typeof defect.severity === 'number') {
+          score += defect.severity;
         }
       }
     }
     
     // Structural and cosmetic defects
-    const otherCategories: (keyof Omit<typeof watchedDefects, 'lamination'>)[] = ['structural', 'cosmetic'];
+    const otherCategories: ('structural' | 'cosmetic')[] = ['structural', 'cosmetic'];
     for (const categoryKey of otherCategories) {
       const category = watchedDefects[categoryKey];
       if (category) {
         for (const defectKey in category) {
           const entries = category[defectKey as keyof typeof category];
           if (Array.isArray(entries)) {
-            score += entries.reduce((sum, entry) => sum + (entry.severity || 0), 0);
+            score += entries.reduce((sum, entry) => {
+              const severity = entry?.severity;
+              return sum + (typeof severity === 'number' ? severity : 0);
+            }, 0);
           }
         }
       }
@@ -173,6 +177,7 @@ export function ThreeDiInspectionForm() {
     
     return score;
   }, [watchedDefects]);
+
 
   const inspectionStatus = useMemo(() => {
     if (totalScore >= 100) return { text: 'Fail', color: 'bg-red-500 text-white' };
