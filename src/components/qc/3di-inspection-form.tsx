@@ -34,6 +34,7 @@ const laminationDefectSchema = z.object({
     description: z.string().optional(),
 }).optional();
 
+
 const severityArrayDefectSchema = z.array(z.object({
   severity: z.coerce.number().min(0).max(10),
 })).max(6).optional();
@@ -128,7 +129,22 @@ export function ThreeDiInspectionForm() {
     let score = 0;
     if (!watchedDefects) return 0;
 
-    // Structural and cosmetic defects
+    // Lamination defects with fixed scores
+    const laminationDefects = watchedDefects.lamination;
+    if (laminationDefects) {
+        for (const defectKey in laminationDefects) {
+            const defect = laminationDefects[defectKey as keyof typeof laminationDefects];
+            if (defect?.present) {
+                if (defectKey === 'pocketInstallation' || defectKey === 'noOverlapScarfJoint') {
+                    score += 100;
+                } else {
+                    score += 61;
+                }
+            }
+        }
+    }
+
+    // Structural and cosmetic defects with severity scores
     const otherCategories: ('structural' | 'cosmetic')[] = ['structural', 'cosmetic'];
     for (const categoryKey of otherCategories) {
         const category = watchedDefects[categoryKey];
@@ -137,7 +153,6 @@ export function ThreeDiInspectionForm() {
                 const entries = category[defectKey as keyof typeof category];
                 if (Array.isArray(entries)) {
                     score += entries.reduce((sum, entry) => {
-                        // Ensure severity is treated as a number
                         return sum + (Number(entry?.severity) || 0);
                     }, 0);
                 }
