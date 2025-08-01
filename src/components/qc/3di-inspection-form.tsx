@@ -15,7 +15,6 @@ import { ReinspectionOutcome } from './reinspection-outcome';
 import { NewFoundDefects } from './new-found-defects';
 import { DefectPictures } from './defect-pictures';
 import { Separator } from '../ui/separator';
-import { defectDefinitions } from '@/lib/qc-data';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 import { Card } from '../ui/card';
@@ -31,8 +30,6 @@ const temperatureSchema = z.object({
 const defectEntrySchema = z.array(z.object({
   severity: z.coerce.number().min(0).max(10),
 })).max(6).optional();
-
-const automaticDefectSchema = z.boolean().default(false);
 
 const inspectionFormSchema = z.object({
   inspectionDate: z.date(),
@@ -53,20 +50,20 @@ const inspectionFormSchema = z.object({
   
   defects: z.object({
     lamination: z.object({
-      majorDyneema: automaticDefectSchema,
-      discoloredPanel: automaticDefectSchema,
-      overCooked: automaticDefectSchema,
-      pocketInstallation: automaticDefectSchema,
-      cornersNotLaminated: automaticDefectSchema,
-      noOverlapScarfJoint: automaticDefectSchema,
-      majorGlueLine: automaticDefectSchema,
-      pocketsShrinkageWaves: automaticDefectSchema,
-      majorShrinkageWaves: automaticDefectSchema,
-      tempStickersNotUpToTemp: automaticDefectSchema,
-      debris: automaticDefectSchema,
-      exposedInternal: automaticDefectSchema,
-      gapsInExternalTapes: automaticDefectSchema,
-      zFold: automaticDefectSchema,
+      majorDyneema: defectEntrySchema,
+      discoloredPanel: defectEntrySchema,
+      overCooked: defectEntrySchema,
+      pocketInstallation: defectEntrySchema,
+      cornersNotLaminated: defectEntrySchema,
+      noOverlapScarfJoint: defectEntrySchema,
+      majorGlueLine: defectEntrySchema,
+      pocketsShrinkageWaves: defectEntrySchema,
+      majorShrinkageWaves: defectEntrySchema,
+      tempStickersNotUpToTemp: defectEntrySchema,
+      debris: defectEntrySchema,
+      exposedInternal: defectEntrySchema,
+      gapsInExternalTapes: defectEntrySchema,
+      zFold: defectEntrySchema,
     }),
     structural: z.object({
       verticalCreases: defectEntrySchema,
@@ -139,29 +136,19 @@ export function ThreeDiInspectionForm() {
 
   const totalScore = useMemo(() => {
     let score = 0;
-    const { lamination, structural, cosmetic } = watchedDefects;
-
-    // Automatic defects are worth 61 points each
-    for (const key in lamination) {
-      if (lamination[key as keyof typeof lamination]) {
-        score += 61;
-      }
-    }
-
-    // Sum severities for structural defects
-    for (const key in structural) {
-      const entries = structural[key as keyof typeof structural];
-      if (entries) {
-        score += entries.reduce((sum, entry) => sum + (entry.severity || 0), 0);
-      }
-    }
-
-    // Sum severities for cosmetic defects
-    for (const key in cosmetic) {
-      const entries = cosmetic[key as keyof typeof cosmetic];
-      if (entries) {
-        score += entries.reduce((sum, entry) => sum + (entry.severity || 0), 0);
-      }
+    if (!watchedDefects) return 0;
+    
+    // Unified score calculation for all categories
+    for (const categoryKey in watchedDefects) {
+        const category = watchedDefects[categoryKey as keyof typeof watchedDefects];
+        if (category) {
+            for (const defectKey in category) {
+                const entries = category[defectKey as keyof typeof category];
+                if (Array.isArray(entries)) {
+                    score += entries.reduce((sum, entry) => sum + (entry.severity || 0), 0);
+                }
+            }
+        }
     }
     
     return score;

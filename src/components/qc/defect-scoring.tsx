@@ -3,8 +3,6 @@
 
 import { useFormContext, useFieldArray } from "react-hook-form";
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "../ui/form";
-import { Checkbox } from "../ui/checkbox";
-import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { PlusCircle, Trash2, Info } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
@@ -15,29 +13,37 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import React from 'react';
 import { Badge } from "../ui/badge";
 
-const DefectInfo = ({ defectKey }: { defectKey: string }) => {
+const DefectInfoDialog = ({ defectKey, label }: { defectKey: string, label: string }) => {
   const definition = defectDefinitions[defectKey as keyof typeof defectDefinitions];
   if (!definition) return null;
 
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-6 w-6 ml-2">
-            <Info className="h-4 w-4" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p className="max-w-xs">{definition}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <Dialog>
+        <DialogTrigger asChild>
+             <Button variant="ghost" size="icon" className="h-6 w-6 ml-2">
+                <Info className="h-4 w-4" />
+             </Button>
+        </DialogTrigger>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>{label}</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+                <p>{definition}</p>
+            </div>
+            <DialogFooter>
+                 <DialogClose asChild><Button>Close</Button></DialogClose>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
   );
 };
 
-const AddSeverityDialog = ({ onAdd }: { onAdd: (severity: number) => void }) => {
+const AddSeverityDialog = ({ onAdd, defectKey }: { onAdd: (severity: number) => void, defectKey: string }) => {
     const [severity, setSeverity] = React.useState(0);
     const [open, setOpen] = React.useState(false);
+    const definition = defectDefinitions[defectKey as keyof typeof defectDefinitions];
+
 
     const handleAdd = () => {
         onAdd(severity);
@@ -50,9 +56,13 @@ const AddSeverityDialog = ({ onAdd }: { onAdd: (severity: number) => void }) => 
             <DialogTrigger asChild>
                 <Button type="button" variant="outline" size="sm"><PlusCircle className="mr-2 h-4 w-4" /> Add Entry</Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-xs">
-                 <DialogHeader><DialogTitle>Add Severity Score</DialogTitle></DialogHeader>
+            <DialogContent className="sm:max-w-md">
+                 <DialogHeader>
+                    <DialogTitle>Add Severity Score</DialogTitle>
+                    {definition && <p className="text-sm text-muted-foreground pt-2">{definition}</p>}
+                 </DialogHeader>
                  <div className="py-4">
+                    <Label>Severity</Label>
                     <Select onValueChange={(val) => setSeverity(Number(val))}>
                         <SelectTrigger><SelectValue placeholder="Select severity..."/></SelectTrigger>
                         <SelectContent>
@@ -62,7 +72,7 @@ const AddSeverityDialog = ({ onAdd }: { onAdd: (severity: number) => void }) => 
                  </div>
                  <DialogFooter>
                     <DialogClose asChild><Button type="button" variant="secondary">Cancel</Button></DialogClose>
-                    <Button type="button" onClick={handleAdd}>Add</Button>
+                    <Button type="button" onClick={handleAdd}>Add Score</Button>
                  </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -84,28 +94,10 @@ export function DefectScoring({ control }: { control: any }) {
             {category.defects.map((defect) => (
               <div key={defect.key} className="flex items-center justify-between p-3 border rounded-md">
                 <div className="flex items-center">
-                  {category.type === 'automatic' ? (
-                    <FormField
-                      control={control}
-                      name={`defects.lamination.${defect.key}`}
-                      render={({ field }) => (
-                        <FormItem className="flex items-center space-x-3 space-y-0">
-                          <FormControl>
-                            <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                          </FormControl>
-                          <FormLabel className="font-normal text-base">{defect.label}</FormLabel>
-                        </FormItem>
-                      )}
-                    />
-                  ) : (
-                     <p className="font-medium text-base">{defect.label}</p>
-                  )}
-                   <DefectInfo defectKey={defect.key} />
+                    <p className="font-medium text-base">{defect.label}</p>
+                    <DefectInfoDialog defectKey={defect.key} label={defect.label} />
                 </div>
-
-                {category.type !== 'automatic' && (
-                  <DefectArrayField control={control} categoryId={category.id} defectKey={defect.key} />
-                )}
+                <DefectArrayField control={control} categoryId={category.id} defectKey={defect.key} />
               </div>
             ))}
           </AccordionContent>
@@ -131,7 +123,6 @@ const DefectArrayField = ({ control, categoryId, defectKey }: { control: any, ca
             <div className="flex flex-wrap gap-2 justify-end max-w-md">
                  {fields.map((field, index) => (
                     <Badge key={field.id} variant="secondary" className="text-base">
-                        {/* This assumes the field is an object with a severity property */}
                         {(field as any).severity}
                         <button type="button" onClick={() => remove(index)} className="ml-2 text-destructive hover:text-red-400">
                            <Trash2 className="h-3 w-3"/>
@@ -139,7 +130,7 @@ const DefectArrayField = ({ control, categoryId, defectKey }: { control: any, ca
                     </Badge>
                 ))}
             </div>
-            <AddSeverityDialog onAdd={handleAddSeverity} />
+            <AddSeverityDialog onAdd={handleAddSeverity} defectKey={defectKey} />
         </div>
     );
 };
