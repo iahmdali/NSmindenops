@@ -55,7 +55,7 @@ const cosmeticDefects = [
     { id: "displaced_pc", label: "Displaced PC", maxEntries: 6 },
 ];
 
-const severityOptions = ["3", "5", "10", "20"];
+const severityOptions = ["0", "3", "5", "10", "20"];
 
 function DefectCategory({ title, description, children }: { title: string, description: string, children: React.ReactNode }) {
     return (
@@ -80,13 +80,12 @@ function SeverityInputs({ category, defectId, maxEntries }: { category: string, 
                     name={`defects.${category}.${defectId}.${i}`}
                     render={({ field }) => (
                         <FormItem>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <Select onValueChange={field.onChange} defaultValue={field.value || "0"}>
                                 <FormControl>
                                     <SelectTrigger><SelectValue placeholder="-" /></SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    <SelectItem value="0">-</SelectItem>
-                                    {severityOptions.map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
+                                    {severityOptions.map(opt => <SelectItem key={opt} value={opt}>{opt === "0" ? "-" : opt}</SelectItem>)}
                                 </SelectContent>
                             </Select>
                         </FormItem>
@@ -109,9 +108,9 @@ export function DefectScoring() {
       </CardHeader>
       <CardContent>
         <TooltipProvider>
-        <Accordion type="multiple" className="w-full space-y-4">
+        <Accordion type="multiple" className="w-full space-y-4" defaultValue={["A. Lamination / Automatic Second QC Defects"]}>
           <DefectCategory
-            title="A. Automatic Second QC / Lamination Defects"
+            title="A. Lamination / Automatic Second QC Defects"
             description="Selecting any of these defects automatically adds 61 points, likely requiring reinspection."
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">

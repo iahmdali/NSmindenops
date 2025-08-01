@@ -12,7 +12,7 @@ export function ReinspectionOutcome({ isVisible }: { isVisible: boolean }) {
   if (!isVisible) return null;
 
   return (
-    <Card className="border-yellow-400 border-2 bg-yellow-50">
+    <Card className="border-yellow-400 border-2 bg-yellow-50/50 dark:bg-yellow-900/20">
       <CardHeader>
         <CardTitle>4. Reinspection Outcome & Final Decision</CardTitle>
         <CardDescription>
