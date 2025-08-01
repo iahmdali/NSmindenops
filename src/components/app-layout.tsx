@@ -49,6 +49,7 @@ import {
   Waypoints,
   ClipboardCheck,
   FilePlus,
+  ShieldCheck,
 } from "lucide-react";
 import { Logo } from "@/components/icons";
 import { cn } from "@/lib/utils";
@@ -110,7 +111,7 @@ function MainSidebar() {
     if (pathname.startsWith('/report')) {
       setReportsOpen(true);
     }
-    if (pathname.startsWith('/analytics') || pathname.startsWith('/review') || pathname.startsWith('/filesystem')) {
+    if (pathname.startsWith('/analytics') || pathname.startsWith('/review') || pathname.startsWith('/filesystem') || pathname.startsWith('/qc')) {
       setAnalyticsOpen(true);
     }
   }, [pathname]);
@@ -174,7 +175,7 @@ function MainSidebar() {
            <SidebarMenuItem>
             <SidebarMenuButton
               onClick={() => setAnalyticsOpen(!isAnalyticsOpen)}
-              isActive={pathname.startsWith("/analytics") || pathname.startsWith('/review') || pathname.startsWith('/filesystem')}
+              isActive={pathname.startsWith("/analytics") || pathname.startsWith('/review') || pathname.startsWith('/filesystem') || pathname.startsWith('/qc')}
             >
               <AreaChart />
               <span>Lead Functions</span>
@@ -195,6 +196,11 @@ function MainSidebar() {
                 <SidebarMenuSubItem>
                    <SidebarMenuSubButton asChild isActive={pathname === '/review/tapeheads'}>
                         <Link href="/review/tapeheads"><Users /><span>Tapeheads Review</span></Link>
+                   </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+                 <SidebarMenuSubItem>
+                   <SidebarMenuSubButton asChild isActive={pathname === '/qc/inspection'}>
+                        <Link href="/qc/inspection"><ShieldCheck /><span>QC Inspection</span></Link>
                    </SidebarMenuSubButton>
                 </SidebarMenuSubItem>
                 <SidebarMenuSubItem>

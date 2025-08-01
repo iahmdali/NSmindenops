@@ -1,0 +1,90 @@
+
+export const defectCategories = [
+    {
+      id: "lamination",
+      title: "Lamination / Automatic Second QC Defects",
+      type: 'automatic',
+      defects: [
+        { key: "majorDyneema", label: "Major Dyneema in Tapes" },
+        { key: "discoloredPanel", label: "Discolored Panel" },
+        { key: "overCooked", label: "Over-Cooked (Melted Dyneema)" },
+        { key: "pocketInstallation", label: "Pocket Installation" },
+        { key: "cornersNotLaminated", label: "Corners Not Laminated" },
+        { key: "noOverlapScarfJoint", label: "No Overlap in Scarf Joint" },
+        { key: "majorGlueLine", label: "Major Glue Line" },
+        { key: "pocketsShrinkageWaves", label: "Pockets Shrinkage Waves" },
+        { key: "majorShrinkageWaves", label: "Major Shrinkage Waves" },
+        { key: "tempStickersNotUpToTemp", label: "All Temp Stickers Not Up to Temp" },
+        { key: "debris", label: "Debris" },
+        { key: "exposedInternal", label: "Exposed Internal" },
+        { key: "gapsInExternalTapes", label: "Gaps in External Tapes" },
+        { key: "zFold", label: "Z-Fold" },
+      ]
+    },
+    {
+      id: "structural",
+      title: "Structural Defects",
+      type: 'scored',
+      defects: [
+        { key: "verticalCreases", label: "Vertical Creases" },
+        { key: "horizontalCreases", label: "Horizontal Creases" },
+        { key: "minorShrinkageWaves", label: "Minor Shrinkage Waves" },
+        { key: "bunchedUpInternalTape", label: "Bunched Up Internal Tape" },
+      ]
+    },
+    {
+      id: "cosmetic",
+      title: "Cosmetic Defects",
+      type: 'scored',
+      defects: [
+        { key: "tintGlueSpots", label: "Tint/Glue Spots" },
+        { key: "minorGlueLines", label: "Minor Glue Lines" },
+        { key: "dominantDyneema", label: "4 or More Dominant Dyneema" },
+        { key: "foldedOverExternalTape", label: "Folded Over External Tape" },
+        { key: "fin", label: "Fin" },
+        { key: "bunchedUpExternalTape", label: "Bunched Up External Tape" },
+        { key: "carbonFrayGlob", label: "Carbon Fray Glob" },
+        { key: "tapeSpacing", label: "Tape Spacing" },
+        { key: "yarnTwists", label: "4 or More Yarn Twists in 1 Panel" },
+        { key: "externalSplices", label: "3 or More External Splices" },
+        { key: "foldedWhiteExternal", label: "Folded White External" },
+        { key: "badPatch", label: "Bad Patch" },
+        { key: "displacedPC", label: "Displaced PC" },
+      ]
+    }
+  ];
+  
+  export const defectDefinitions = {
+    majorDyneema: "Definition for Major Dyneema in Tapes.",
+    discoloredPanel: "Definition for Discolored Panel.",
+    overCooked: "Definition for Over-Cooked (Melted Dyneema).",
+    pocketInstallation: "Definition for Pocket Installation.",
+    cornersNotLaminated: "Definition for Corners Not Laminated.",
+    noOverlapScarfJoint: "Definition for No Overlap in Scarf Joint.",
+    majorGlueLine: "Definition for Major Glue Line.",
+    pocketsShrinkageWaves: "Definition for Pockets Shrinkage Waves.",
+    majorShrinkageWaves: "Definition for Major Shrinkage Waves.",
+    tempStickersNotUpToTemp: "Definition for All Temp Stickers Not Up to Temp.",
+    debris: "Definition for Debris.",
+    exposedInternal: "Definition for Exposed Internal.",
+    gapsInExternalTapes: "Definition for Gaps in External Tapes.",
+    zFold: "Definition for Z-Fold.",
+    verticalCreases: "Definition for Vertical Creases.",
+    horizontalCreases: "Definition for Horizontal Creases.",
+    minorShrinkageWaves: "Definition for Minor Shrinkage Waves.",
+    bunchedUpInternalTape: "Definition for Bunched Up Internal Tape.",
+    tintGlueSpots: "Definition for Tint/Glue Spots.",
+    minorGlueLines: "Definition for Minor Glue Lines.",
+    dominantDyneema: "Definition for 4 or More Dominant Dyneema.",
+    foldedOverExternalTape: "Definition for Folded Over External Tape.",
+    fin: "Definition for Fin.",
+    bunchedUpExternalTape: "Definition for Bunched Up External Tape.",
+    carbonFrayGlob: "Definition for Carbon Fray Glob.",
+    tapeSpacing: "Definition for Tape Spacing.",
+    yarnTwists: "Definition for 4 or More Yarn Twists in 1 Panel.",
+    externalSplices: "Definition for 3 or More External Splices.",
+    foldedWhiteExternal: "Definition for Folded White External.",
+    badPatch: "Definition for Bad Patch.",
+    displacedPC: "Definition for Displaced PC.",
+  };
+  
