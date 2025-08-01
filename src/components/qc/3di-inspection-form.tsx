@@ -20,7 +20,6 @@ import { cn } from '@/lib/utils';
 import { Card } from '../ui/card';
 import { defectCategories } from '@/lib/qc-data';
 import { FileDown } from 'lucide-react';
-import { generatePdf } from '@/lib/generate-qc-pdf';
 
 const temperatureSchema = z.object({
   head: z.coerce.number().optional(),
@@ -134,8 +133,8 @@ export function ThreeDiInspectionForm() {
     if (watchedDefects.lamination) {
       for (const key in watchedDefects.lamination) {
         const defect = watchedDefects.lamination[key as keyof typeof watchedDefects.lamination];
-        if (defect?.present && typeof defect.severity === 'number') {
-          score += defect.severity;
+        if (defect?.present) {
+          score += Number(defect.severity) || 0;
         }
       }
     }
@@ -149,8 +148,7 @@ export function ThreeDiInspectionForm() {
           const entries = category[defectKey as keyof typeof category];
           if (Array.isArray(entries)) {
             score += entries.reduce((sum, entry) => {
-              const severity = entry?.severity;
-              return sum + (typeof severity === 'number' ? severity : 0);
+              return sum + (Number(entry?.severity) || 0);
             }, 0);
           }
         }
@@ -178,6 +176,7 @@ export function ThreeDiInspectionForm() {
   }
 
   const handleExportPdf = async () => {
+    const { generatePdf } = await import('@/lib/generate-qc-pdf');
     const data = methods.getValues();
     await generatePdf(data, { totalScore, statusText: inspectionStatus.text });
     toast({
