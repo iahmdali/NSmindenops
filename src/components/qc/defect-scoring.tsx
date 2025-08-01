@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useFormContext, useFieldArray } from "react-hook-form";
+import { useFormContext, useFieldArray, useWatch } from "react-hook-form";
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "../ui/form";
 import { Button } from "../ui/button";
 import { PlusCircle, Trash2, Info } from "lucide-react";
@@ -15,6 +15,7 @@ import { Badge } from "../ui/badge";
 import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
 import { Input } from "../ui/input";
+import { Checkbox } from "../ui/checkbox";
 
 const DefectInfoDialog = ({ defectKey, label }: { defectKey: string, label: string }) => {
   const definition = defectDefinitions[defectKey as keyof typeof defectDefinitions];
@@ -83,7 +84,6 @@ const AddSeverityDialog = ({ onAdd, defectKey }: { onAdd: (severity: number) => 
 
 
 export function DefectScoring({ control }: { control: any }) {
-  const { setValue } = useFormContext();
 
   return (
     <Accordion type="multiple" defaultValue={["lamination"]} className="w-full">
@@ -95,17 +95,17 @@ export function DefectScoring({ control }: { control: any }) {
           <AccordionContent className="space-y-4 pt-4">
             {category.defects.map((defect) => (
               <div key={defect.key}>
-                <div className="flex items-center justify-between p-3 border rounded-md rounded-b-none">
-                    <div className="flex items-center">
-                        <p className="font-medium text-base">{defect.label}</p>
-                        <DefectInfoDialog defectKey={defect.key} label={defect.label} />
-                    </div>
-                     {category.id === 'lamination' ? (
-                        <LaminationDefectField control={control} categoryId={category.id} defectKey={defect.key} />
-                    ) : (
+                {category.id === 'lamination' ? (
+                    <LaminationDefectField control={control} defectKey={defect.key} label={defect.label} />
+                ) : (
+                    <div className="flex items-center justify-between p-3 border rounded-md">
+                         <div className="flex items-center">
+                            <p className="font-medium text-base">{defect.label}</p>
+                            <DefectInfoDialog defectKey={defect.key} label={defect.label} />
+                        </div>
                         <SeverityOnlyDefectField control={control} categoryId={category.id} defectKey={defect.key} />
-                    )}
-                </div>
+                    </div>
+                )}
               </div>
             ))}
           </AccordionContent>
@@ -143,52 +143,57 @@ const SeverityOnlyDefectField = ({ control, categoryId, defectKey }: { control: 
 };
 
 
-const LaminationDefectField = ({ control, categoryId, defectKey }: { control: any, categoryId: string, defectKey: string }) => {
-    const fieldName = `defects.${categoryId}.${defectKey}`;
-    const { fields, append, remove } = useFieldArray({ control, name: fieldName });
-    
+const LaminationDefectField = ({ control, defectKey, label }: { control: any, defectKey: string, label: string }) => {
+    const fieldName = `defects.lamination.${defectKey}`;
+    const isPresent = useWatch({ control, name: `${fieldName}.present` });
+
     return (
-        <div className="w-full flex flex-col">
-            <div className="flex justify-end p-2">
-                 <Button type="button" variant="outline" size="sm" onClick={() => append({ description: '', severity: 0 })}>
-                    <PlusCircle className="mr-2 h-4 w-4" /> Add Defect Entry
-                </Button>
+        <div className="p-3 border rounded-md space-y-3">
+             <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                    <FormField
+                        control={control}
+                        name={`${fieldName}.present`}
+                        render={({ field }) => (
+                            <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                                <FormControl>
+                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                </FormControl>
+                                <FormLabel className="font-medium text-base pt-1">{label}</FormLabel>
+                            </FormItem>
+                        )}
+                    />
+                    <DefectInfoDialog defectKey={defectKey} label={label} />
+                </div>
             </div>
-             {fields.length > 0 && (
-                <div className="space-y-3 pt-3 border-t">
-                    {fields.map((field, index) => (
-                        <div key={field.id} className="flex items-start gap-4 p-3 border rounded-md bg-background/50 relative">
-                             <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive" onClick={() => remove(index)}>
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
-                            <FormField
-                                control={control}
-                                name={`${fieldName}.${index}.description`}
-                                render={({ field }) => (
-                                    <FormItem className="flex-1">
-                                        <FormLabel>Description</FormLabel>
-                                        <FormControl>
-                                            <Textarea placeholder="Enter comprehensive description..." {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                             <FormField
-                                control={control}
-                                name={`${fieldName}.${index}.severity`}
-                                render={({ field }) => (
-                                    <FormItem className="w-32">
-                                        <FormLabel>Score</FormLabel>
-                                        <FormControl>
-                                            <Input type="number" placeholder="0" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
-                    ))}
+            {isPresent && (
+                 <div className="flex items-start gap-4 p-3 border-t rounded-md bg-background/50 relative">
+                    <FormField
+                        control={control}
+                        name={`${fieldName}.description`}
+                        render={({ field }) => (
+                            <FormItem className="flex-1">
+                                <FormLabel>Description</FormLabel>
+                                <FormControl>
+                                    <Textarea placeholder="Enter comprehensive description..." {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                     <FormField
+                        control={control}
+                        name={`${fieldName}.severity`}
+                        render={({ field }) => (
+                            <FormItem className="w-32">
+                                <FormLabel>Score</FormLabel>
+                                <FormControl>
+                                    <Input type="number" placeholder="0" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
                 </div>
             )}
         </div>

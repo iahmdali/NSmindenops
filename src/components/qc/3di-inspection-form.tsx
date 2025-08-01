@@ -4,7 +4,7 @@
 import { useForm, FormProvider, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
@@ -18,6 +18,7 @@ import { Separator } from '../ui/separator';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 import { Card } from '../ui/card';
+import { defectCategories } from '@/lib/qc-data';
 
 const temperatureSchema = z.object({
   head: z.coerce.number().optional(),
@@ -31,11 +32,11 @@ const severityOnlyDefectSchema = z.array(z.object({
   severity: z.coerce.number().min(0).max(10),
 })).max(6).optional();
 
-const detailedDefectSchema = z.array(z.object({
-  description: z.string().min(1, 'Description is required.'),
-  severity: z.coerce.number().min(0).max(10),
-})).optional();
-
+const singleLaminationDefectSchema = z.object({
+  present: z.boolean().default(false),
+  description: z.string().optional(),
+  severity: z.coerce.number().optional(),
+}).optional();
 
 const inspectionFormSchema = z.object({
   inspectionDate: z.date(),
@@ -56,20 +57,20 @@ const inspectionFormSchema = z.object({
   
   defects: z.object({
     lamination: z.object({
-      majorDyneema: detailedDefectSchema,
-      discoloredPanel: detailedDefectSchema,
-      overCooked: detailedDefectSchema,
-      pocketInstallation: detailedDefectSchema,
-      cornersNotLaminated: detailedDefectSchema,
-      noOverlapScarfJoint: detailedDefectSchema,
-      majorGlueLine: detailedDefectSchema,
-      pocketsShrinkageWaves: detailedDefectSchema,
-      majorShrinkageWaves: detailedDefectSchema,
-      tempStickersNotUpToTemp: detailedDefectSchema,
-      debris: detailedDefectSchema,
-      exposedInternal: detailedDefectSchema,
-      gapsInExternalTapes: detailedDefectSchema,
-      zFold: detailedDefectSchema,
+      majorDyneema: singleLaminationDefectSchema,
+      discoloredPanel: singleLaminationDefectSchema,
+      overCooked: singleLaminationDefectSchema,
+      pocketInstallation: singleLaminationDefectSchema,
+      cornersNotLaminated: singleLaminationDefectSchema,
+      noOverlapScarfJoint: singleLaminationDefectSchema,
+      majorGlueLine: singleLaminationDefectSchema,
+      pocketsShrinkageWaves: singleLaminationDefectSchema,
+      majorShrinkageWaves: singleLaminationDefectSchema,
+      tempStickersNotUpToTemp: singleLaminationDefectSchema,
+      debris: singleLaminationDefectSchema,
+      exposedInternal: singleLaminationDefectSchema,
+      gapsInExternalTapes: singleLaminationDefectSchema,
+      zFold: singleLaminationDefectSchema,
     }),
     structural: z.object({
       verticalCreases: severityOnlyDefectSchema,
@@ -116,6 +117,8 @@ const inspectionFormSchema = z.object({
 
 type InspectionFormValues = z.infer<typeof inspectionFormSchema>;
 
+const laminationDefectKeys = defectCategories.find(c => c.id === 'lamination')?.defects.map(d => d.key) || [];
+
 export function ThreeDiInspectionForm() {
   const { toast } = useToast();
   const methods = useForm<InspectionFormValues>({
@@ -130,7 +133,7 @@ export function ThreeDiInspectionForm() {
         after: Array(10).fill(undefined),
       },
       defects: {
-        lamination: {},
+        lamination: laminationDefectKeys.reduce((acc, key) => ({ ...acc, [key]: { present: false, description: '', severity: 0 } }), {}),
         structural: {},
         cosmetic: {},
       },
@@ -144,28 +147,28 @@ export function ThreeDiInspectionForm() {
     let score = 0;
     if (!watchedDefects) return 0;
     
-    // Lamination defects with description and severity
+    // Lamination defects
     if (watchedDefects.lamination) {
-        for (const defectKey in watchedDefects.lamination) {
-            const entries = watchedDefects.lamination[defectKey as keyof typeof watchedDefects.lamination];
-            if (Array.isArray(entries)) {
-                score += entries.reduce((sum, entry) => sum + (entry.severity || 0), 0);
-            }
+      for (const defectKey in watchedDefects.lamination) {
+        const defect = watchedDefects.lamination[defectKey as keyof typeof watchedDefects.lamination];
+        if (defect?.present) {
+          score += defect.severity || 0;
         }
+      }
     }
     
-    // Structural and cosmetic defects with only severity
+    // Structural and cosmetic defects
     const otherCategories: (keyof Omit<typeof watchedDefects, 'lamination'>)[] = ['structural', 'cosmetic'];
     for (const categoryKey of otherCategories) {
-        const category = watchedDefects[categoryKey];
-        if (category) {
-            for (const defectKey in category) {
-                const entries = category[defectKey as keyof typeof category];
-                 if (Array.isArray(entries)) {
-                    score += entries.reduce((sum, entry) => sum + (entry.severity || 0), 0);
-                }
-            }
+      const category = watchedDefects[categoryKey];
+      if (category) {
+        for (const defectKey in category) {
+          const entries = category[defectKey as keyof typeof category];
+          if (Array.isArray(entries)) {
+            score += entries.reduce((sum, entry) => sum + (entry.severity || 0), 0);
+          }
         }
+      }
     }
     
     return score;
