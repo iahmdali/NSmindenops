@@ -57,8 +57,8 @@ export async function generatePdf(data: InspectionFormValues, info: ReportInfo) 
     addSection('Inspection Metadata', () => {
         const metadata = [
             ['Inspection Date:', format(data.inspectionDate, 'PPP')],
-            ['OE Number:', data.oeNumber],
-            ['Inspector Name:', data.inspectorName],
+            ['OE Number:', data.oeNumber || 'N/A'],
+            ['Inspector Name:', data.inspectorName || 'N/A'],
         ];
         doc.autoTable({
             body: metadata,
@@ -67,7 +67,7 @@ export async function generatePdf(data: InspectionFormValues, info: ReportInfo) 
             styles: { cellPadding: 1, fontSize: 10 },
             columnStyles: { 0: { fontStyle: 'bold' } },
         });
-        yPos = doc.autoTable.previous.finalY + 8; // Reduced space
+        yPos = doc.autoTable.previous.finalY + 8;
     });
 
     // Section 2: DPI & Lamination
@@ -80,17 +80,17 @@ export async function generatePdf(data: InspectionFormValues, info: ReportInfo) 
 
         const tempTable = (side: 'single' | 'port' | 'starboard') => {
             const tempData = data.laminationTemp?.[side];
-            if (!tempData) return;
+            
             if (side !== 'single') {
                  doc.setFontSize(10).setFont(undefined, 'bold').text(side === 'port' ? 'Port Side' : 'Starboard Side', 16, yPos);
                  yPos += 5;
             }
             doc.autoTable({
                 body: [
-                    ['Head:', `${tempData.head || 'N/A'} °C`],
-                    ['Tack:', `${tempData.tack || 'N/A'} °C`],
-                    ['Clew:', `${tempData.clew || 'N/A'} °C`],
-                    ['Belly:', `${tempData.belly_min || 'N/A'} °C – ${tempData.belly_max || 'N/A'} °C`],
+                    ['Head:', `${tempData?.head || 'N/A'} °C`],
+                    ['Tack:', `${tempData?.tack || 'N/A'} °C`],
+                    ['Clew:', `${tempData?.clew || 'N/A'} °C`],
+                    ['Belly:', `${tempData?.belly_min || 'N/A'} °C – ${tempData?.belly_max || 'N/A'} °C`],
                 ],
                 startY: yPos,
                 theme: 'grid',
@@ -98,7 +98,7 @@ export async function generatePdf(data: InspectionFormValues, info: ReportInfo) 
                 head: [['Parameter', 'Value']],
                 margin: { left: 16 }
             });
-            yPos = doc.autoTable.previous.finalY + 6; // Reduced space
+            yPos = doc.autoTable.previous.finalY + 6;
         }
 
         if (data.dpiType === '<50000') {
@@ -128,12 +128,10 @@ export async function generatePdf(data: InspectionFormValues, info: ReportInfo) 
         });
         yPos = doc.autoTable.previous.finalY + 8;
         
-        if(data.qcComments) {
-            doc.setFontSize(11).text('QC Comments:', 14, yPos);
-            yPos += 5;
-            doc.setFontSize(10).text(data.qcComments, 14, yPos, { maxWidth: 180 });
-            yPos = doc.autoTable.previous.finalY + 20; // Adjust based on text length
-        }
+        doc.setFontSize(11).text('QC Comments:', 14, yPos);
+        yPos += 5;
+        doc.setFontSize(10).text(data.qcComments || 'None', 14, yPos, { maxWidth: 180 });
+        yPos = doc.autoTable.previous.finalY + 15;
     });
 
 
@@ -158,13 +156,14 @@ export async function generatePdf(data: InspectionFormValues, info: ReportInfo) 
             const defectRows: RowInput[] = [];
             category.defects.forEach(defectInfo => {
                  const defectData = (data.defects as any)[category.id][defectInfo.key];
-                 if(defectData && defectData.present) {
-                    defectRows.push([defectInfo.label, `Score: ${defectData.severity || 0}`, defectData.description || '']);
-                 } else if (defectData && Array.isArray(defectData) && defectData.length > 0) {
+                 if(defectData && defectData.present) { // Lamination
+                    defectRows.push([defectInfo.label, `Score: ${defectData.severity || 0}`, defectData.description || 'N/A']);
+                 } else if (defectData && Array.isArray(defectData) && defectData.length > 0) { // Structural / Cosmetic
                      const scores = defectData.map((d: any) => d.severity).join(', ');
                      defectRows.push([defectInfo.label, `Scores: [${scores}]`, '']);
                  }
             });
+
             if (defectRows.length > 0) {
                  doc.autoTable({
                     head: [['Defect', 'Score/s', 'Description']],
@@ -183,12 +182,12 @@ export async function generatePdf(data: InspectionFormValues, info: ReportInfo) 
     }, true);
     
     // Section 4: Reinspection
-    if (info.totalScore >= 61 && info.totalScore < 100 && data.reinspection) {
+    if (info.totalScore >= 61 && info.totalScore < 100) {
         addSection('Reinspection Outcome', () => {
              doc.autoTable({
                 body: [
                     ['Final Decision:', data.reinspection?.finalOutcome || 'N/A'],
-                    ['Notes:', data.reinspection?.comments || 'N/A'],
+                    ['Notes:', data.reinspection?.comments || 'None'],
                 ],
                 startY: yPos,
                 theme: 'plain',
@@ -209,7 +208,7 @@ export async function generatePdf(data: InspectionFormValues, info: ReportInfo) 
                          ['Scarf Joint:', defect.scarfJoint || 'N/A'],
                          ['Number of Defects:', `${defect.numberOfDefects || 0}`],
                          ['Defect Score:', `${defect.defectScore || 0}`],
-                         ['Comments:', defect.comments || 'N/A'],
+                         ['Comments:', defect.comments || 'None'],
                     ],
                     startY: yPos,
                     theme: 'grid',
@@ -218,7 +217,7 @@ export async function generatePdf(data: InspectionFormValues, info: ReportInfo) 
                 });
                 yPos = doc.autoTable.previous.finalY + 4;
             });
-        }, true);
+        }, yPos > 200); // Start on new page if not enough space
     }
     
     // --- Image Evidence ---
@@ -276,5 +275,5 @@ export async function generatePdf(data: InspectionFormValues, info: ReportInfo) 
 
     // --- Save PDF ---
     const dateStr = format(new Date(), 'yyyy-MM-dd');
-    doc.save(`QC_Report_OE_${data.oeNumber}_${dateStr}.pdf`);
+    doc.save(`QC_Report_OE_${data.oeNumber || 'UNTITLED'}_${dateStr}.pdf`);
 }
