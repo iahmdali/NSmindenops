@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ImageUpload } from "../image-upload";
 import { Textarea } from "../ui/textarea";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 
 function TemperatureFields({ side }: { side?: 'Port' | 'Starboard' }) {
   const { control } = useFormContext();
@@ -25,38 +26,6 @@ function TemperatureFields({ side }: { side?: 'Port' | 'Starboard' }) {
         </div>
     </div>
   );
-}
-
-
-function VacuumFields({ stage }: { stage: 'before' | 'after' }) {
-    const { control } = useFormContext();
-    const namePrefix = `vacuum_${stage}`;
-    const title = stage === 'before' ? 'Before Lamination' : 'After Lamination';
-    
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="text-base">{title}</CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-5 gap-x-4 gap-y-2">
-                {[...Array(10)].map((_, i) => (
-                    <FormField
-                        key={i}
-                        control={control}
-                        name={`${namePrefix}[${i}]`}
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>{i + 1}</FormLabel>
-                                <FormControl>
-                                    <Input type="number" {...field} value={field.value ?? ''} />
-                                </FormControl>
-                            </FormItem>
-                        )}
-                    />
-                ))}
-            </CardContent>
-        </Card>
-    );
 }
 
 export function LaminationVacuumMetrics() {
@@ -110,10 +79,46 @@ export function LaminationVacuumMetrics() {
 
         <div className="space-y-4">
              <h3 className="text-md font-medium">Vacuum Gauge Readings</h3>
-             <div className="grid md:grid-cols-2 gap-4">
-                <VacuumFields stage="before" />
-                <VacuumFields stage="after" />
-             </div>
+             <Card>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className="w-[80px]">Gauge #</TableHead>
+                            <TableHead>Before Lamination</TableHead>
+                            <TableHead>After Lamination</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {[...Array(10)].map((_, i) => (
+                           <TableRow key={i}>
+                               <TableCell className="font-medium">{i + 1}</TableCell>
+                               <TableCell>
+                                    <FormField
+                                        control={control}
+                                        name={`vacuum_before[${i}]`}
+                                        render={({ field }) => (
+                                            <FormControl>
+                                                <Input type="number" {...field} value={field.value ?? ''} placeholder="-" />
+                                            </FormControl>
+                                        )}
+                                    />
+                               </TableCell>
+                               <TableCell>
+                                     <FormField
+                                        control={control}
+                                        name={`vacuum_after[${i}]`}
+                                        render={({ field }) => (
+                                            <FormControl>
+                                                <Input type="number" {...field} value={field.value ?? ''} placeholder="-" />
+                                            </FormControl>
+                                        )}
+                                    />
+                               </TableCell>
+                           </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+             </Card>
         </div>
 
          <div className="space-y-4">

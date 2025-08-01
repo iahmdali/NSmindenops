@@ -10,7 +10,7 @@ import { InspectionMetadata } from "./inspection-metadata";
 import { LaminationVacuumMetrics } from "./lamination-vacuum-metrics";
 import { DefectScoring } from "./defect-scoring";
 import { ReinspectionOutcome } from "./reinspection-outcome";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 
 // Define the schema for the entire form
 const inspectionSchema = z.object({
@@ -45,7 +45,11 @@ const inspectionSchema = z.object({
   vacuum_after: z.array(z.coerce.number().optional()),
   qc_comments: z.string().optional(),
   attachments: z.any().optional(),
-  defects: z.any(), // Will be detailed in the defect component
+  defects: z.object({
+    auto: z.record(z.boolean().optional()).optional(),
+    structural: z.record(z.array(z.number()).optional()).optional(),
+    cosmetic: z.record(z.array(z.number()).optional()).optional(),
+  }).optional(),
   reinspection_notes: z.string().optional(),
 });
 
@@ -67,7 +71,11 @@ export function ThreeDiInspectionForm() {
       },
       vacuum_before: Array(10).fill(undefined),
       vacuum_after: Array(10).fill(undefined),
-      defects: {},
+      defects: {
+        auto: {},
+        structural: {},
+        cosmetic: {},
+      },
     },
   });
   
@@ -85,17 +93,19 @@ export function ThreeDiInspectionForm() {
     }
     // Structural and Cosmetic defects
     ['structural', 'cosmetic'].forEach(category => {
-        if(defects[category]) {
-            Object.values(defects[category]).forEach((defect: any) => {
-                if(defect) {
-                    Object.values(defect).forEach((severity: any) => {
-                        const score = parseInt(severity, 10);
-                        if (!isNaN(score) && score > 0) {
-                            total += score;
-                        }
-                    });
-                }
-            });
+        if(defects[category as keyof typeof defects]) {
+            const catDefects = defects[category as keyof typeof defects];
+            if (catDefects) {
+              Object.values(catDefects).forEach((defectArray?: number[]) => {
+                  if(defectArray) {
+                      defectArray.forEach((severity) => {
+                          if (severity > 0) {
+                              total += severity;
+                          }
+                      });
+                  }
+              });
+            }
         }
     });
 
