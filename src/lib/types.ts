@@ -1,3 +1,4 @@
+
 export type Department = 'Pregger' | 'Tapeheads' | 'Gantry' | 'Films' | 'Graphics';
 
 export type Shift = 1 | 2 | 3;
@@ -45,6 +46,7 @@ export interface Report {
   endOfShiftStatus?: 'Completed' | 'In Progress';
   layer?: string;
   total_meters: number;
+  order_entry?: string; // For backwards compatibility with old data
   // Department-specific fields
   [key: string]: any;
 }

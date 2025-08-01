@@ -22,18 +22,20 @@ function getSailIdentifier(oeNumber: string): string | null {
 
 
 function addTapeheadsData(progress: DepartmentProgress[], allOeNumbers: string[]) {
-    const reports = tapeheadsSubmissions.filter(r => allOeNumbers.includes(r.order_entry || ''));
+    const reports = tapeheadsSubmissions.filter(r => (r.workItems || []).some(wi => allOeNumbers.includes(wi.oeNumber)));
     if (reports.length === 0) return;
 
-    const totalMeters = reports.reduce((acc, r) => acc + r.total_meters, 0);
-    const totalTapes = reports.reduce((acc, r) => acc + r.total_tapes, 0);
+    const relevantWorkItems = reports.flatMap(r => r.workItems || []).filter(wi => allOeNumbers.includes(wi.oeNumber));
+
+    const totalMeters = relevantWorkItems.reduce((acc, r) => acc + r.total_meters, 0);
+    const totalTapes = relevantWorkItems.reduce((acc, r) => acc + r.total_tapes, 0);
     const operators = [...new Set(reports.map(r => r.operatorName))].join(', ');
-    const spinOuts = reports.filter(r => r.had_spin_out).length;
+    const spinOuts = relevantWorkItems.filter(r => r.had_spin_out).length;
 
     progress.push({
         id: 'tapeheads',
         name: 'Tapeheads',
-        status: reports.some(r => r.end_of_shift_status !== 'Completed') ? 'In Progress' : 'Completed',
+        status: relevantWorkItems.some(r => r.endOfShiftStatus !== 'Completed') ? 'In Progress' : 'Completed',
         details: [
             { label: 'Operators', value: operators },
             { label: 'Total Meters', value: `${totalMeters}m` },
@@ -99,16 +101,16 @@ function addFilmsData(progress: DepartmentProgress[], allOeNumbers: string[]) {
 
 
 function addQcData(progress: DepartmentProgress[], allOeNumbers: string[]) {
-    // This function is now empty as QC data is removed.
+    // This function is now empty as QC data is not yet integrated.
 }
 
 export function aggregateDataForSail(sail: Sail): SailProgress {
     const progress: DepartmentProgress[] = [];
     const allOeNumbers = sail.sections.map(s => s.oe_number);
 
-    addTapeheadsData(progress, allOeNumbers);
-    addGantryData(progress, allOeNumbers);
     addFilmsData(progress, allOeNumbers);
+    addGantryData(progress, allOeNumbers);
+    addTapeheadsData(progress, allOeNumbers);
     addQcData(progress, allOeNumbers);
     
     // Determine overall status
@@ -133,7 +135,7 @@ export function aggregateDataForSail(sail: Sail): SailProgress {
 function getAllOrderEntries(): OrderEntry[] {
     const oeNumbers = new Set<string>();
 
-    tapeheadsSubmissions.forEach(r => r.order_entry && oeNumbers.add(r.order_entry));
+    tapeheadsSubmissions.forEach(r => (r.workItems || []).forEach(wi => wi.oeNumber && oeNumbers.add(wi.oeNumber)));
     gantryReportsData.forEach(r => r.molds?.forEach(m => m.sails?.forEach(s => s.sail_number && oeNumbers.add(s.sail_number))));
     filmsData.forEach(r => {
         r.sails_started?.forEach(s => s.sail_number && oeNumbers.add(s.sail_number));
@@ -153,7 +155,7 @@ function getAllOrderEntries(): OrderEntry[] {
 }
 
 function findDateForOe(oeNumber: string): Date {
-    const tapeheadsReport = tapeheadsSubmissions.find(r => r.order_entry === oeNumber);
+    const tapeheadsReport = tapeheadsSubmissions.find(r => r.workItems?.some(wi => wi.oeNumber === oeNumber));
     if(tapeheadsReport) return new Date(tapeheadsReport.date);
 
     const gantryReport = gantryReportsData.find(r => r.molds?.some(m => m.sails?.some(s => s.sail_number === oeNumber)));
