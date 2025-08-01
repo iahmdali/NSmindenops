@@ -205,18 +205,6 @@ function MainSidebar() {
               </SidebarMenuSub>
             )}
           </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              isActive={pathname.startsWith("/qc")}
-              tooltip="QC Inspection"
-            >
-              <Link href="/qc/3di-inspection">
-                <ClipboardCheck />
-                <span>QC Inspection</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="group-data-[collapsible=icon]:hidden">

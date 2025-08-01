@@ -2,7 +2,6 @@
 import { tapeheadsSubmissions } from '@/lib/tapeheads-data';
 import { gantryReportsData } from '@/lib/gantry-data';
 import { filmsData } from '@/lib/films-data';
-import { qcReportsData } from '@/lib/qc-data';
 import type { Sail, SailProgress, DepartmentProgress, OrderEntry } from './sail-progress-types';
 
 function getSailBaseAndGroup(oeNumber: string): { base: string; group: string; sailNumPrefix: string } | null {
@@ -100,26 +99,7 @@ function addFilmsData(progress: DepartmentProgress[], allOeNumbers: string[]) {
 
 
 function addQcData(progress: DepartmentProgress[], allOeNumbers: string[]) {
-    const reports = qcReportsData.filter(r => allOeNumbers.includes(r.oe_number));
-    if (reports.length === 0) return;
-    
-    const getStatus = (score: number): DepartmentProgress['status'] => {
-        if (score < 61) return 'Completed';
-        if (score >= 100) return 'Issues Logged';
-        return 'In Progress';
-    }
-
-    progress.push({
-        id: 'qc',
-        name: 'Quality Control',
-        status: getStatus(reports[0].totalScore),
-        details: [
-            { label: 'Inspector', value: reports[0].inspector_name },
-            { label: 'Score', value: reports[0].totalScore },
-            { label: 'Result', value: reports[0].status }
-        ],
-        reports: reports
-    });
+    // This function is now empty as QC data is removed.
 }
 
 export function aggregateDataForSail(sail: Sail): SailProgress {
@@ -159,7 +139,6 @@ function getAllOrderEntries(): OrderEntry[] {
         r.sails_started?.forEach(s => s.sail_number && oeNumbers.add(s.sail_number));
         r.sails_finished?.forEach(s => s.sail_number && oeNumbers.add(s.sail_number));
     });
-    qcReportsData.forEach(r => r.oe_number && oeNumbers.add(r.oe_number));
 
     return Array.from(oeNumbers).map(oe => {
         const parts = getSailBaseAndGroup(oe);
@@ -182,9 +161,6 @@ function findDateForOe(oeNumber: string): Date {
 
     const filmsReport = filmsData.find(r => r.sails_started?.some(s => s.sail_number === oeNumber) || r.sails_finished?.some(s => s.sail_number === oeNumber));
     if(filmsReport) return new Date(filmsReport.report_date);
-
-    const qcReport = qcReportsData.find(r => r.oe_number === oeNumber);
-    if(qcReport) return new Date(qcReport.inspection_date);
     
     return new Date();
 }
