@@ -1,0 +1,215 @@
+
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+import type { RowInput } from 'jspdf-autotable';
+import { format } from 'date-fns';
+import type { InspectionFormValues } from '@/components/qc/3di-inspection-form';
+import { defectCategories } from './qc-data';
+
+interface ReportInfo {
+    totalScore: number;
+    statusText: string;
+}
+
+// Extend jsPDF with the autoTable plugin
+interface jsPDFWithAutoTable extends jsPDF {
+  autoTable: (options: any) => jsPDFWithAutoTable;
+}
+
+export function generatePdf(data: InspectionFormValues, info: ReportInfo) {
+    const doc = new jsPDF() as jsPDFWithAutoTable;
+    let yPos = 20;
+
+    // Helper to add sections
+    const addSection = (title: string, content: () => void, newPage = false) => {
+        if (newPage) {
+            doc.addPage();
+            yPos = 20;
+        } else if (yPos > 250) { // Check if new page is needed
+             doc.addPage();
+             yPos = 20;
+        }
+        doc.setFontSize(16);
+        doc.text(title, 14, yPos);
+        yPos += 10;
+        doc.setFontSize(11);
+        content();
+    };
+
+    // --- PDF Content ---
+
+    // Title
+    doc.setFontSize(20).text('3Di QC Inspection Report', 14, yPos);
+    yPos += 15;
+
+    // Section 1: Inspection Metadata
+    addSection('Inspection Metadata', () => {
+        const metadata = [
+            ['Inspection Date:', format(data.inspectionDate, 'PPP')],
+            ['OE Number:', data.oeNumber],
+            ['Inspector Name:', data.inspectorName],
+        ];
+        doc.autoTable({
+            body: metadata,
+            startY: yPos,
+            theme: 'plain',
+            styles: { cellPadding: 1 },
+            columnStyles: { 0: { fontStyle: 'bold' } },
+        });
+        yPos = doc.autoTable.previous.finalY + 10;
+    });
+
+    // Section 2: DPI & Lamination
+    addSection('DPI and Lamination Parameters', () => {
+        doc.text(`DPI Type: ${data.dpiType}`, 14, yPos);
+        yPos += 8;
+        
+        doc.setFontSize(12).text('Lamination Temperatures:', 14, yPos);
+        yPos += 6;
+
+        const tempTable = (side: 'single' | 'port' | 'starboard') => {
+            const tempData = data.laminationTemp?.[side];
+            if (!tempData) return;
+            if (side !== 'single') {
+                 doc.setFontSize(11).setFont(undefined, 'bold').text(side === 'port' ? 'Port Side' : 'Starboard Side', 16, yPos);
+                 yPos += 6;
+            }
+            doc.autoTable({
+                body: [
+                    ['Head:', `${tempData.head || 'N/A'} °C`],
+                    ['Tack:', `${tempData.tack || 'N/A'} °C`],
+                    ['Clew:', `${tempData.clew || 'N/A'} °C`],
+                    ['Belly:', `${tempData.belly_min || 'N/A'} °C – ${tempData.belly_max || 'N/A'} °C`],
+                ],
+                startY: yPos,
+                theme: 'grid',
+                head: [['Parameter', 'Value']],
+                margin: { left: 16 }
+            });
+            yPos = doc.autoTable.previous.finalY + 8;
+        }
+
+        if (data.dpiType === '<50000') {
+            tempTable('single');
+        } else {
+            tempTable('port');
+            tempTable('starboard');
+        }
+        
+        doc.setFontSize(12).text('Vacuum Gauge Readings:', 14, yPos);
+        yPos += 6;
+        const vacuumRows: RowInput[] = [];
+        for (let i = 0; i < 10; i++) {
+            vacuumRows.push([
+                `${i + 1}`,
+                data.vacuumReadings.before[i] || 'N/A',
+                data.vacuumReadings.after[i] || 'N/A'
+            ]);
+        }
+        doc.autoTable({
+            head: [['Position', 'Before Lamination', 'After Lamination']],
+            body: vacuumRows,
+            startY: yPos,
+            theme: 'grid',
+            headStyles: { fillColor: [22, 160, 133] }
+        });
+        yPos = doc.autoTable.previous.finalY + 10;
+        
+        if(data.qcComments) {
+            doc.setFontSize(12).text('QC Comments:', 14, yPos);
+            yPos += 6;
+            doc.setFontSize(10).text(data.qcComments, 14, yPos, { maxWidth: 180 });
+            yPos += 20; // Adjust based on text length
+        }
+    }, true);
+
+
+    // Section 3: Defect Scoring
+    addSection('Defect Scoring Summary', () => {
+         doc.autoTable({
+            body: [
+                ['Total Score:', `${info.totalScore}`],
+                ['Status:', info.statusText]
+            ],
+            startY: yPos,
+            theme: 'plain',
+            styles: { cellPadding: 1 },
+            columnStyles: { 0: { fontStyle: 'bold' } },
+        });
+        yPos = doc.autoTable.previous.finalY + 10;
+        
+        defectCategories.forEach(category => {
+            if (yPos > 250) { doc.addPage(); yPos = 20; }
+            doc.setFontSize(12).text(category.title, 14, yPos);
+            yPos += 8;
+            const defectRows: RowInput[] = [];
+            category.defects.forEach(defectInfo => {
+                 const defectData = (data.defects as any)[category.id][defectInfo.key];
+                 if(defectData && (defectData.present || (Array.isArray(defectData) && defectData.length > 0))) {
+                    if (category.id === 'lamination') {
+                        defectRows.push([defectInfo.label, `Score: ${defectData.severity || 0}`, defectData.description || '']);
+                    } else {
+                        const scores = defectData.map((d: any) => d.severity).join(', ');
+                        defectRows.push([defectInfo.label, `Scores: [${scores}]`, '']);
+                    }
+                 }
+            });
+            if (defectRows.length > 0) {
+                 doc.autoTable({
+                    head: [['Defect', 'Score/s', 'Description']],
+                    body: defectRows,
+                    startY: yPos,
+                    theme: 'striped'
+                });
+                yPos = doc.autoTable.previous.finalY + 10;
+            } else {
+                 doc.setFontSize(10).text('No defects recorded in this category.', 16, yPos);
+                 yPos += 8;
+            }
+        });
+    }, true);
+    
+    // Section 4: Reinspection
+    if (info.totalScore >= 61 && info.totalScore < 100 && data.reinspection) {
+        addSection('Reinspection Outcome', () => {
+             doc.autoTable({
+                body: [
+                    ['Final Decision:', data.reinspection?.finalOutcome || 'N/A'],
+                    ['Notes:', data.reinspection?.comments || 'N/A'],
+                ],
+                startY: yPos,
+                theme: 'plain',
+                styles: { cellPadding: 1 },
+                columnStyles: { 0: { fontStyle: 'bold' } },
+            });
+            yPos = doc.autoTable.previous.finalY + 10;
+        });
+    }
+    
+    // New Found Defects
+    if (data.newFoundDefects && data.newFoundDefects.length > 0) {
+         addSection('New Found Defects', () => {
+            data.newFoundDefects?.forEach(defect => {
+                doc.autoTable({
+                    body: [
+                         ['Panel Number:', defect.panelNumber || 'N/A'],
+                         ['Scarf Joint:', defect.scarfJoint || 'N/A'],
+                         ['Number of Defects:', `${defect.numberOfDefects || 0}`],
+                         ['Defect Score:', `${defect.defectScore || 0}`],
+                         ['Comments:', defect.comments || 'N/A'],
+                    ],
+                    startY: yPos,
+                    theme: 'grid',
+                    margin: { left: 14 }
+                });
+                yPos = doc.autoTable.previous.finalY + 5;
+            });
+        }, true);
+    }
+    
+    // TODO: Add image evidence rendering if time permits
+
+    // --- Save PDF ---
+    const dateStr = format(new Date(), 'yyyy-MM-dd');
+    doc.save(`QC_Report_OE_${data.oeNumber}_${dateStr}.pdf`);
+}

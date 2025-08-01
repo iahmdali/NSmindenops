@@ -19,6 +19,8 @@ import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 import { Card } from '../ui/card';
 import { defectCategories } from '@/lib/qc-data';
+import { generatePdf } from '@/lib/generate-qc-pdf';
+import { FileDown } from 'lucide-react';
 
 const temperatureSchema = z.object({
   head: z.coerce.number().optional(),
@@ -28,15 +30,15 @@ const temperatureSchema = z.object({
   belly_max: z.coerce.number().optional(),
 });
 
-const severityOnlyDefectSchema = z.array(z.object({
-  severity: z.coerce.number().min(0).max(10),
-})).max(6).optional();
-
 const laminationDefectSchema = z.object({
     present: z.boolean().default(false),
     description: z.string().optional(),
     severity: z.coerce.number().optional(),
 }).optional();
+
+const severityArrayDefectSchema = z.array(z.object({
+  severity: z.coerce.number().min(0).max(10),
+})).max(6).optional();
 
 
 const inspectionFormSchema = z.object({
@@ -57,43 +59,24 @@ const inspectionFormSchema = z.object({
   attachments: z.any().optional(),
   
   defects: z.object({
-    lamination: z.object({
-      majorDyneema: laminationDefectSchema,
-      discoloredPanel: laminationDefectSchema,
-      overCooked: laminationDefectSchema,
-      pocketInstallation: laminationDefectSchema,
-      cornersNotLaminated: laminationDefectSchema,
-      noOverlapScarfJoint: laminationDefectSchema,
-      majorGlueLine: laminationDefectSchema,
-      pocketsShrinkageWaves: laminationDefectSchema,
-      majorShrinkageWaves: laminationDefectSchema,
-      tempStickersNotUpToTemp: laminationDefectSchema,
-      debris: laminationDefectSchema,
-      exposedInternal: laminationDefectSchema,
-      gapsInExternalTapes: laminationDefectSchema,
-      zFold: laminationDefectSchema,
-    }),
-    structural: z.object({
-      verticalCreases: severityOnlyDefectSchema,
-      horizontalCreases: severityOnlyDefectSchema,
-      minorShrinkageWaves: severityOnlyDefectSchema,
-      bunchedUpInternalTape: severityOnlyDefectSchema,
-    }),
-    cosmetic: z.object({
-      tintGlueSpots: severityOnlyDefectSchema,
-      minorGlueLines: severityOnlyDefectSchema,
-      dominantDyneema: severityOnlyDefectSchema,
-      foldedOverExternalTape: severityOnlyDefectSchema,
-      fin: severityOnlyDefectSchema,
-      bunchedUpExternalTape: severityOnlyDefectSchema,
-      carbonFrayGlob: severityOnlyDefectSchema,
-      tapeSpacing: severityOnlyDefectSchema,
-      yarnTwists: severityOnlyDefectSchema,
-      externalSplices: severityOnlyDefectSchema,
-      foldedWhiteExternal: severityOnlyDefectSchema,
-      badPatch: severityOnlyDefectSchema,
-      displacedPC: severityOnlyDefectSchema,
-    }),
+    lamination: z.object(
+        defectCategories.find(c => c.id === 'lamination')!.defects.reduce((acc, defect) => {
+            acc[defect.key] = laminationDefectSchema;
+            return acc;
+        }, {} as Record<string, typeof laminationDefectSchema>)
+    ),
+    structural: z.object(
+        defectCategories.find(c => c.id === 'structural')!.defects.reduce((acc, defect) => {
+            acc[defect.key] = severityArrayDefectSchema;
+            return acc;
+        }, {} as Record<string, typeof severityArrayDefectSchema>)
+    ),
+    cosmetic: z.object(
+         defectCategories.find(c => c.id === 'cosmetic')!.defects.reduce((acc, defect) => {
+            acc[defect.key] = severityArrayDefectSchema;
+            return acc;
+        }, {} as Record<string, typeof severityArrayDefectSchema>)
+    ),
   }),
 
   reinspection: z.object({
@@ -116,9 +99,8 @@ const inspectionFormSchema = z.object({
   }).optional(),
 });
 
-type InspectionFormValues = z.infer<typeof inspectionFormSchema>;
+export type InspectionFormValues = z.infer<typeof inspectionFormSchema>;
 
-const laminationDefectKeys = defectCategories.find(c => c.id === 'lamination')?.defects.map(d => d.key) || [];
 
 export function ThreeDiInspectionForm() {
   const { toast } = useToast();
@@ -134,7 +116,7 @@ export function ThreeDiInspectionForm() {
         after: Array(10).fill(undefined),
       },
       defects: {
-        lamination: laminationDefectKeys.reduce((acc, key) => ({ ...acc, [key]: { present: false, description: '', severity: 0 } }), {}),
+        lamination: {},
         structural: {},
         cosmetic: {},
       },
@@ -147,7 +129,7 @@ export function ThreeDiInspectionForm() {
   const totalScore = useMemo(() => {
     let score = 0;
     if (!watchedDefects) return 0;
-
+    
     // Lamination defects
     if (watchedDefects.lamination) {
       for (const key in watchedDefects.lamination) {
@@ -195,6 +177,11 @@ export function ThreeDiInspectionForm() {
     });
   }
 
+  const handleExportPdf = () => {
+    const data = methods.getValues();
+    generatePdf(data, { totalScore, statusText: inspectionStatus.text });
+  }
+
   return (
     <FormProvider {...methods}>
       <Form {...methods}>
@@ -205,7 +192,13 @@ export function ThreeDiInspectionForm() {
                         <h2 className="text-2xl font-bold font-headline">Total Score: {totalScore}</h2>
                         <Badge className={cn("text-lg", inspectionStatus.color)}>{inspectionStatus.text}</Badge>
                     </div>
-                    <Button type="submit" size="lg">Submit Inspection</Button>
+                     <div className="flex gap-2">
+                        <Button type="button" variant="outline" onClick={handleExportPdf}>
+                            <FileDown className="mr-2"/>
+                            Export as PDF
+                        </Button>
+                        <Button type="submit" size="lg">Submit Inspection</Button>
+                    </div>
                 </div>
             </Card>
 
