@@ -148,6 +148,7 @@ export function ThreeDiInspectionForm() {
                 const entries = category[defectKey as keyof typeof category];
                 if (Array.isArray(entries)) {
                     score += entries.reduce((sum, entry) => {
+                        // Ensure severity is treated as a number
                         return sum + (Number(entry?.severity) || 0);
                     }, 0);
                 }
