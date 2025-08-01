@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import React from 'react';
 import { Badge } from "../ui/badge";
+import { Label } from "../ui/label";
 
 const DefectInfoDialog = ({ defectKey, label }: { defectKey: string, label: string }) => {
   const definition = defectDefinitions[defectKey as keyof typeof defectDefinitions];
