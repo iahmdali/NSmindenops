@@ -23,7 +23,7 @@ const TemperatureFields = ({ side }: { side: 'single' | 'port' | 'starboard' }) 
         render={({ field }) => (
           <FormItem>
             <FormLabel>Head (°C)</FormLabel>
-            <FormControl><Input type="number" {...field} /></FormControl>
+            <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
             <FormMessage />
           </FormItem>
         )}
@@ -34,7 +34,7 @@ const TemperatureFields = ({ side }: { side: 'single' | 'port' | 'starboard' }) 
         render={({ field }) => (
           <FormItem>
             <FormLabel>Tack (°C)</FormLabel>
-            <FormControl><Input type="number" {...field} /></FormControl>
+            <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
             <FormMessage />
           </FormItem>
         )}
@@ -45,7 +45,7 @@ const TemperatureFields = ({ side }: { side: 'single' | 'port' | 'starboard' }) 
         render={({ field }) => (
           <FormItem>
             <FormLabel>Clew (°C)</FormLabel>
-            <FormControl><Input type="number" {...field} /></FormControl>
+            <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
             <FormMessage />
           </FormItem>
         )}
@@ -57,7 +57,7 @@ const TemperatureFields = ({ side }: { side: 'single' | 'port' | 'starboard' }) 
           render={({ field }) => (
             <FormItem>
               <FormLabel>Belly Min (°C)</FormLabel>
-              <FormControl><Input type="number" {...field} /></FormControl>
+              <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
               <FormMessage />
             </FormItem>
           )}
@@ -68,7 +68,7 @@ const TemperatureFields = ({ side }: { side: 'single' | 'port' | 'starboard' }) 
           render={({ field }) => (
             <FormItem>
               <FormLabel>Belly Max (°C)</FormLabel>
-              <FormControl><Input type="number" {...field} /></FormControl>
+              <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
               <FormMessage />
             </FormItem>
           )}
@@ -150,7 +150,7 @@ export function LaminationVacuumMetrics() {
                                         control={control}
                                         name={`vacuumReadings.before.${i}`}
                                         render={({ field }) => (
-                                            <FormControl><Input type="number" className="min-w-[60px] text-center" {...field} /></FormControl>
+                                            <FormControl><Input type="number" className="min-w-[60px] text-center" {...field} value={field.value ?? ''} /></FormControl>
                                         )}
                                     />
                                 </TableCell>
@@ -164,7 +164,7 @@ export function LaminationVacuumMetrics() {
                                         control={control}
                                         name={`vacuumReadings.after.${i}`}
                                         render={({ field }) => (
-                                            <FormControl><Input type="number" className="min-w-[60px] text-center" {...field} /></FormControl>
+                                            <FormControl><Input type="number" className="min-w-[60px] text-center" {...field} value={field.value ?? ''} /></FormControl>
                                         )}
                                     />
                                 </TableCell>
@@ -215,3 +215,5 @@ export function LaminationVacuumMetrics() {
     </Card>
   );
 }
+
+    
