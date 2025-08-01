@@ -93,8 +93,8 @@ export function ThreeDiInspectionForm() {
     // Structural defects - sum of severity scores
     if (defects.structural) {
       Object.values(defects.structural).forEach((defectArray) => {
-        if (defectArray) {
-          total += defectArray.reduce((sum, severity) => sum + severity, 0);
+        if (Array.isArray(defectArray)) {
+          total += defectArray.reduce((sum, severity) => sum + (severity || 0), 0);
         }
       });
     }
@@ -102,8 +102,8 @@ export function ThreeDiInspectionForm() {
     // Cosmetic defects - sum of severity scores
     if (defects.cosmetic) {
       Object.values(defects.cosmetic).forEach((defectArray) => {
-        if (defectArray) {
-          total += defectArray.reduce((sum, severity) => sum + severity, 0);
+         if (Array.isArray(defectArray)) {
+          total += defectArray.reduce((sum, severity) => sum + (severity || 0), 0);
         }
       });
     }
