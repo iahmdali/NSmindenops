@@ -1,10 +1,10 @@
 
 "use client"
 
-import { useForm, FormProvider } from 'react-hook-form';
+import { useForm, FormProvider, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
@@ -27,9 +27,15 @@ const temperatureSchema = z.object({
   belly_max: z.coerce.number().optional(),
 });
 
-const defectEntrySchema = z.array(z.object({
+const severityOnlyDefectSchema = z.array(z.object({
   severity: z.coerce.number().min(0).max(10),
 })).max(6).optional();
+
+const detailedDefectSchema = z.array(z.object({
+  description: z.string().min(1, 'Description is required.'),
+  severity: z.coerce.number().min(0).max(10),
+})).optional();
+
 
 const inspectionFormSchema = z.object({
   inspectionDate: z.date(),
@@ -50,41 +56,41 @@ const inspectionFormSchema = z.object({
   
   defects: z.object({
     lamination: z.object({
-      majorDyneema: defectEntrySchema,
-      discoloredPanel: defectEntrySchema,
-      overCooked: defectEntrySchema,
-      pocketInstallation: defectEntrySchema,
-      cornersNotLaminated: defectEntrySchema,
-      noOverlapScarfJoint: defectEntrySchema,
-      majorGlueLine: defectEntrySchema,
-      pocketsShrinkageWaves: defectEntrySchema,
-      majorShrinkageWaves: defectEntrySchema,
-      tempStickersNotUpToTemp: defectEntrySchema,
-      debris: defectEntrySchema,
-      exposedInternal: defectEntrySchema,
-      gapsInExternalTapes: defectEntrySchema,
-      zFold: defectEntrySchema,
+      majorDyneema: detailedDefectSchema,
+      discoloredPanel: detailedDefectSchema,
+      overCooked: detailedDefectSchema,
+      pocketInstallation: detailedDefectSchema,
+      cornersNotLaminated: detailedDefectSchema,
+      noOverlapScarfJoint: detailedDefectSchema,
+      majorGlueLine: detailedDefectSchema,
+      pocketsShrinkageWaves: detailedDefectSchema,
+      majorShrinkageWaves: detailedDefectSchema,
+      tempStickersNotUpToTemp: detailedDefectSchema,
+      debris: detailedDefectSchema,
+      exposedInternal: detailedDefectSchema,
+      gapsInExternalTapes: detailedDefectSchema,
+      zFold: detailedDefectSchema,
     }),
     structural: z.object({
-      verticalCreases: defectEntrySchema,
-      horizontalCreases: defectEntrySchema,
-      minorShrinkageWaves: defectEntrySchema,
-      bunchedUpInternalTape: defectEntrySchema,
+      verticalCreases: severityOnlyDefectSchema,
+      horizontalCreases: severityOnlyDefectSchema,
+      minorShrinkageWaves: severityOnlyDefectSchema,
+      bunchedUpInternalTape: severityOnlyDefectSchema,
     }),
     cosmetic: z.object({
-      tintGlueSpots: defectEntrySchema,
-      minorGlueLines: defectEntrySchema,
-      dominantDyneema: defectEntrySchema,
-      foldedOverExternalTape: defectEntrySchema,
-      fin: defectEntrySchema,
-      bunchedUpExternalTape: defectEntrySchema,
-      carbonFrayGlob: defectEntrySchema,
-      tapeSpacing: defectEntrySchema,
-      yarnTwists: defectEntrySchema,
-      externalSplices: defectEntrySchema,
-      foldedWhiteExternal: defectEntrySchema,
-      badPatch: defectEntrySchema,
-      displacedPC: defectEntrySchema,
+      tintGlueSpots: severityOnlyDefectSchema,
+      minorGlueLines: severityOnlyDefectSchema,
+      dominantDyneema: severityOnlyDefectSchema,
+      foldedOverExternalTape: severityOnlyDefectSchema,
+      fin: severityOnlyDefectSchema,
+      bunchedUpExternalTape: severityOnlyDefectSchema,
+      carbonFrayGlob: severityOnlyDefectSchema,
+      tapeSpacing: severityOnlyDefectSchema,
+      yarnTwists: severityOnlyDefectSchema,
+      externalSplices: severityOnlyDefectSchema,
+      foldedWhiteExternal: severityOnlyDefectSchema,
+      badPatch: severityOnlyDefectSchema,
+      displacedPC: severityOnlyDefectSchema,
     }),
   }),
 
@@ -132,19 +138,30 @@ export function ThreeDiInspectionForm() {
     },
   });
 
-  const watchedDefects = methods.watch('defects');
+  const watchedDefects = useWatch({ control: methods.control, name: 'defects' });
 
   const totalScore = useMemo(() => {
     let score = 0;
     if (!watchedDefects) return 0;
     
-    // Unified score calculation for all categories
-    for (const categoryKey in watchedDefects) {
-        const category = watchedDefects[categoryKey as keyof typeof watchedDefects];
+    // Lamination defects with description and severity
+    if (watchedDefects.lamination) {
+        for (const defectKey in watchedDefects.lamination) {
+            const entries = watchedDefects.lamination[defectKey as keyof typeof watchedDefects.lamination];
+            if (Array.isArray(entries)) {
+                score += entries.reduce((sum, entry) => sum + (entry.severity || 0), 0);
+            }
+        }
+    }
+    
+    // Structural and cosmetic defects with only severity
+    const otherCategories: (keyof Omit<typeof watchedDefects, 'lamination'>)[] = ['structural', 'cosmetic'];
+    for (const categoryKey of otherCategories) {
+        const category = watchedDefects[categoryKey];
         if (category) {
             for (const defectKey in category) {
                 const entries = category[defectKey as keyof typeof category];
-                if (Array.isArray(entries)) {
+                 if (Array.isArray(entries)) {
                     score += entries.reduce((sum, entry) => sum + (entry.severity || 0), 0);
                 }
             }

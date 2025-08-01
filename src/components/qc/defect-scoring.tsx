@@ -13,6 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import React from 'react';
 import { Badge } from "../ui/badge";
 import { Label } from "../ui/label";
+import { Textarea } from "../ui/textarea";
+import { Input } from "../ui/input";
 
 const DefectInfoDialog = ({ defectKey, label }: { defectKey: string, label: string }) => {
   const definition = defectDefinitions[defectKey as keyof typeof defectDefinitions];
@@ -44,7 +46,6 @@ const AddSeverityDialog = ({ onAdd, defectKey }: { onAdd: (severity: number) => 
     const [severity, setSeverity] = React.useState(0);
     const [open, setOpen] = React.useState(false);
     const definition = defectDefinitions[defectKey as keyof typeof defectDefinitions];
-
 
     const handleAdd = () => {
         onAdd(severity);
@@ -93,12 +94,18 @@ export function DefectScoring({ control }: { control: any }) {
           </AccordionTrigger>
           <AccordionContent className="space-y-4 pt-4">
             {category.defects.map((defect) => (
-              <div key={defect.key} className="flex items-center justify-between p-3 border rounded-md">
-                <div className="flex items-center">
-                    <p className="font-medium text-base">{defect.label}</p>
-                    <DefectInfoDialog defectKey={defect.key} label={defect.label} />
+              <div key={defect.key}>
+                <div className="flex items-center justify-between p-3 border rounded-md rounded-b-none">
+                    <div className="flex items-center">
+                        <p className="font-medium text-base">{defect.label}</p>
+                        <DefectInfoDialog defectKey={defect.key} label={defect.label} />
+                    </div>
+                     {category.id === 'lamination' ? (
+                        <LaminationDefectField control={control} categoryId={category.id} defectKey={defect.key} />
+                    ) : (
+                        <SeverityOnlyDefectField control={control} categoryId={category.id} defectKey={defect.key} />
+                    )}
                 </div>
-                <DefectArrayField control={control} categoryId={category.id} defectKey={defect.key} />
               </div>
             ))}
           </AccordionContent>
@@ -108,8 +115,7 @@ export function DefectScoring({ control }: { control: any }) {
   );
 }
 
-
-const DefectArrayField = ({ control, categoryId, defectKey }: { control: any, categoryId: string, defectKey: string }) => {
+const SeverityOnlyDefectField = ({ control, categoryId, defectKey }: { control: any, categoryId: string, defectKey: string }) => {
     const fieldName = `defects.${categoryId}.${defectKey}`;
     const { fields, append, remove } = useFieldArray({ control, name: fieldName });
 
@@ -132,6 +138,59 @@ const DefectArrayField = ({ control, categoryId, defectKey }: { control: any, ca
                 ))}
             </div>
             <AddSeverityDialog onAdd={handleAddSeverity} defectKey={defectKey} />
+        </div>
+    );
+};
+
+
+const LaminationDefectField = ({ control, categoryId, defectKey }: { control: any, categoryId: string, defectKey: string }) => {
+    const fieldName = `defects.${categoryId}.${defectKey}`;
+    const { fields, append, remove } = useFieldArray({ control, name: fieldName });
+    
+    return (
+        <div className="w-full flex flex-col">
+            <div className="flex justify-end p-2">
+                 <Button type="button" variant="outline" size="sm" onClick={() => append({ description: '', severity: 0 })}>
+                    <PlusCircle className="mr-2 h-4 w-4" /> Add Defect Entry
+                </Button>
+            </div>
+             {fields.length > 0 && (
+                <div className="space-y-3 pt-3 border-t">
+                    {fields.map((field, index) => (
+                        <div key={field.id} className="flex items-start gap-4 p-3 border rounded-md bg-background/50 relative">
+                             <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive" onClick={() => remove(index)}>
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                            <FormField
+                                control={control}
+                                name={`${fieldName}.${index}.description`}
+                                render={({ field }) => (
+                                    <FormItem className="flex-1">
+                                        <FormLabel>Description</FormLabel>
+                                        <FormControl>
+                                            <Textarea placeholder="Enter comprehensive description..." {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                             <FormField
+                                control={control}
+                                name={`${fieldName}.${index}.severity`}
+                                render={({ field }) => (
+                                    <FormItem className="w-32">
+                                        <FormLabel>Score</FormLabel>
+                                        <FormControl>
+                                            <Input type="number" placeholder="0" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 };
