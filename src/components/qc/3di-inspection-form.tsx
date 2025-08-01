@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils';
 import { Card } from '../ui/card';
 import { defectCategories } from '@/lib/qc-data';
 import { FileDown } from 'lucide-react';
+import { generatePdf } from '@/lib/generate-qc-pdf';
 
 const temperatureSchema = z.object({
   head: z.coerce.number().optional(),
@@ -128,7 +129,7 @@ export function ThreeDiInspectionForm() {
   const totalScore = useMemo(() => {
     let score = 0;
     if (!watchedDefects) return 0;
-    
+
     // Lamination defects
     if (watchedDefects.lamination) {
       for (const key in watchedDefects.lamination) {
@@ -138,7 +139,7 @@ export function ThreeDiInspectionForm() {
         }
       }
     }
-    
+
     // Structural and cosmetic defects
     const otherCategories: ('structural' | 'cosmetic')[] = ['structural', 'cosmetic'];
     for (const categoryKey of otherCategories) {
@@ -155,7 +156,7 @@ export function ThreeDiInspectionForm() {
         }
       }
     }
-    
+
     return score;
   }, [watchedDefects]);
 
@@ -177,9 +178,12 @@ export function ThreeDiInspectionForm() {
   }
 
   const handleExportPdf = async () => {
-    const { generatePdf } = await import('@/lib/generate-qc-pdf');
     const data = methods.getValues();
-    generatePdf(data, { totalScore, statusText: inspectionStatus.text });
+    await generatePdf(data, { totalScore, statusText: inspectionStatus.text });
+    toast({
+        title: "PDF Generated",
+        description: "Your QC report has been downloaded.",
+    });
   }
 
   return (

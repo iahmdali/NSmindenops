@@ -16,7 +16,18 @@ interface jsPDFWithAutoTable extends jsPDF {
   autoTable: (options: any) => jsPDFWithAutoTable;
 }
 
-export function generatePdf(data: InspectionFormValues, info: ReportInfo) {
+// Helper to read file as a data URL
+const readFileAsDataURL = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+};
+
+
+export async function generatePdf(data: InspectionFormValues, info: ReportInfo) {
     const doc = new jsPDF() as jsPDFWithAutoTable;
     let yPos = 20;
 
@@ -207,7 +218,56 @@ export function generatePdf(data: InspectionFormValues, info: ReportInfo) {
         }, true);
     }
     
-    // TODO: Add image evidence rendering if time permits
+    // --- Image Evidence ---
+    const allImages = [
+        { title: 'General Attachments', files: data.attachments || [] },
+        { title: 'Port Side Pictures', files: data.defectPictures?.port || [] },
+        { title: 'Starboard Side Pictures', files: data.defectPictures?.starboard || [] },
+        { title: 'Structural Defect Pictures', files: data.defectPictures?.structural || [] },
+    ].filter(section => section.files.length > 0);
+
+    if (allImages.length > 0) {
+        doc.addPage();
+        yPos = 20;
+        doc.setFontSize(16).text('Image Evidence', 14, yPos);
+        yPos += 10;
+
+        for (const imageSection of allImages) {
+            if (yPos > 260) { doc.addPage(); yPos = 20; }
+            doc.setFontSize(12).text(imageSection.title, 14, yPos);
+            yPos += 8;
+
+            for (const file of imageSection.files) {
+                try {
+                    const dataUrl = await readFileAsDataURL(file);
+                    const img = new Image();
+                    img.src = dataUrl;
+                    await new Promise(resolve => img.onload = resolve);
+                    
+                    const imgProps = doc.getImageProperties(dataUrl);
+                    const pdfWidth = doc.internal.pageSize.getWidth();
+                    const aspect = imgProps.height / imgProps.width;
+                    const imgWidth = pdfWidth - 30; // with margin
+                    const imgHeight = imgWidth * aspect;
+
+                    if (yPos + imgHeight > 280) {
+                        doc.addPage();
+                        yPos = 20;
+                    }
+                    
+                    doc.addImage(dataUrl, 'JPEG', 15, yPos, imgWidth, imgHeight);
+                    yPos += imgHeight + 10;
+
+                } catch (error) {
+                    console.error("Error adding image to PDF:", error);
+                    if (yPos > 260) { doc.addPage(); yPos = 20; }
+                    doc.setFontSize(10).text(`Could not render image: ${file.name}`, 16, yPos);
+                    yPos += 8;
+                }
+            }
+             yPos += 5; // Extra space after a section
+        }
+    }
 
     // --- Save PDF ---
     const dateStr = format(new Date(), 'yyyy-MM-dd');
