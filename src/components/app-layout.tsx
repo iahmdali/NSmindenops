@@ -279,7 +279,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
           <UserNav />
         </header>
-        <main className="p-4 lg:p-6">{children}</main>
+        <main className="p-4 lg:p-6 flex-1">{children}</main>
+         <footer className="p-4 text-center text-xs text-muted-foreground border-t">
+            Developed by North Sails Engineering Team Minden NV &trade;
+        </footer>
       </SidebarInset>
     </SidebarProvider>
   );
