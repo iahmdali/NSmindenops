@@ -11,9 +11,7 @@ export interface OeSection {
 
 // This will act as our in-memory "database" for OE jobs created by the File System module.
 export let oeJobs: OeSection[] = [
-  { id: 'sec-1', oeBase: 'OAUS32162', sectionId: '001', panelStart: 1, panelEnd: 5, status: 'pending', completedPanels: [] },
-  { id: 'sec-2', oeBase: 'OAUS32162', sectionId: '101', panelStart: 6, panelEnd: 13, status: 'pending', completedPanels: [] },
-  { id: 'sec-3', oeBase: 'OIT76541', sectionId: '001', panelStart: 1, panelEnd: 12, status: 'in-progress', completedPanels: ['P1', 'P2'] },
+  { id: 'sec-new-1', oeBase: 'OUS2345', sectionId: '141', panelStart: 1, panelEnd: 10, status: 'completed', completedPanels: ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9", "P10"] },
 ];
 
 // Function to add new jobs from the file system module

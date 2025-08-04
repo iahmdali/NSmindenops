@@ -11,20 +11,8 @@ export interface FilmsReport {
 export const filmsData: FilmsReport[] = [
     {
         report_date: "2023-10-26T12:00:00Z",
-        gantry_number: "4",
-        sails_started: [{ sail_number: "OUK23456-001" }],
-        sails_finished: [],
-    },
-    {
-        report_date: "2023-10-27T12:00:00Z",
-        gantry_number: "4",
+        gantry_number: "5",
         sails_started: [],
-        sails_finished: [{ sail_number: "OUK23456-001", comments: "Ready for Gantry 4." }],
-    },
-    {
-        report_date: "2023-10-27T12:00:00Z",
-        gantry_number: "6",
-        sails_started: [{ sail_number: "OAUS32145-002" }],
-        sails_finished: [],
+        sails_finished: [{ sail_number: "OUS2345-141", comments: "Ready for Gantry 5." }],
     },
 ];
