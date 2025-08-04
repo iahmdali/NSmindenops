@@ -16,9 +16,18 @@ import { SailStatusCard } from '@/components/status/sail-status-card';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ListFilter } from 'lucide-react';
+import { filmsData, type FilmsReport } from '@/lib/films-data';
+
+interface FilmsInfo {
+    status: 'Prepped' | 'In Progress' | 'No Entry';
+    workDate?: string;
+    gantry?: string;
+    notes?: string;
+}
 
 interface EnrichedWorkItem extends WorkItem {
   report: Report;
+  filmsInfo: FilmsInfo;
 }
 
 export default function TapeheadsStatusPage() {
@@ -40,10 +49,35 @@ export default function TapeheadsStatusPage() {
       report.workItems?.forEach(item => {
         if (item.oeNumber === selectedOe) {
           const sailKey = `${item.oeNumber}-${item.section}`;
+          
+          // --- Find Films Department Info ---
+          let filmsInfo: FilmsInfo = { status: 'No Entry' };
+          const sailNumber = `${item.oeNumber}-${item.section}`;
+
+          const finishedReport = filmsData.find(fr => fr.sails_finished.some(s => s.sail_number === sailNumber));
+          const startedReport = filmsData.find(fr => fr.sails_started.some(s => s.sail_number === sailNumber));
+
+          if (finishedReport) {
+              const finishedSail = finishedReport.sails_finished.find(s => s.sail_number === sailNumber);
+              filmsInfo = {
+                  status: 'Prepped',
+                  workDate: finishedReport.report_date,
+                  gantry: finishedReport.gantry_number,
+                  notes: finishedSail?.comments,
+              };
+          } else if (startedReport) {
+              filmsInfo = {
+                  status: 'In Progress',
+                  workDate: startedReport.report_date,
+                  gantry: startedReport.gantry_number,
+              };
+          }
+          // --- End of Films Logic ---
+          
           if (!items[sailKey]) {
             items[sailKey] = [];
           }
-          items[sailKey].push({ ...item, report });
+          items[sailKey].push({ ...item, report, filmsInfo });
         }
       });
     });
