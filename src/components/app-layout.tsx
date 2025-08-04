@@ -107,14 +107,17 @@ function MainSidebar() {
   const { open, setOpen, state } = useSidebar();
   const [isReportsOpen, setReportsOpen] = React.useState(false);
   const [isAnalyticsOpen, setAnalyticsOpen] = React.useState(false);
+  const [isDeptAnalyticsOpen, setDeptAnalyticsOpen] = React.useState(false);
   
   React.useEffect(() => {
-    if (pathname.startsWith('/report')) {
-      setReportsOpen(true);
-    }
-    if (pathname.startsWith('/analytics') || pathname.startsWith('/review') || pathname.startsWith('/filesystem') || pathname.startsWith('/qc') || pathname.startsWith('/status')) {
-      setAnalyticsOpen(true);
-    }
+    const isReportPath = pathname.startsWith('/report');
+    const isLeadPath = pathname.startsWith('/analytics') || pathname.startsWith('/review') || pathname.startsWith('/filesystem') || pathname.startsWith('/qc') || pathname.startsWith('/status');
+    const isDeptAnalyticsPath = pathname.startsWith('/analytics');
+    
+    if (isReportPath) setReportsOpen(true);
+    if (isLeadPath) setAnalyticsOpen(true);
+    if (isDeptAnalyticsPath) setDeptAnalyticsOpen(true);
+
   }, [pathname]);
 
   return (
@@ -209,10 +212,28 @@ function MainSidebar() {
                         <Link href="/qc/inspection"><ShieldCheck /><span>QC Inspection</span></Link>
                    </SidebarMenuSubButton>
                 </SidebarMenuSubItem>
+                
+                {/* Department Analytics Sub-Menu */}
                 <SidebarMenuSubItem>
-                   <SidebarMenuSubButton asChild isActive={pathname.startsWith('/analytics')}>
-                        <Link href="/analytics/pregger"><AreaChart/><span>Department Analytics</span></Link>
-                   </SidebarMenuSubButton>
+                    <SidebarMenuSubButton onClick={() => setDeptAnalyticsOpen(!isDeptAnalyticsOpen)} isActive={pathname.startsWith('/analytics')}>
+                        <AreaChart/>
+                        <span>Department Analytics</span>
+                        <ChevronDown className={cn("ml-auto h-4 w-4 transition-transform duration-200", isDeptAnalyticsOpen && "rotate-180" )} />
+                    </SidebarMenuSubButton>
+                    {isDeptAnalyticsOpen && (
+                        <SidebarMenuSub>
+                            {analyticsDepartments.map((dept) => (
+                                <SidebarMenuSubItem key={dept.name}>
+                                    <SidebarMenuSubButton asChild isActive={pathname === dept.href}>
+                                        <Link href={dept.href}>
+                                            <dept.icon />
+                                            <span>{dept.name}</span>
+                                        </Link>
+                                    </SidebarMenuSubButton>
+                                </SidebarMenuSubItem>
+                            ))}
+                        </SidebarMenuSub>
+                    )}
                 </SidebarMenuSubItem>
               </SidebarMenuSub>
             )}
