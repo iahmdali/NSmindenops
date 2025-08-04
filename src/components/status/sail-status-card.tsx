@@ -35,11 +35,11 @@ export function SailStatusCard({ item }: SailStatusCardProps) {
         <div className="flex justify-between items-start">
             <div>
                 <CardTitle className="text-lg font-bold">{workItem.oeNumber} - {workItem.section}</CardTitle>
-                <CardDescription>
+                <div className="text-sm text-muted-foreground">
                     <Badge variant={workItem.nestedPanels && workItem.nestedPanels.length > 0 ? "default" : "secondary"}>
                         {workItem.nestedPanels && workItem.nestedPanels.length > 0 ? 'Nested Panels' : 'Individual Panels'}
                     </Badge>
-                </CardDescription>
+                </div>
             </div>
             <Badge variant={isCompleted ? "default" : "outline"} className={cn(isCompleted ? "bg-green-600" : "border-amber-500 text-amber-600")}>
                 {isCompleted ? <CheckCircle className="mr-1 h-3 w-3" /> : <Clock className="mr-1 h-3 w-3" />}
