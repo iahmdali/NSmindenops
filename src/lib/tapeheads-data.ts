@@ -5,7 +5,7 @@ import type { Report } from '@/lib/types';
 export let tapeheadsSubmissions: Report[] = [
     {
         id: "rpt_1",
-        date: new Date("2023-10-27"),
+        date: new Date("2023-10-27T12:00:00Z"),
         shift: 1,
         shiftLeadName: "John Doe",
         thNumber: "TH-3",
@@ -29,7 +29,7 @@ export let tapeheadsSubmissions: Report[] = [
     },
     {
         id: "rpt_2",
-        date: new Date("2023-10-27"),
+        date: new Date("2023-10-27T12:00:00Z"),
         shift: 2,
         shiftLeadName: "Jane Smith",
         thNumber: "TH-5",
