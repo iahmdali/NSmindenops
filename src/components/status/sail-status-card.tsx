@@ -1,12 +1,17 @@
 
+"use client";
+
 import type { Report, WorkItem } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { CheckCircle, AlertTriangle, Layers, Clock, Shapes, Ruler, Wind, User, Calendar, CircleDot, Film, GanttChartSquare, XCircle, Hourglass, Factory, Wrench, Image as ImageIcon, ShieldCheck } from "lucide-react";
+import { CheckCircle, AlertTriangle, Layers, Clock, Shapes, Ruler, Wind, User, Calendar, CircleDot, Film, GanttChartSquare, XCircle, Hourglass, Factory, Wrench, Image as ImageIcon, ShieldCheck, FileDown } from "lucide-react";
 import { format } from "date-fns";
 import { Separator } from "../ui/separator";
 import type { InspectionSubmission } from "@/lib/qc-data";
+import { Button } from "../ui/button";
+import { generateSailStatusPdf } from "@/lib/generate-sail-status-pdf";
+import { useToast } from "@/hooks/use-toast";
 
 interface FilmsInfo {
     status: 'Prepped' | 'In Progress' | 'No Entry';
@@ -24,7 +29,7 @@ interface GantryInfo {
     images?: any[];
 }
 
-interface EnrichedWorkItem extends WorkItem {
+export interface EnrichedWorkItem extends WorkItem {
   report: Report;
   filmsInfo: FilmsInfo;
   gantryHistory: GantryInfo[];
@@ -194,6 +199,24 @@ function QcInspectionSection({ qcInspection }: { qcInspection?: InspectionSubmis
 export function SailStatusCard({ item }: SailStatusCardProps) {
   const { report, filmsInfo, gantryHistory, qcInspection, ...workItem } = item;
   const isCompleted = workItem.endOfShiftStatus === 'Completed';
+  const { toast } = useToast();
+
+  const handleExportPdf = async () => {
+    toast({
+        title: "Generating PDF...",
+        description: "Your sail status report is being created.",
+    });
+    try {
+        await generateSailStatusPdf(item);
+    } catch(error) {
+         console.error("PDF generation failed:", error);
+         toast({
+            title: "Error Generating PDF",
+            description: "There was a problem creating the report.",
+            variant: "destructive",
+        });
+    }
+  }
 
   return (
     <Card className={cn("flex flex-col transition-all", isCompleted ? "border-green-200 bg-green-50/50 hover:border-green-300" : "border-amber-200 bg-amber-50/50 hover:border-amber-300")}>
@@ -207,6 +230,10 @@ export function SailStatusCard({ item }: SailStatusCardProps) {
                     </Badge>
                 </div>
             </div>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleExportPdf}>
+                <FileDown className="h-5 w-5" />
+                <span className="sr-only">Export PDF</span>
+            </Button>
         </div>
       </CardHeader>
       <CardContent className="space-y-4 flex-grow">
@@ -254,4 +281,3 @@ export function SailStatusCard({ item }: SailStatusCardProps) {
     </Card>
   );
 }
-
