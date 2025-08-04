@@ -28,6 +28,8 @@ function AuthProvider({ children }: { children: ReactNode }) {
          router.push('/dashboard');
       }
     } else {
+      setIsAuthenticated(false);
+      setUser(null);
       if (pathname !== '/login') {
         router.push('/login');
       }
