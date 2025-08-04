@@ -3,7 +3,7 @@ import type { Report, WorkItem } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { CheckCircle, AlertTriangle, Layers, Clock, Shapes, Ruler, Wind, User, Calendar, CircleDot, Film, GanttChartSquare, XCircle, Hourglass } from "lucide-react";
+import { CheckCircle, AlertTriangle, Layers, Clock, Shapes, Ruler, Wind, User, Calendar, CircleDot, Film, GanttChartSquare, XCircle, Hourglass, Factory } from "lucide-react";
 import { format } from "date-fns";
 import { Separator } from "../ui/separator";
 
@@ -14,9 +14,18 @@ interface FilmsInfo {
     notes?: string;
 }
 
+interface GantryInfo {
+    moldNumber: string;
+    stage: string;
+    issues?: string;
+    downtimeCaused?: boolean;
+    date: string;
+}
+
 interface EnrichedWorkItem extends WorkItem {
   report: Report;
   filmsInfo: FilmsInfo;
+  gantryHistory: GantryInfo[];
 }
 
 interface SailStatusCardProps {
@@ -67,9 +76,57 @@ function FilmsStatusSection({ filmsInfo }: { filmsInfo: FilmsInfo }) {
   )
 }
 
+function GantryStatusSection({ gantryHistory }: { gantryHistory: GantryInfo[] }) {
+    if (gantryHistory.length === 0) {
+        return (
+             <div>
+                <div className="flex justify-between items-center mb-2">
+                    <h4 className="font-semibold text-primary/90 flex items-center gap-2"><Factory size={16}/>Gantry Department</h4>
+                    <Badge variant="secondary"><XCircle className="mr-1 h-3 w-3" /> No Entry</Badge>
+                </div>
+            </div>
+        )
+    }
+
+    const latestEntry = gantryHistory[0]; // Assumes history is pre-sorted
+
+    const getStageBadge = (stage: string) => {
+        const completedStages = ["cured", "lamination", "lamination inspection"];
+        const isCompleted = completedStages.some(s => stage.toLowerCase().includes(s));
+        return (
+             <Badge variant={isCompleted ? 'default' : 'outline'} className={isCompleted ? 'bg-green-600' : 'border-amber-500 text-amber-600'}>
+                {isCompleted ? <CheckCircle className="mr-1 h-3 w-3"/> : <Hourglass className="mr-1 h-3 w-3"/>}
+                {latestEntry.stage}
+            </Badge>
+        )
+    }
+
+    return (
+        <div>
+            <div className="flex justify-between items-center mb-2">
+                <h4 className="font-semibold text-primary/90 flex items-center gap-2"><Factory size={16}/>Gantry Department</h4>
+                {getStageBadge(latestEntry.stage)}
+            </div>
+             <div className="grid grid-cols-1 gap-y-2 text-sm pl-2">
+                <DetailItem icon={<Calendar size={14}/>} label="Last Entry Date" value={format(new Date(latestEntry.date), 'MMM d, yyyy')} />
+                <DetailItem icon={<GanttChartSquare size={14}/>} label="Gantry/Mold" value={latestEntry.moldNumber} />
+                <DetailItem icon={<CircleDot size={14}/>} label="Last Known Stage" value={latestEntry.stage} />
+                 {latestEntry.issues && latestEntry.issues !== "None" && (
+                    <div className="col-span-2">
+                         <DetailItem icon={<AlertTriangle size={14} className="text-destructive"/>} label="Issues Reported" value={latestEntry.issues} />
+                    </div>
+                 )}
+                 {latestEntry.downtimeCaused && (
+                     <Badge variant="destructive" className="mt-2"><AlertTriangle className="mr-1 h-3 w-3" /> Downtime Caused</Badge>
+                 )}
+            </div>
+        </div>
+    )
+}
+
 
 export function SailStatusCard({ item }: SailStatusCardProps) {
-  const { report, filmsInfo, ...workItem } = item;
+  const { report, filmsInfo, gantryHistory, ...workItem } = item;
   const isCompleted = workItem.endOfShiftStatus === 'Completed';
 
   return (
@@ -121,8 +178,9 @@ export function SailStatusCard({ item }: SailStatusCardProps) {
         </div>
 
         <Separator />
-
         <FilmsStatusSection filmsInfo={filmsInfo} />
+        <Separator />
+        <GantryStatusSection gantryHistory={gantryHistory} />
         
       </CardContent>
     </Card>

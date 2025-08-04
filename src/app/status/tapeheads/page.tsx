@@ -17,6 +17,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ListFilter } from 'lucide-react';
 import { filmsData, type FilmsReport } from '@/lib/films-data';
+import { gantryReportsData, type GantryReport } from '@/lib/gantry-data';
 
 interface FilmsInfo {
     status: 'Prepped' | 'In Progress' | 'No Entry';
@@ -25,9 +26,18 @@ interface FilmsInfo {
     notes?: string;
 }
 
+interface GantryInfo {
+    moldNumber: string;
+    stage: string;
+    issues?: string;
+    downtimeCaused?: boolean;
+    date: string;
+}
+
 interface EnrichedWorkItem extends WorkItem {
   report: Report;
   filmsInfo: FilmsInfo;
+  gantryHistory: GantryInfo[];
 }
 
 export default function TapeheadsStatusPage() {
@@ -73,11 +83,32 @@ export default function TapeheadsStatusPage() {
               };
           }
           // --- End of Films Logic ---
+
+          // --- Find Gantry Department Info ---
+          const gantryHistory: GantryInfo[] = [];
+          gantryReportsData.forEach(gantryReport => {
+              gantryReport.molds?.forEach(mold => {
+                  mold.sails?.forEach(sail => {
+                      if (sail.sail_number === sailNumber) {
+                          gantryHistory.push({
+                              moldNumber: mold.mold_number,
+                              stage: sail.stage_of_process || 'N/A',
+                              issues: sail.issues,
+                              downtimeCaused: mold.downtime_caused,
+                              date: gantryReport.date,
+                          });
+                      }
+                  });
+              });
+          });
+           // Sort history by most recent date
+          gantryHistory.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+          // --- End of Gantry Logic ---
           
           if (!items[sailKey]) {
             items[sailKey] = [];
           }
-          items[sailKey].push({ ...item, report, filmsInfo });
+          items[sailKey].push({ ...item, report, filmsInfo, gantryHistory });
         }
       });
     });
@@ -104,7 +135,7 @@ export default function TapeheadsStatusPage() {
 
     return latestWorkItems;
 
-  }, [selectedOe, sortBy, tapeheadsSubmissions]);
+  }, [selectedOe, sortBy]);
   
   // Set the first OE as default if none is selected
   if (!selectedOe && availableOes.length > 0) {
