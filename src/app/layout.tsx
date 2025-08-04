@@ -4,7 +4,7 @@ import { AppLayout } from '@/components/app-layout';
 import { Toaster } from "@/components/ui/toaster"
 
 export const metadata: Metadata = {
-  title: 'ShiftView',
+  title: 'SRD: Minden Operations',
   description: 'Shift Report Dashboard by North Sails',
 };
 

@@ -126,7 +126,7 @@ function MainSidebar() {
         <div className="flex items-center gap-2">
           <Logo className="size-8 text-sidebar-primary" />
           <span className="text-lg font-semibold font-headline text-sidebar-primary-foreground">
-            ShiftView
+            SRD: Minden Operations
           </span>
         </div>
       </SidebarHeader>
