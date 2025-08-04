@@ -4,7 +4,7 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm, useFieldArray, useWatch, Controller } from "react-hook-form"
 import * as z from "zod"
-import { PlusCircle, Trash2 } from "lucide-react"
+import { AlertCircle, PlusCircle, Trash2 } from "lucide-react"
 import React from "react"
 
 import { Button } from "@/components/ui/button"
@@ -30,6 +30,8 @@ import { useToast } from "@/hooks/use-toast"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ImageUpload } from "./image-upload"
 import { Switch } from "./ui/switch"
+import { Alert, AlertDescription, AlertTitle } from "./ui/alert"
+import { filmsData } from "@/lib/films-data"
 
 const stageOfProcessOptions = [
     "RF Smart Mold Adjust", "Grid Base Film Installation", "Panel Installation", 
@@ -79,6 +81,7 @@ const gantryReportSchema = z.object({
     downtime_caused: z.boolean().default(false),
     downtime_cause_description: z.string().optional(),
     downtime_duration_minutes: z.coerce.number().optional(),
+    gantry_override_reason: z.string().optional(),
   })).min(1, "At least one mold is required."),
   maintenance: z.array(z.object({
     description: z.string().min(1, "Description is required."),
@@ -95,6 +98,22 @@ const gantryReportSchema = z.object({
     return true;
 }, {
     message: "Downtime description and duration are required when downtime is caused.",
+    path: ["molds"]
+}).refine(data => {
+    for (const mold of data.molds) {
+        const moldGantry = mold.mold_number.split('/')[0].trim().replace('Gantry ', '');
+        const sailsWithMismatch = mold.sails.some(sail => {
+            const filmEntry = filmsData.find(f => f.sails_finished.some(s => s.sail_number === sail.sail_number));
+            return filmEntry && filmEntry.gantry_number !== moldGantry;
+        });
+
+        if (sailsWithMismatch && !mold.gantry_override_reason) {
+            return false;
+        }
+    }
+    return true;
+}, {
+    message: "An override reason is required when the Gantry number does not match the one assigned in the Films department.",
     path: ["molds"]
 });
 
@@ -163,6 +182,7 @@ export function GantryReportForm() {
   const form = useForm<GantryReportFormValues>({
     resolver: zodResolver(gantryReportSchema),
     defaultValues,
+    mode: "onBlur",
   });
 
   const { fields: zoneLeadFields, append: appendZoneLead, remove: removeZoneLead } = useFieldArray({ control: form.control, name: "zone_leads" });
@@ -308,6 +328,36 @@ function MoldField({ moldIndex, control, removeMold }: { moldIndex: number, cont
       control,
       name: `molds.${moldIndex}.downtime_caused`,
   });
+
+  const watchSails = useWatch({
+    control,
+    name: `molds.${moldIndex}.sails`
+  });
+
+  const watchMoldNumber = useWatch({
+      control,
+      name: `molds.${moldIndex}.mold_number`
+  });
+
+  const gantryMismatch = React.useMemo(() => {
+    if (!watchMoldNumber || !watchSails) return null;
+
+    const moldGantryNumber = watchMoldNumber.split('/')[0].trim().replace('Gantry ', '');
+    if (!moldGantryNumber) return null;
+
+    for (const sail of watchSails) {
+        if (!sail.sail_number) continue;
+        const filmEntry = filmsData.find(f => f.sails_finished.some(s => s.sail_number === sail.sail_number));
+        if (filmEntry && filmEntry.gantry_number !== moldGantryNumber) {
+            return {
+                sailNumber: sail.sail_number,
+                expected: filmEntry.gantry_number,
+                actual: moldGantryNumber
+            };
+        }
+    }
+    return null;
+  }, [watchSails, watchMoldNumber]);
   
   return (
     <Card className="p-4 bg-muted/30" key={`mold-${moldIndex}`}>
@@ -336,6 +386,15 @@ function MoldField({ moldIndex, control, removeMold }: { moldIndex: number, cont
             />
             <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removeMold(moldIndex)}><Trash2 className="size-4" /></Button>
         </div>
+        {gantryMismatch && (
+            <Alert variant="destructive" className="mb-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Gantry Mismatch</AlertTitle>
+                <AlertDescription>
+                    Sail <span className="font-bold">{gantryMismatch.sailNumber}</span> was assigned to Gantry <span className="font-bold">{gantryMismatch.expected}</span> by the Films Dept, but you selected Gantry <span className="font-bold">{gantryMismatch.actual}</span>. Please provide a reason for this override below.
+                </AlertDescription>
+            </Alert>
+        )}
         <div className="space-y-4 pl-4 border-l-2 ml-2">
            <FormLabel>Sails</FormLabel>
            {sailFields.map((sailField, sailIndex) => (
@@ -386,9 +445,20 @@ function MoldField({ moldIndex, control, removeMold }: { moldIndex: number, cont
                       <FormField control={control} name={`molds.${moldIndex}.downtime_duration_minutes`} render={({ field }) => (<FormItem><FormLabel>Downtime Duration (minutes)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
                   </Card>
               )}
+             {gantryMismatch && (
+                 <FormField
+                    control={control}
+                    name={`molds.${moldIndex}.gantry_override_reason`}
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Gantry Override Reason</FormLabel>
+                            <FormControl><Textarea placeholder="Explain why the gantry is different from the one assigned by Films..." {...field} /></FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                 />
+             )}
         </div>
     </Card>
   )
 }
-
-    
