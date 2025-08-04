@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip } from "recharts";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -24,8 +24,22 @@ const bottleneckChartConfig = {
   },
 } satisfies ChartConfig;
 
+type ActivityItem = {
+    dept: string;
+    oe: string;
+    details: string;
+    status: string;
+    date: Date;
+};
+
 
 export default function DashboardPage() {
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
+
     const dashboardData = useMemo(() => {
         const today = new Date();
 
@@ -49,7 +63,7 @@ export default function DashboardPage() {
             .reduce((sum, r) => sum + (r.downtime?.reduce((dSum, d) => dSum + d.duration, 0) || 0), 0);
         
         // --- Activity Feed ---
-        const tapeheadsActivity = tapeheadsSubmissions.flatMap(r => 
+        const tapeheadsActivity: ActivityItem[] = tapeheadsSubmissions.flatMap(r => 
             (r.workItems || []).map(wi => ({
                 dept: 'Tapeheads',
                 oe: `${wi.oeNumber}-${wi.section}`,
@@ -59,7 +73,7 @@ export default function DashboardPage() {
             }))
         );
 
-        const filmsActivity = filmsData.flatMap(r => 
+        const filmsActivity: ActivityItem[] = filmsData.flatMap(r => 
              r.sails_finished.map(s => ({
                 dept: 'Films',
                 oe: s.sail_number,
@@ -69,7 +83,7 @@ export default function DashboardPage() {
             }))
         );
         
-        const gantryActivity = gantryReportsData.flatMap(r =>
+        const gantryActivity: ActivityItem[] = gantryReportsData.flatMap(r =>
             (r.molds || []).flatMap(m => 
                 (m.sails || []).map(s => ({
                     dept: 'Gantry',
@@ -81,7 +95,7 @@ export default function DashboardPage() {
             )
         );
         
-        const graphicsActivity = graphicsTasksData
+        const graphicsActivity: ActivityItem[] = graphicsTasksData
             .filter(t => t.status === 'done' && t.completedAt && isToday(new Date(t.completedAt)))
             .map(t => ({
                 dept: 'Graphics',
@@ -120,7 +134,7 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <PageHeader
         title="SRD: Minden Operations"
-        description={`Live overview of all department activities for ${format(new Date(), 'PPP')}.`}
+        description={isClient ? `Live overview of all department activities for ${format(new Date(), 'PPP')}.` : 'Loading...'}
       />
 
        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -189,7 +203,7 @@ export default function DashboardPage() {
                                 <Badge variant="secondary">{item.dept}</Badge>
                             </div>
                             <p className="text-sm text-muted-foreground">{item.details}</p>
-                             <p className="text-xs text-muted-foreground">{format(item.date, 'p')}</p>
+                             {isClient && <p className="text-xs text-muted-foreground">{format(item.date, 'p')}</p>}
                         </div>
                     </div>
                 ))}
