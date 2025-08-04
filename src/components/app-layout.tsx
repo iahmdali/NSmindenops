@@ -51,10 +51,12 @@ import {
   FilePlus,
   ShieldCheck,
   PackageSearch,
+  LogOut,
 } from "lucide-react";
 import { Logo } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { useAppTitle } from "./app-title-context";
+import { useAuth } from "@/hooks/use-auth";
 
 const departments = [
   { name: 'Pregger', href: '/report/pregger', icon: Building2 },
@@ -74,6 +76,7 @@ const analyticsDepartments = [
 
 
 function UserNav() {
+  const { user, logout } = useAuth();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -89,7 +92,7 @@ function UserNav() {
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">Shift Lead</p>
             <p className="text-xs leading-none text-muted-foreground">
-              lead@northsails.com
+              {user}
             </p>
           </div>
         </DropdownMenuLabel>
@@ -97,7 +100,10 @@ function UserNav() {
         <DropdownMenuItem>Profile</DropdownMenuItem>
         <DropdownMenuItem>Settings</DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>Log out</DropdownMenuItem>
+        <DropdownMenuItem onClick={logout}>
+            <LogOut className="mr-2 h-4 w-4" />
+            Log out
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -107,6 +113,7 @@ function MainSidebar() {
   const pathname = usePathname();
   const { title } = useAppTitle();
   const { open, setOpen, state } = useSidebar();
+  const { user, logout } = useAuth();
   const [isReportsOpen, setReportsOpen] = React.useState(false);
   const [isAnalyticsOpen, setAnalyticsOpen] = React.useState(false);
   const [isDeptAnalyticsOpen, setDeptAnalyticsOpen] = React.useState(false);
@@ -250,7 +257,7 @@ function MainSidebar() {
           </Avatar>
           <div className="flex flex-col">
             <span className="text-sm font-medium text-sidebar-foreground">Shift Lead</span>
-            <span className="text-xs text-muted-foreground">lead@northsails.com</span>
+            <span className="text-xs text-muted-foreground">{user}</span>
           </div>
         </div>
       </SidebarFooter>
