@@ -6,17 +6,23 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { DatePicker } from "@/components/ui/date-picker";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Clock, PackageCheck } from "lucide-react";
+import { CheckCircle, Clock, PackageCheck, Send } from "lucide-react";
 import { format, isSameDay } from 'date-fns';
 import { graphicsTasksData, type GraphicsTask } from '@/lib/graphics-data';
+import { Button } from '../ui/button';
+import { sendShippingNotification } from '@/ai/flows/send-notification-flow';
+import { useToast } from '@/hooks/use-toast';
 
 export function GraphicsAnalytics() {
     const [date, setDate] = useState<Date | undefined>(new Date());
     const [tasks, setTasks] = useState<GraphicsTask[]>(graphicsTasksData);
+    const [notifiedTags, setNotifiedTags] = useState<Set<string>>(new Set());
+    const { toast } = useToast();
 
+    // This effect simulates real-time updates from the mock data source.
     useEffect(() => {
         const interval = setInterval(() => {
-            if (tasks.length !== graphicsTasksData.length || tasks !== graphicsTasksData) {
+            if (JSON.stringify(tasks) !== JSON.stringify(graphicsTasksData)) {
                 setTasks([...graphicsTasksData]);
             }
         }, 500);
@@ -29,7 +35,6 @@ export function GraphicsAnalytics() {
             return {
                 startedTasks: [],
                 completedTasks: [],
-                readyForShippingTags: [],
             };
         }
 
@@ -41,24 +46,36 @@ export function GraphicsAnalytics() {
         const startedTasks = tasksToday; 
         const completedTasks = tasksToday.filter(task => task.status === 'done');
         
-        const readyForShippingTags: string[] = [];
-        const finishedTagIds = new Set<string>();
-
-        graphicsTasksData.forEach(task => {
-            if (task.isFinished && task.tagId) {
-                finishedTagIds.add(task.tagId);
-            }
-        });
-        
-        readyForShippingTags.push(...Array.from(finishedTagIds));
-
         return {
             startedTasks,
             completedTasks,
-            readyForShippingTags,
         };
     }, [date, tasks]);
     
+    const readyForShippingTags = useMemo(() => {
+        const finishedTagIds = new Set<string>();
+        const tagTaskMap: Record<string, GraphicsTask[]> = {};
+
+        graphicsTasksData.forEach(task => {
+            if (!task.tagId) return;
+            if (!tagTaskMap[task.tagId]) {
+                tagTaskMap[task.tagId] = [];
+            }
+            tagTaskMap[task.tagId].push(task);
+        });
+
+        for (const tagId in tagTaskMap) {
+            const associatedTasks = tagTaskMap[tagId];
+            const allTasksDone = associatedTasks.every(t => t.status === 'done');
+            const anyTaskMarkedFinished = associatedTasks.some(t => t.isFinished);
+
+            if (allTasksDone && anyTaskMarkedFinished) {
+                finishedTagIds.add(tagId);
+            }
+        }
+        return Array.from(finishedTagIds);
+    }, [tasks]);
+
     const summaryStats = useMemo(() => {
         const totalCompleted = dailyData.completedTasks.length;
         const totalDuration = dailyData.completedTasks.reduce((acc, task) => acc + (task.durationMins || 0), 0);
@@ -71,6 +88,29 @@ export function GraphicsAnalytics() {
             avgDuration: totalCompleted > 0 ? (totalDuration / totalCompleted).toFixed(1) : 0,
         };
     }, [dailyData.completedTasks]);
+
+    const handleSendNotification = async (tagId: string) => {
+        if (notifiedTags.has(tagId)) {
+            toast({ title: 'Already Notified', description: `A notification for ${tagId} has already been sent.` });
+            return;
+        }
+
+        try {
+            const result = await sendShippingNotification(tagId);
+            if (result.success) {
+                toast({
+                    title: "Shipping Notification Sent!",
+                    description: `The shipping department has been notified that Tag ID ${tagId} is ready for pickup.`
+                });
+                setNotifiedTags(prev => new Set(prev).add(tagId));
+            } else {
+                 toast({ title: "Notification Failed", description: result.message, variant: "destructive" });
+            }
+        } catch (error) {
+            console.error("Failed to send notification:", error);
+            toast({ title: "Error", description: "An error occurred while sending the shipping notification.", variant: "destructive" });
+        }
+    };
 
     return (
         <div className="space-y-6">
@@ -86,47 +126,26 @@ export function GraphicsAnalytics() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Tasks Completed</CardTitle>
-                        <CheckCircle className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{summaryStats.totalCompleted}</div>
-                    </CardContent>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Tasks Completed</CardTitle><CheckCircle className="h-4 w-4 text-muted-foreground" /></CardHeader>
+                    <CardContent><div className="text-2xl font-bold">{summaryStats.totalCompleted}</div></CardContent>
                 </Card>
                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Work Time</CardTitle>
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{summaryStats.totalDuration} <span className="text-xs text-muted-foreground">mins</span></div>
-                    </CardContent>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Work Time</CardTitle><Clock className="h-4 w-4 text-muted-foreground" /></CardHeader>
+                    <CardContent><div className="text-2xl font-bold">{summaryStats.totalDuration} <span className="text-xs text-muted-foreground">mins</span></div></CardContent>
                 </Card>
                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Avg. Task Time</CardTitle>
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{summaryStats.avgDuration} <span className="text-xs text-muted-foreground">mins</span></div>
-                    </CardContent>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Avg. Task Time</CardTitle><Clock className="h-4 w-4 text-muted-foreground" /></CardHeader>
+                    <CardContent><div className="text-2xl font-bold">{summaryStats.avgDuration} <span className="text-xs text-muted-foreground">mins</span></div></CardContent>
                 </Card>
                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Ready for Shipping</CardTitle>
-                        <PackageCheck className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{dailyData.readyForShippingTags.length}</div>
-                    </CardContent>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Ready for Shipping</CardTitle><PackageCheck className="h-4 w-4 text-muted-foreground" /></CardHeader>
+                    <CardContent><div className="text-2xl font-bold">{readyForShippingTags.length}</div></CardContent>
                 </Card>
             </div>
             
              <Card>
                 <CardHeader>
-                    <CardTitle>Tasks Completed Today</CardTitle>
-                    <CardDescription>All tasks moved to the "Completed" column on {date ? format(date, 'PPP') : ''}.</CardDescription>
+                    <CardTitle>Tasks Completed on {date ? format(date, 'PPP') : ''}</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <Table>
@@ -159,19 +178,25 @@ export function GraphicsAnalytics() {
                     <CardHeader><CardTitle>Ready for Shipping</CardTitle></CardHeader>
                     <CardContent>
                         <ul className="space-y-2">
-                           {dailyData.readyForShippingTags.length > 0 ? dailyData.readyForShippingTags.map(tagId => (
-                                <li key={tagId} className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
-                                    <PackageCheck className="h-5 w-5 text-green-600"/>
-                                    <span className="font-mono">{tagId}</span>
+                           {readyForShippingTags.length > 0 ? readyForShippingTags.map(tagId => (
+                                <li key={tagId} className="flex items-center justify-between gap-2 p-2 rounded-md bg-muted/50">
+                                   <div className="flex items-center gap-2">
+                                     <PackageCheck className="h-5 w-5 text-green-600"/>
+                                     <span className="font-mono">{tagId}</span>
+                                   </div>
+                                   <Button size="sm" variant="outline" onClick={() => handleSendNotification(tagId)} disabled={notifiedTags.has(tagId)}>
+                                       <Send className="mr-2 h-4 w-4"/>
+                                       {notifiedTags.has(tagId) ? 'Notified' : 'Notify'}
+                                   </Button>
                                 </li>
                            )) : (
-                                <p className="text-sm text-muted-foreground">No tags were marked as ready for shipping.</p>
+                                <p className="text-sm text-muted-foreground">No tags are currently marked as ready for shipping.</p>
                            )}
                         </ul>
                     </CardContent>
                 </Card>
                 <Card>
-                    <CardHeader><CardTitle>Tasks Started Today</CardTitle></CardHeader>
+                    <CardHeader><CardTitle>Tasks Started on {date ? format(date, 'PPP') : ''}</CardTitle></CardHeader>
                     <CardContent>
                         <ul className="space-y-2">
                            {dailyData.startedTasks.length > 0 ? dailyData.startedTasks.map(task => (
@@ -189,3 +214,5 @@ export function GraphicsAnalytics() {
         </div>
     );
 }
+
+    

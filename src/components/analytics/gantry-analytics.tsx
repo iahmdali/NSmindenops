@@ -15,7 +15,6 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Factory, TrendingUp, CheckCircle, AlertTriangle, Users } from "lucide-react"
 import { gantryReportsData, GantryReport } from "@/lib/gantry-data"
-import { Progress } from "../ui/progress"
 
 const classifySailType = (sailNumber?: string): 'Sail' | 'Panel' | 'Scarf' => {
   if (!sailNumber || sailNumber.length < 3) return 'Scarf';
@@ -87,7 +86,7 @@ export function GantryAnalytics() {
           shift: report.shift,
           zone: report.zone_assignment,
           sail_type: classifySailType(sail.sail_number),
-          hasIssues: !!(sail.issues && sail.issues.trim()),
+          hasIssues: !!(sail.issues && sail.issues.trim() && sail.issues !== 'None'),
           reportId: report.id,
           personnel: report.personnel,
           zoneLeads: report.zoneLeads
@@ -117,7 +116,8 @@ export function GantryAnalytics() {
     return {
       totalSailsProcessed, totalSails, totalPanels, totalScarfs,
       quality, efficiency,
-      totalPersonnel: new Set(filteredReports.flatMap(r => r.personnel?.map(p => p.name) || [])).size
+      totalPersonnel: new Set(filteredReports.flatMap(r => r.personnel?.map(p => p.name) || [])).size,
+      sailsWithZeroIssues
     };
   }, [filteredReports, allSails]);
 

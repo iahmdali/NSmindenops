@@ -19,7 +19,6 @@ import { Target, Gauge, Clock, Zap, AlertTriangle } from "lucide-react"
 import type { Report } from "@/lib/types"
 import { tapeheadsSubmissions } from "@/lib/tapeheads-data"
 import { Badge } from "../ui/badge"
-import { PageHeader } from "../page-header"
 
 const downtimeReasonsConfig = {
     "Machine Jam": { label: 'Machine Jam', color: 'hsl(var(--chart-1))' },
@@ -70,8 +69,8 @@ export function TapeheadsAnalytics() {
   }, [filters]);
   
   const kpiData = React.useMemo(() => {
-    const totalMeters = data.reduce((acc, report) => acc + report.total_meters, 0);
-    const totalHours = data.reduce((acc, report) => acc + calculateHours(report.shift_start_time, report.shift_end_time), 0);
+    const totalMeters = data.reduce((acc, report) => acc + (report.total_meters || 0), 0);
+    const totalHours = data.reduce((acc, report) => acc + calculateHours(report.shiftStartTime, report.shiftEndTime), 0);
     const totalDowntime = data.reduce((acc, report) => {
         const issuesDowntime = report.issues?.reduce((sum, issue) => sum + issue.duration_minutes, 0) || 0;
         const spinoutDowntime = report.had_spin_out ? (report.spin_out_duration_minutes || 0) : 0;
@@ -95,7 +94,7 @@ export function TapeheadsAnalytics() {
       if (!dailyData[date]) {
         dailyData[date] = { date, meters: 0 };
       }
-      dailyData[date].meters += report.total_meters;
+      dailyData[date].meters += report.total_meters || 0;
     });
     return Object.values(dailyData).slice(-14); // Last 14 days
   }, [data]);
@@ -105,7 +104,7 @@ export function TapeheadsAnalytics() {
     data.forEach(report => {
       report.issues?.forEach(d => {
         const reason = d.problem_reason in reasonData ? d.problem_reason : "Other";
-        reasonData[reason] = (reasonData[reason] || 0) + d.duration_minutes;
+        reasonData[reason] = (reasonData[reason] || 0) + (d.duration_minutes || 0);
       });
       if(report.had_spin_out) {
         reasonData["Spin Out"] += report.spin_out_duration_minutes || 0;
@@ -119,13 +118,13 @@ export function TapeheadsAnalytics() {
     data.forEach(report => {
         const shiftKey = String(report.shift);
         if (shiftData[shiftKey]) {
-            shiftData[shiftKey].totalMeters += report.total_meters;
-            shiftData[shiftKey].totalHours += calculateHours(report.shift_start_time, report.shift_end_time);
+            shiftData[shiftKey].totalMeters += report.total_meters || 0;
+            shiftData[shiftKey].totalHours += calculateHours(report.shiftStartTime, report.shiftEndTime);
         }
     });
     return Object.entries(shiftData).map(([shift, values]) => ({
         name: `Shift ${shift}`,
-        mpmh: values.totalHours > 0 ? parseFloat((values.totalMeters / values.totalHours).toFixed(1)) : 0
+        mpmh: values.totalHours > 0 ? parseFloat(((values.totalMeters || 0) / values.totalHours).toFixed(1)) : 0
     }));
   }, [data]);
 
@@ -133,12 +132,12 @@ export function TapeheadsAnalytics() {
     const thData: { [key: string]: { totalHours: number, totalMeters: number, spinOuts: number, operators: Set<string> } } = {};
     
     data.forEach(report => {
-        if (!thData[report.th_number]) {
-            thData[report.th_number] = { totalHours: 0, totalMeters: 0, spinOuts: 0, operators: new Set() };
+        if (!thData[report.thNumber]) {
+            thData[report.thNumber] = { totalHours: 0, totalMeters: 0, spinOuts: 0, operators: new Set() };
         }
-        const d = thData[report.th_number];
-        d.totalHours += calculateHours(report.shift_start_time, report.shift_end_time);
-        d.totalMeters += report.total_meters;
+        const d = thData[report.thNumber];
+        d.totalHours += calculateHours(report.shiftStartTime, report.shiftEndTime);
+        d.totalMeters += report.total_meters || 0;
         if (report.had_spin_out) d.spinOuts++;
         d.operators.add(report.operatorName);
     });
@@ -146,7 +145,7 @@ export function TapeheadsAnalytics() {
     return Object.entries(thData).map(([th, d]) => ({
         th_number: th,
         ...d,
-        efficiency: d.totalHours > 0 ? (d.totalMeters / d.totalHours).toFixed(1) : 0,
+        efficiency: d.totalHours > 0 ? ((d.totalMeters || 0) / d.totalHours).toFixed(1) : 0,
         spinOutRate: d.totalHours > 0 ? (d.spinOuts / d.totalHours * 100).toFixed(1) : 0, // as percentage
     })).sort((a, b) => a.th_number.localeCompare(b.th_number));
   }, [data]);
@@ -154,7 +153,6 @@ export function TapeheadsAnalytics() {
 
   return (
     <div className="space-y-6">
-        <PageHeader title="3Di Leads – Tape Head Performance Analytics" />
         <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
             <Card className="bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800"><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium text-green-800 dark:text-green-200">Total Output (m)</CardTitle><Target className="h-4 w-4 text-green-600 dark:text-green-400" /></CardHeader><CardContent><div className="text-2xl font-bold text-green-900 dark:text-green-100">{kpiData.totalMeters}</div></CardContent></Card>
             <Card className="bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800"><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium text-blue-800 dark:text-blue-200">Average Productivity</CardTitle><Gauge className="h-4 w-4 text-blue-600 dark:text-blue-400" /></CardHeader><CardContent><div className="text-2xl font-bold text-blue-900 dark:text-blue-100">{kpiData.averageMpmh}</div></CardContent></Card>
@@ -272,3 +270,5 @@ export function TapeheadsAnalytics() {
     </div>
   )
 }
+
+    
