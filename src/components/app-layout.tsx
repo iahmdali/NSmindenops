@@ -54,6 +54,7 @@ import {
 } from "lucide-react";
 import { Logo } from "@/components/icons";
 import { cn } from "@/lib/utils";
+import { useAppTitle } from "./app-title-context";
 
 const departments = [
   { name: 'Pregger', href: '/report/pregger', icon: Building2 },
@@ -102,8 +103,9 @@ function UserNav() {
   );
 }
 
-function MainSidebar({title}: {title: React.ReactNode}) {
+function MainSidebar() {
   const pathname = usePathname();
+  const { title } = useAppTitle();
   const { open, setOpen, state } = useSidebar();
   const [isReportsOpen, setReportsOpen] = React.useState(false);
   const [isAnalyticsOpen, setAnalyticsOpen] = React.useState(false);
@@ -256,10 +258,10 @@ function MainSidebar({title}: {title: React.ReactNode}) {
   );
 }
 
-export function AppLayout({ children, title }: { children: React.ReactNode, title: React.ReactNode }) {
+export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
-      <MainSidebar title={title} />
+      <MainSidebar />
       <SidebarInset>
         <header className="flex items-center justify-between p-4 border-b">
           <div className="md:hidden">
