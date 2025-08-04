@@ -135,6 +135,8 @@ export function TapeheadsOperatorForm({ reportToEdit, onFormSubmit }: TapeheadsO
           shiftLeadName: "",
           thNumber: "",
           operatorName: "",
+          shiftStartTime: "",
+          shiftEndTime: "",
           workItems: [],
           checklist: checklistItems.reduce((acc, item) => ({...acc, [item.id]: false}), {})
       };
@@ -341,7 +343,7 @@ export function TapeheadsOperatorForm({ reportToEdit, onFormSubmit }: TapeheadsO
               <div>
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-semibold text-primary">Work Items</h3>
-                  <Button type="button" variant="outline" size="sm" onClick={() => appendWorkItem({ oeNumber: '', section: '', materialType: '', endOfShiftStatus: 'Completed', metersProduced: 0, tapesUsed: 0, panelsWorkedOn: [], panelWorkType: 'individual', nestedPanels: [], hadSpinOut: false, problems: [] })}>
+                  <Button type="button" variant="outline" size="sm" onClick={() => appendWorkItem({ oeNumber: '', section: '', materialType: '', endOfShiftStatus: 'Completed', metersProduced: 0, tapesUsed: 0, panelsWorkedOn: [], panelWorkType: 'individual', nestedPanels: [], hadSpinOut: false, spinOutDuration: 0, problems: [] })}>
                       <PlusCircle className="mr-2 h-4 w-4" /> Add Work Item
                   </Button>
                 </div>
