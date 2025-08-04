@@ -94,4 +94,31 @@ export const gantryReportsData: GantryReport[] = [
         ],
         maintenance: [],
     },
+    {
+        id: "gantry_rpt_new_3",
+        report_date: "2023-10-26T22:00:00Z",
+        date: "2023-10-26T22:00:00Z",
+        shift: "3",
+        zone_assignment: "Zone B",
+        zoneLeads: [{ zone_number: "Zone 2", lead_name: "Lead Frank" }],
+        personnel: [
+            { name: "Frank" },
+            { name: "Grace" },
+        ],
+        molds: [
+            {
+                mold_number: "Gantry 8 / MOLD 100",
+                sails: [
+                    { sail_number: "OAUS32145-001", stage_of_process: "Lamination Inspection", issues: "None" },
+                ],
+                downtime_caused: true,
+            },
+        ],
+        downtime: [
+            { reason: "Vacuum Issues", duration: 30 }
+        ],
+        maintenance: [
+            { description: "Replaced vacuum seal on Gantry 8", duration: 45 }
+        ],
+    }
 ];

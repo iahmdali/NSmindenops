@@ -34,6 +34,18 @@ export const inspectionsData: InspectionSubmission[] = [
             finalOutcome: 'Recooked',
             comments: 'Minor shrinkage waves were addressed after recooking process. Accepted.'
         }
+    },
+    {
+        id: 'qc-3',
+        inspectionDate: '2023-10-27T12:00:00Z',
+        oeNumber: 'OAUS32145-001',
+        inspectorName: 'Inspector Ali',
+        totalScore: 105,
+        status: 'Fail',
+        reinspection: {
+            finalOutcome: 'Rejected',
+            comments: 'Major delamination found near clew. Sail is a total loss.'
+        }
     }
 ];
 

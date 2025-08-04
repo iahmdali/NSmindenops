@@ -15,4 +15,16 @@ export const filmsData: FilmsReport[] = [
         sails_started: [],
         sails_finished: [{ sail_number: "OUS2345-141", comments: "Ready for Gantry 5." }],
     },
+    {
+        report_date: "2023-10-27T10:00:00Z",
+        gantry_number: "4",
+        sails_started: [{ sail_number: "OIT76541-001", comments: "Started prepping film." }],
+        sails_finished: [],
+    },
+    {
+        report_date: "2023-10-25T14:00:00Z",
+        gantry_number: "8",
+        sails_started: [{ sail_number: "OAUS32145-001" }],
+        sails_finished: [{ sail_number: "OAUS32145-001", comments: "All set for Gantry 8." }],
+    }
 ];
