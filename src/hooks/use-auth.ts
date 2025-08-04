@@ -3,6 +3,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import Cookies from 'js-cookie';
+import { usePathname, useRouter } from 'next/navigation';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -18,29 +19,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
-    // Check for auth cookie on initial load
     const userCookie = Cookies.get('auth_user');
     if (userCookie) {
       setIsAuthenticated(true);
       setUser(userCookie);
+       if(pathname === '/login') {
+         router.push('/dashboard');
+      }
+    } else {
+      if (pathname !== '/login') {
+        router.push('/login');
+      }
     }
     setIsLoading(false);
-  }, []);
+  }, [pathname, router]);
 
   const login = (newUser: string) => {
     setIsAuthenticated(true);
     setUser(newUser);
-    Cookies.set('auth_user', newUser, { expires: 7 }); // Cookie expires in 7 days
+    Cookies.set('auth_user', newUser, { expires: 7 }); 
+    router.push('/dashboard');
   };
 
   const logout = () => {
     setIsAuthenticated(false);
     setUser(null);
     Cookies.remove('auth_user');
-    // Full page reload to ensure all state is cleared
-    window.location.href = '/login';
+    router.push('/login');
   };
 
   return (
