@@ -1,174 +1,231 @@
-"use client"
 
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Pie, PieChart, Cell } from "recharts"
-import { PageHeader } from "@/components/page-header"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import {
-  ChartContainer,
-  ChartTooltipContent,
-} from "@/components/ui/chart"
-import type { ChartConfig } from "@/components/ui/chart"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import { AlertTriangle, CheckCircle, Clock } from "lucide-react"
+"use client";
 
-const productionChartConfig = {
-  meters: {
-    label: "Meters",
+import { useMemo } from 'react';
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip } from "recharts";
+import { PageHeader } from "@/components/page-header";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
+import type { ChartConfig } from "@/components/ui/chart";
+import { Badge } from "@/components/ui/badge";
+import { AlertTriangle, CheckCircle, Factory, ShieldCheck, TrendingUp, Users, Wrench } from "lucide-react";
+import { tapeheadsSubmissions } from '@/lib/tapeheads-data';
+import { filmsData } from '@/lib/films-data';
+import { gantryReportsData } from '@/lib/gantry-data';
+import { graphicsTasksData } from '@/lib/graphics-data';
+import { inspectionsData } from '@/lib/qc-data';
+import { format, isToday } from 'date-fns';
+import { Separator } from '@/components/ui/separator';
+
+const bottleneckChartConfig = {
+  count: {
+    label: "Active Items",
     color: "hsl(var(--chart-1))",
   },
-} satisfies ChartConfig
-
-const downtimeChartConfig = {
-  Pregger: { label: 'Pregger', color: "hsl(var(--chart-1))" },
-  Tapeheads: { label: 'Tapeheads', color: "hsl(var(--chart-2))" },
-  Gantry: { label: 'Gantry', color: "hsl(var(--chart-3))" },
 } satisfies ChartConfig;
-
-const issuesData = [
-    { department: "Tapeheads", issue: "Machine B Jam", occurrences: 5, status: "Ongoing" },
-    { department: "Gantry", issue: "Material Shortage", occurrences: 3, status: "Resolved" },
-    { department: "Pregger", issue: "Mechanical Failure", occurrences: 2, status: "Ongoing" },
-]
-
-const shiftSummaryData = [
-  { department: 'Pregger', status: 'On Track', details: 'Shift 2 running smoothly.' },
-  { department: 'Tapeheads', status: 'Attention', details: 'Spin Out reported on TH-2.' },
-  { department: 'Gantry', status: 'On Track', details: 'All molds productive.' },
-  { department: 'Films', status: 'On Track', details: 'Normal operations.' },
-  { department: 'Graphics', status: 'Delayed', details: 'Printer maintenance caused delay.' },
-];
-
-const productionData = [
-    { department: "Pregger", meters: 4800 },
-    { department: "Tapeheads", meters: 5200 },
-    { department: "Gantry", meters: 7500 },
-    { department: "Films", meters: 3200 },
-    { department: "Graphics", meters: 1500 },
-]
-
-const downtimeData = [
-  { department: 'Pregger', minutes: 60 },
-  { department: 'Tapeheads', minutes: 90 },
-  { department: 'Gantry', minutes: 45 },
-];
 
 
 export default function DashboardPage() {
+    const dashboardData = useMemo(() => {
+        const today = new Date();
+
+        // --- KPIs ---
+        const activeWorkOrders = new Set(
+            [
+                ...tapeheadsSubmissions.filter(r => isToday(new Date(r.date))).flatMap(r => r.workItems?.map(wi => wi.oeNumber) || []),
+                ...filmsData.filter(r => isToday(new Date(r.report_date))).flatMap(r => [...r.sails_started, ...r.sails_finished]).map(s => s.sail_number.split('-')[0]),
+                ...gantryReportsData.filter(r => isToday(new Date(r.date))).flatMap(r => r.molds?.flatMap(m => m.sails?.map(s => s.sail_number.split('-')[0]) || []) || []),
+            ].filter(Boolean)
+        );
+        
+        const totalMetersToday = tapeheadsSubmissions
+            .filter(r => isToday(new Date(r.date)))
+            .reduce((sum, r) => sum + (r.total_meters || 0), 0);
+
+        const qualityAlerts = inspectionsData.filter(i => isToday(new Date(i.inspectionDate)) && i.status !== 'Pass').length;
+        
+        const totalDowntimeMinutes = gantryReportsData
+            .filter(r => isToday(new Date(r.date)))
+            .reduce((sum, r) => sum + (r.downtime?.reduce((dSum, d) => dSum + d.duration, 0) || 0), 0);
+        
+        // --- Activity Feed ---
+        const tapeheadsActivity = tapeheadsSubmissions.flatMap(r => 
+            (r.workItems || []).map(wi => ({
+                dept: 'Tapeheads',
+                oe: `${wi.oeNumber}-${wi.section}`,
+                details: `${r.operatorName} on ${r.thNumber} - ${wi.total_meters}m`,
+                status: wi.endOfShiftStatus,
+                date: new Date(r.date)
+            }))
+        );
+
+        const filmsActivity = filmsData.flatMap(r => 
+             r.sails_finished.map(s => ({
+                dept: 'Films',
+                oe: s.sail_number,
+                details: `Prepped for Gantry ${r.gantry_number}`,
+                status: 'Prepped',
+                date: new Date(r.report_date)
+            }))
+        );
+        
+        const gantryActivity = gantryReportsData.flatMap(r =>
+            (r.molds || []).flatMap(m => 
+                (m.sails || []).map(s => ({
+                    dept: 'Gantry',
+                    oe: s.sail_number,
+                    details: `Stage: ${s.stage_of_process} on ${m.mold_number}`,
+                    status: s.stage_of_process || 'In Progress',
+                    date: new Date(r.date)
+                }))
+            )
+        );
+        
+        const graphicsActivity = graphicsTasksData
+            .filter(t => t.status === 'done' && t.completedAt && isToday(new Date(t.completedAt)))
+            .map(t => ({
+                dept: 'Graphics',
+                oe: t.tagId,
+                details: `${t.type} task completed`,
+                status: 'Completed',
+                date: new Date(t.completedAt!)
+            }));
+            
+         const allActivity = [...tapeheadsActivity, ...filmsActivity, ...gantryActivity, ...graphicsActivity]
+            .sort((a, b) => b.date.getTime() - a.date.getTime());
+
+
+        // --- Bottleneck Chart ---
+        const bottleneckData = [
+            { dept: 'Tapeheads', count: tapeheadsSubmissions.filter(r => (r.workItems || []).some(wi => wi.endOfShiftStatus === 'In Progress')).length },
+            { dept: 'Films', count: filmsData.filter(r => r.sails_started.length > 0 && r.sails_finished.length === 0).length },
+            { dept: 'Gantry', count: gantryReportsData.filter(r => (r.molds || []).some(m => (m.sails || []).some(s => s.stage_of_process !== 'Lamination Inspection'))).length },
+            { dept: 'Graphics', count: graphicsTasksData.filter(t => t.status === 'inProgress').length },
+            { dept: 'QC', count: inspectionsData.filter(i => i.status === 'Reinspection Required').length },
+        ];
+
+
+        return {
+            activeWorkOrders: activeWorkOrders.size,
+            totalMetersToday,
+            qualityAlerts,
+            totalDowntimeHours: (totalDowntimeMinutes / 60).toFixed(1),
+            allActivity,
+            bottleneckData,
+        }
+
+    }, []);
+
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Unified Dashboard"
-        description="Cross-departmental summary for today's date."
+        title="Production Dashboard"
+        description={`Live overview of all department activities for ${format(new Date(), 'PPP')}.`}
       />
-      <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
-        {/* Daily Shift Summary */}
-        <Card className="lg:col-span-3">
-          <CardHeader>
-            <CardTitle>Daily Shift Summary</CardTitle>
-            <CardDescription>Quick status overview of all departments.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Department</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Details</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {shiftSummaryData.map((d) => (
-                  <TableRow key={d.department}>
-                    <TableCell className="font-medium">{d.department}</TableCell>
-                    <TableCell>
-                      <Badge variant={d.status === 'On Track' ? 'default' : 'destructive'} className="capitalize">
-                        {d.status === 'On Track' && <CheckCircle className="mr-1 h-3 w-3"/>}
-                        {d.status === 'Attention' && <AlertTriangle className="mr-1 h-3 w-3"/>}
-                        {d.status === 'Delayed' && <Clock className="mr-1 h-3 w-3"/>}
-                        {d.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{d.details}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
 
-        {/* Sail Output Trends */}
-        <Card className="lg:col-span-2">
+       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Active Work Orders</CardTitle>
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{dashboardData.activeWorkOrders}</div>
+                    <p className="text-xs text-muted-foreground">OEs with activity today</p>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Output Today</CardTitle>
+                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{dashboardData.totalMetersToday.toLocaleString()}m</div>
+                     <p className="text-xs text-muted-foreground">From Tapeheads department</p>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Quality Alerts</CardTitle>
+                    <AlertTriangle className="h-4 w-4 text-destructive" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{dashboardData.qualityAlerts}</div>
+                    <p className="text-xs text-muted-foreground">Sails needing reinspection or failed</p>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Downtime Today</CardTitle>
+                    <Wrench className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{dashboardData.totalDowntimeHours} <span className="text-sm text-muted-foreground">hrs</span></div>
+                    <p className="text-xs text-muted-foreground">Across all departments</p>
+                </CardContent>
+            </Card>
+      </div>
+
+      <div className="grid gap-6 grid-cols-1 lg:grid-cols-5">
+         <Card className="lg:col-span-3">
+             <CardHeader>
+                <CardTitle>Live Activity Feed</CardTitle>
+                <CardDescription>Most recent production events from all departments.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 max-h-[400px] overflow-y-auto">
+                {dashboardData.allActivity.map((item, index) => (
+                    <div key={index} className="flex items-start gap-4">
+                        <div className="flex-shrink-0 pt-1">
+                             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
+                                {item.dept === 'Tapeheads' && <Users className="h-4 w-4 text-muted-foreground" />}
+                                {item.dept === 'Films' && <CheckCircle className="h-4 w-4 text-muted-foreground" />}
+                                {item.dept === 'Gantry' && <Factory className="h-4 w-4 text-muted-foreground" />}
+                                {item.dept === 'Graphics' && <Users className="h-4 w-4 text-muted-foreground" />}
+                             </span>
+                        </div>
+                        <div className="flex-1">
+                             <div className="flex justify-between items-center">
+                                <p className="font-semibold">{item.oe}</p>
+                                <Badge variant="secondary">{item.dept}</Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground">{item.details}</p>
+                             <p className="text-xs text-muted-foreground">{format(item.date, 'p')}</p>
+                        </div>
+                    </div>
+                ))}
+            </CardContent>
+         </Card>
+         <Card className="lg:col-span-2">
             <CardHeader>
-                <CardTitle>Sail Output Trends</CardTitle>
-                <CardDescription>Total meters produced by department.</CardDescription>
+                <CardTitle>Production Queue</CardTitle>
+                <CardDescription>Active work items by department.</CardDescription>
             </CardHeader>
             <CardContent>
-                 <ChartContainer config={productionChartConfig} className="h-64 w-full">
-                    <BarChart accessibilityLayer data={productionData}>
-                        <CartesianGrid vertical={false} />
-                        <XAxis dataKey="department" tickLine={false} tickMargin={10} axisLine={false} />
-                        <YAxis />
-                        <Tooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
-                        <Bar dataKey="meters" fill="var(--color-meters)" radius={4} />
+                 <ChartContainer config={bottleneckChartConfig} className="h-80 w-full">
+                    <BarChart
+                        data={dashboardData.bottleneckData}
+                        layout="vertical"
+                        margin={{ left: 10, right: 10 }}
+                    >
+                        <CartesianGrid horizontal={false} />
+                        <YAxis
+                            dataKey="dept"
+                            type="category"
+                            tickLine={false}
+                            axisLine={false}
+                            tickMargin={10}
+                            className="text-xs"
+                        />
+                        <XAxis dataKey="count" type="number" hide />
+                        <Tooltip
+                            cursor={{ fill: 'hsl(var(--muted))' }}
+                            content={<ChartTooltipContent hideLabel />}
+                        />
+                        <Bar dataKey="count" fill="var(--color-count)" radius={4} />
                     </BarChart>
                 </ChartContainer>
             </CardContent>
-        </Card>
-
-        {/* Downtime Breakdown */}
-        <Card>
-            <CardHeader>
-                <CardTitle>Downtime Breakdown</CardTitle>
-                <CardDescription>Total downtime in minutes by department.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <ChartContainer config={downtimeChartConfig} className="h-64 w-full">
-                    <PieChart>
-                         <Tooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-                         <Pie data={downtimeData} dataKey="minutes" nameKey="department" innerRadius={50}>
-                             {downtimeData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={`var(--color-${entry.department})`} />
-                            ))}
-                         </Pie>
-                    </PieChart>
-                </ChartContainer>
-            </CardContent>
-        </Card>
-        
-        {/* Top Issues */}
-        <Card className="lg:col-span-3">
-            <CardHeader>
-                <CardTitle>Top Issues Across Departments</CardTitle>
-                 <CardDescription>Most frequent issues reported in the last 24 hours.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                 <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Department</TableHead>
-                            <TableHead>Issue</TableHead>
-                            <TableHead>Occurrences</TableHead>
-                            <TableHead>Status</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {issuesData.map((issue) => (
-                            <TableRow key={issue.issue}>
-                                <TableCell>{issue.department}</TableCell>
-                                <TableCell className="font-medium">{issue.issue}</TableCell>
-                                <TableCell>{issue.occurrences}</TableCell>
-                                <TableCell>
-                                    <Badge variant={issue.status === "Resolved" ? "secondary" : "destructive"}>
-                                        {issue.status}
-                                    </Badge>
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </CardContent>
-        </Card>
+         </Card>
       </div>
     </div>
   )
