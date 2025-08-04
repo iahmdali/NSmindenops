@@ -254,3 +254,4 @@ export function SailStatusCard({ item }: SailStatusCardProps) {
     </Card>
   );
 }
+
