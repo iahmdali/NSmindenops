@@ -112,7 +112,7 @@ function MainSidebar() {
     if (pathname.startsWith('/report')) {
       setReportsOpen(true);
     }
-    if (pathname.startsWith('/analytics') || pathname.startsWith('/review') || pathname.startsWith('/filesystem') || pathname.startsWith('/qc') || pathname.startsWith('/progress')) {
+    if (pathname.startsWith('/analytics') || pathname.startsWith('/review') || pathname.startsWith('/filesystem') || pathname.startsWith('/qc')) {
       setAnalyticsOpen(true);
     }
   }, [pathname]);
@@ -176,7 +176,7 @@ function MainSidebar() {
            <SidebarMenuItem>
             <SidebarMenuButton
               onClick={() => setAnalyticsOpen(!isAnalyticsOpen)}
-              isActive={pathname.startsWith("/analytics") || pathname.startsWith('/review') || pathname.startsWith('/filesystem') || pathname.startsWith('/qc') || pathname.startsWith('/progress')}
+              isActive={pathname.startsWith("/analytics") || pathname.startsWith('/review') || pathname.startsWith('/filesystem') || pathname.startsWith('/qc')}
             >
               <AreaChart />
               <span>Lead Functions</span>
@@ -189,11 +189,6 @@ function MainSidebar() {
             </SidebarMenuButton>
             {isAnalyticsOpen && (
               <SidebarMenuSub>
-                <SidebarMenuSubItem>
-                   <SidebarMenuSubButton asChild isActive={pathname.startsWith('/progress')}>
-                        <Link href="/progress"><PackageSearch /><span>Sail Status</span></Link>
-                   </SidebarMenuSubButton>
-                </SidebarMenuSubItem>
                 <SidebarMenuSubItem>
                    <SidebarMenuSubButton asChild isActive={pathname === '/filesystem'}>
                         <Link href="/filesystem"><FilePlus /><span>File System</span></Link>
