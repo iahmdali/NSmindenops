@@ -102,13 +102,15 @@ export function TapeheadsAnalytics() {
   const downtimeByReason = React.useMemo(() => {
     const reasonData: { [key: string]: number } = { "Machine Jam": 0, "Material Shortage": 0, "Spin Out": 0, "Other": 0 };
     data.forEach(report => {
-      report.issues?.forEach(d => {
-        const reason = d.problem_reason in reasonData ? d.problem_reason : "Other";
-        reasonData[reason] = (reasonData[reason] || 0) + (d.duration_minutes || 0);
-      });
-      if(report.had_spin_out) {
-        reasonData["Spin Out"] += report.spin_out_duration_minutes || 0;
-      }
+        (report.workItems || []).forEach(item => {
+            item.issues?.forEach(d => {
+                const reason = d.problem_reason in reasonData ? d.problem_reason : "Other";
+                reasonData[reason] = (reasonData[reason] || 0) + (d.duration_minutes || 0);
+            });
+            if(item.had_spin_out) {
+                reasonData["Spin Out"] += item.spin_out_duration_minutes || 0;
+            }
+        })
     });
     return Object.entries(reasonData).map(([name, value]) => ({ name, value, fill: `var(--color-${name.replace(/\s/g, '')})` })).filter(d => d.value > 0);
   }, [data]);
@@ -138,7 +140,9 @@ export function TapeheadsAnalytics() {
         const d = thData[report.thNumber];
         d.totalHours += calculateHours(report.shiftStartTime, report.shiftEndTime);
         d.totalMeters += report.total_meters || 0;
-        if (report.had_spin_out) d.spinOuts++;
+        (report.workItems || []).forEach(item => {
+            if (item.had_spin_out) d.spinOuts++;
+        });
         d.operators.add(report.operatorName);
     });
 
@@ -149,6 +153,10 @@ export function TapeheadsAnalytics() {
         spinOutRate: d.totalHours > 0 ? (d.spinOuts / d.totalHours * 100).toFixed(1) : 0, // as percentage
     })).sort((a, b) => a.th_number.localeCompare(b.th_number));
   }, [data]);
+  
+    const allIssues = React.useMemo(() => {
+        return data.flatMap(report => (report.workItems || []).flatMap(item => (item.issues || []).map(issue => ({...issue, report, item}))));
+    }, [data]);
 
 
   return (
@@ -174,9 +182,8 @@ export function TapeheadsAnalytics() {
         </Card>
 
         <Tabs defaultValue="overview">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="overview">Production Overview</TabsTrigger>
-                <TabsTrigger value="performance">Performance Metrics</TabsTrigger>
                 <TabsTrigger value="issues">Quality & Issues</TabsTrigger>
                 <TabsTrigger value="th-perf">TH Performance</TabsTrigger>
             </TabsList>
@@ -195,22 +202,24 @@ export function TapeheadsAnalytics() {
                         </ChartContainer>
                     </CardContent>
                 </Card>
+                <Card>
+                    <CardHeader><CardTitle>Average MPMH by Shift</CardTitle></CardHeader>
+                    <CardContent>
+                        <ChartContainer config={mpmhChartConfig} className="h-72 w-full">
+                            <BarChart data={mpmhByShift}>
+                                <CartesianGrid vertical={false} />
+                                <XAxis dataKey="name" />
+                                <YAxis />
+                                <Tooltip content={<ChartTooltipContent />} />
+                                <Bar dataKey="mpmh" fill="var(--color-mpmh)" radius={4} />
+                            </BarChart>
+                        </ChartContainer>
+                    </CardContent>
+                </Card>
+            </TabsContent>
+            <TabsContent value="issues" className="space-y-4">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                     <Card>
-                        <CardHeader><CardTitle>Average MPMH by Shift</CardTitle></CardHeader>
-                        <CardContent>
-                           <ChartContainer config={mpmhChartConfig} className="h-72 w-full">
-                                <BarChart data={mpmhByShift}>
-                                    <CartesianGrid vertical={false} />
-                                    <XAxis dataKey="name" />
-                                    <YAxis />
-                                    <Tooltip content={<ChartTooltipContent />} />
-                                    <Bar dataKey="mpmh" fill="var(--color-mpmh)" radius={4} />
-                                </BarChart>
-                            </ChartContainer>
-                        </CardContent>
-                    </Card>
-                     <Card>
+                    <Card>
                         <CardHeader><CardTitle>Downtime Reasons</CardTitle></CardHeader>
                         <CardContent>
                             <ChartContainer config={downtimeReasonsConfig} className="h-72 w-full">
@@ -225,13 +234,26 @@ export function TapeheadsAnalytics() {
                             </ChartContainer>
                         </CardContent>
                     </Card>
+                    <Card>
+                        <CardHeader><CardTitle>Problem Log</CardTitle></CardHeader>
+                        <CardContent className="max-h-80 overflow-y-auto">
+                            <Table>
+                                <TableHeader><TableRow><TableHead>Work Item</TableHead><TableHead>Reason</TableHead><TableHead>Duration</TableHead><TableHead>Operator</TableHead></TableRow></TableHeader>
+                                <TableBody>
+                                    {allIssues.map((issue, i) => (
+                                        <TableRow key={i}>
+                                            <TableCell><Badge variant="secondary">{issue.item.oeNumber}-{issue.item.section}</Badge></TableCell>
+                                            <TableCell>{issue.problem_reason}</TableCell>
+                                            <TableCell>{issue.duration_minutes} min</TableCell>
+                                            <TableCell>{issue.report.operatorName}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                    {allIssues.length === 0 && <TableRow><TableCell colSpan={4} className="text-center">No issues reported</TableCell></TableRow>}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
                 </div>
-            </TabsContent>
-            <TabsContent value="performance">
-                 <Card><CardHeader><CardTitle>Performance Metrics</CardTitle></CardHeader><CardContent><p>Performance metrics charts will be displayed here.</p></CardContent></Card>
-            </TabsContent>
-            <TabsContent value="issues">
-                <Card><CardHeader><CardTitle>Quality & Issues</CardTitle></CardHeader><CardContent><p>Quality and issues charts will be displayed here.</p></CardContent></Card>
             </TabsContent>
             <TabsContent value="th-perf">
                 <Card>
@@ -244,7 +266,7 @@ export function TapeheadsAnalytics() {
                                     <TableHead>Total Hours</TableHead>
                                     <TableHead>Total Meters</TableHead>
                                     <TableHead>Efficiency (m/hr)</TableHead>
-                                    <TableHead>Spin-Out Rate (%)</TableHead>
+                                    <TableHead>Spin-Outs</TableHead>
                                     <TableHead>Operators</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -255,7 +277,7 @@ export function TapeheadsAnalytics() {
                                         <TableCell>{th.totalHours}</TableCell>
                                         <TableCell>{th.totalMeters.toLocaleString()}</TableCell>
                                         <TableCell>{th.efficiency}</TableCell>
-                                        <TableCell>{th.spinOutRate}%</TableCell>
+                                        <TableCell>{th.spinOuts}</TableCell>
                                         <TableCell>
                                             <Badge variant="secondary">{Array.from(th.operators).join(', ')}</Badge>
                                         </TableCell>
