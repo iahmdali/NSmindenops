@@ -108,33 +108,33 @@ export function PreggerAnalytics() {
   return (
     <div className="space-y-6">
       <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800">
+        <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-green-800 dark:text-green-200">Total Meters Produced</CardTitle>
-                <Factory className="h-4 w-4 text-green-600 dark:text-green-400" />
+                <CardTitle className="text-sm font-medium">Total Meters Produced</CardTitle>
+                <Factory className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent><div className="text-2xl font-bold text-green-900 dark:text-green-100">{kpiData.totalMeters}</div></CardContent>
+            <CardContent><div className="text-2xl font-bold">{kpiData.totalMeters}</div></CardContent>
         </Card>
-        <Card className="bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800">
+        <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-blue-800 dark:text-blue-200">Operational Efficiency</CardTitle>
-                <Zap className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <CardTitle className="text-sm font-medium">Operational Efficiency</CardTitle>
+                <Zap className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent><div className="text-2xl font-bold text-blue-900 dark:text-blue-100">{kpiData.operationalEfficiency}</div></CardContent>
+            <CardContent><div className="text-2xl font-bold">{kpiData.operationalEfficiency}</div></CardContent>
         </Card>
-         <Card className="bg-yellow-50 dark:bg-yellow-900/30 border-yellow-200 dark:border-yellow-800">
+         <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-yellow-800 dark:text-yellow-200">Average Yield Rate</CardTitle>
-                <TrendingUp className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                <CardTitle className="text-sm font-medium">Average Yield Rate</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent><div className="text-2xl font-bold text-yellow-900 dark:text-yellow-100">{kpiData.yieldRate}</div></CardContent>
+            <CardContent><div className="text-2xl font-bold">{kpiData.yieldRate}</div></CardContent>
         </Card>
-        <Card className="bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800">
+        <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-red-800 dark:text-red-200">Total Downtime</CardTitle>
-                <Clock className="h-4 w-4 text-red-600 dark:text-red-400" />
+                <CardTitle className="text-sm font-medium">Total Downtime</CardTitle>
+                <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent><div className="text-2xl font-bold text-red-900 dark:text-red-100">{kpiData.totalDowntime}</div></CardContent>
+            <CardContent><div className="text-2xl font-bold">{kpiData.totalDowntime}</div></CardContent>
         </Card>
       </div>
 
