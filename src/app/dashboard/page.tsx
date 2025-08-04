@@ -119,7 +119,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Production Dashboard"
+        title="Dashboard"
         description={`Live overview of all department activities for ${format(new Date(), 'PPP')}.`}
       />
 

@@ -102,7 +102,7 @@ function UserNav() {
   );
 }
 
-function MainSidebar() {
+function MainSidebar({title}: {title: React.ReactNode}) {
   const pathname = usePathname();
   const { open, setOpen, state } = useSidebar();
   const [isReportsOpen, setReportsOpen] = React.useState(false);
@@ -126,7 +126,7 @@ function MainSidebar() {
         <div className="flex items-center gap-2">
           <Logo className="size-8 text-sidebar-primary" />
           <span className="text-lg font-semibold font-headline text-sidebar-primary-foreground">
-            SRD: Minden Operations
+            {title}
           </span>
         </div>
       </SidebarHeader>
@@ -256,10 +256,10 @@ function MainSidebar() {
   );
 }
 
-export function AppLayout({ children }: { children: React.ReactNode }) {
+export function AppLayout({ children, title }: { children: React.ReactNode, title: React.ReactNode }) {
   return (
     <SidebarProvider>
-      <MainSidebar />
+      <MainSidebar title={title} />
       <SidebarInset>
         <header className="flex items-center justify-between p-4 border-b">
           <div className="md:hidden">

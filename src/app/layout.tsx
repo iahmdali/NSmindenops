@@ -3,8 +3,10 @@ import './globals.css';
 import { AppLayout } from '@/components/app-layout';
 import { Toaster } from "@/components/ui/toaster"
 
+const APP_TITLE = 'SRD: Minden Operations';
+
 export const metadata: Metadata = {
-  title: 'SRD: Minden Operations',
+  title: APP_TITLE,
   description: 'Shift Report Dashboard by North Sails',
 };
 
@@ -21,7 +23,7 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        <AppLayout>
+        <AppLayout title={APP_TITLE}>
           {children}
         </AppLayout>
         <Toaster />
