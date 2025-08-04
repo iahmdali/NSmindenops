@@ -14,7 +14,7 @@ import { filmsData } from '@/lib/films-data';
 import { gantryReportsData } from '@/lib/gantry-data';
 import { graphicsTasksData } from '@/lib/graphics-data';
 import { inspectionsData } from '@/lib/qc-data';
-import { format, isToday } from 'date-fns';
+import { format } from 'date-fns';
 import { Separator } from '@/components/ui/separator';
 
 const bottleneckChartConfig = {
@@ -41,25 +41,21 @@ export default function DashboardPage() {
     }, []);
 
     const dashboardData = useMemo(() => {
-        const today = new Date();
-
         // --- KPIs ---
         const activeWorkOrders = new Set(
             [
-                ...tapeheadsSubmissions.filter(r => isToday(new Date(r.date))).flatMap(r => r.workItems?.map(wi => wi.oeNumber) || []),
-                ...filmsData.filter(r => isToday(new Date(r.report_date))).flatMap(r => [...r.sails_started, ...r.sails_finished]).map(s => s.sail_number.split('-')[0]),
-                ...gantryReportsData.filter(r => isToday(new Date(r.date))).flatMap(r => r.molds?.flatMap(m => m.sails?.map(s => s.sail_number.split('-')[0]) || []) || []),
+                ...tapeheadsSubmissions.flatMap(r => r.workItems?.map(wi => wi.oeNumber) || []),
+                ...filmsData.flatMap(r => [...r.sails_started, ...r.sails_finished]).map(s => s.sail_number.split('-')[0]),
+                ...gantryReportsData.flatMap(r => r.molds?.flatMap(m => m.sails?.map(s => s.sail_number.split('-')[0]) || []) || []),
             ].filter(Boolean)
         );
         
         const totalMetersToday = tapeheadsSubmissions
-            .filter(r => isToday(new Date(r.date)))
             .reduce((sum, r) => sum + (r.total_meters || 0), 0);
 
-        const qualityAlerts = inspectionsData.filter(i => isToday(new Date(i.inspectionDate)) && i.status !== 'Pass').length;
+        const qualityAlerts = inspectionsData.filter(i => i.status !== 'Pass').length;
         
         const totalDowntimeMinutes = gantryReportsData
-            .filter(r => isToday(new Date(r.date)))
             .reduce((sum, r) => sum + (r.downtime?.reduce((dSum, d) => dSum + d.duration, 0) || 0), 0);
         
         // --- Activity Feed ---
@@ -96,7 +92,7 @@ export default function DashboardPage() {
         );
         
         const graphicsActivity: ActivityItem[] = graphicsTasksData
-            .filter(t => t.status === 'done' && t.completedAt && isToday(new Date(t.completedAt)))
+            .filter(t => t.status === 'done' && t.completedAt)
             .map(t => ({
                 dept: 'Graphics',
                 oe: t.tagId,
@@ -145,12 +141,12 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent>
                     <div className="text-2xl font-bold">{dashboardData.activeWorkOrders}</div>
-                    <p className="text-xs text-muted-foreground">OEs with activity today</p>
+                    <p className="text-xs text-muted-foreground">OEs with activity</p>
                 </CardContent>
             </Card>
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Total Output Today</CardTitle>
+                    <CardTitle className="text-sm font-medium">Total Output</CardTitle>
                     <TrendingUp className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
@@ -170,7 +166,7 @@ export default function DashboardPage() {
             </Card>
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Downtime Today</CardTitle>
+                    <CardTitle className="text-sm font-medium">Total Downtime</CardTitle>
                     <Wrench className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
