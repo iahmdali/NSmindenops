@@ -11,11 +11,17 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { Logo } from '@/components/icons';
 
+const users = {
+  'lead@ns.com': 'password',
+  'operator@ns.com': 'password',
+  'head@ns.com': 'password',
+};
+
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { login } = useAuth();
-  const [email, setEmail] = useState('lead@northsails.com');
+  const [email, setEmail] = useState('lead@ns.com');
   const [password, setPassword] = useState('password');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -27,7 +33,7 @@ export default function LoginPage() {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      if (email === 'lead@northsails.com' && password === 'password') {
+      if (users[email as keyof typeof users] && users[email as keyof typeof users] === password) {
         login(email);
         toast({
           title: 'Login Successful',
