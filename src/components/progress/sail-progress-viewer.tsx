@@ -2,12 +2,13 @@
 "use client";
 
 import type { SailProgress, DepartmentProgress } from "@/lib/sail-progress-types";
+import { getRecentSails, searchSails } from "@/lib/sail-progress-logic";
 import { PageHeader } from "../page-header";
 import { Badge } from "../ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { cn } from "@/lib/utils";
 import { CheckCircle, AlertTriangle, ChevronsRight, PackageSearch, ArrowRight } from "lucide-react";
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 function DepartmentCard({ dept }: { dept: DepartmentProgress }) {
     const statusConfig = {
@@ -78,7 +79,23 @@ function ProgressTimeline({ progress }: { progress: DepartmentProgress[] }) {
 }
 
 
-export function SailProgressViewer({ sail }: { sail: SailProgress }) {
+export function SailProgressViewer({ sailId }: { sailId: string }) {
+    const [sail, setSail] = useState<SailProgress | null>(null);
+
+    useEffect(() => {
+        const allSails = [...getRecentSails(50), ...searchSails(sailId)];
+        const foundSail = allSails.find(s => s.id === sailId);
+        setSail(foundSail || null);
+    }, [sailId]);
+
+    if (!sail) {
+        return (
+            <div className="text-center py-10">
+                <h1 className="text-2xl font-bold">Sail Not Found</h1>
+                <p className="text-muted-foreground">Could not find progress details for sail ID: {sailId}</p>
+            </div>
+        )
+    }
     
     return (
         <div className="space-y-6">
