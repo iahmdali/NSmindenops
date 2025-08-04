@@ -16,40 +16,30 @@ function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const router = useRouter();
-  const pathname = usePathname();
-
-  useEffect(() => {
-    const userCookie = Cookies.get('auth_user');
-    if (userCookie) {
-      setIsAuthenticated(true);
-      setUser(userCookie);
-       if(pathname === '/login') {
-         router.push('/dashboard');
-      }
-    } else {
-      setIsAuthenticated(false);
-      setUser(null);
-      if (pathname !== '/login') {
-        router.push('/login');
-      }
-    }
-    setIsLoading(false);
-  }, [pathname, router]);
 
   const login = (newUser: string) => {
     setIsAuthenticated(true);
     setUser(newUser);
     Cookies.set('auth_user', newUser, { expires: 7 }); 
-    router.push('/dashboard');
   };
 
   const logout = () => {
     setIsAuthenticated(false);
     setUser(null);
     Cookies.remove('auth_user');
-    router.push('/login');
   };
+  
+  useEffect(() => {
+    const userCookie = Cookies.get('auth_user');
+    if (userCookie) {
+      setIsAuthenticated(true);
+      setUser(userCookie);
+    } else {
+      setIsAuthenticated(false);
+      setUser(null);
+    }
+    setIsLoading(false);
+  }, []);
 
   return (
     <AuthContext.Provider value={{ isAuthenticated, user, isLoading, login, logout }}>
@@ -60,21 +50,34 @@ function AuthProvider({ children }: { children: ReactNode }) {
 
 
 function AppContent({ children }: { children: ReactNode }) {
-  const {isAuthenticated, isLoading} = useAuth();
+  const {isAuthenticated, isLoading, logout} = useAuth();
+  const router = useRouter();
   const pathname = usePathname();
+  
+  useEffect(() => {
+    if (!isLoading) {
+      if (isAuthenticated && pathname === '/login') {
+         router.push('/dashboard');
+      } else if (!isAuthenticated && pathname !== '/login') {
+        router.push('/login');
+      }
+    }
+  }, [isAuthenticated, isLoading, pathname, router]);
   
   if (isLoading) {
     return <div className="flex h-screen items-center justify-center">Loading...</div>;
   }
   
-  const isLoginPage = pathname === '/login';
-
-  if (isLoginPage) {
-    return <>{children}</>;
+  if (!isAuthenticated && pathname !== '/login') {
+    return null; // Don't render anything while redirecting
   }
-  
-  if (!isAuthenticated) {
-    return null; 
+
+  if (isAuthenticated && pathname === '/login') {
+    return null; // Don't render anything while redirecting
+  }
+
+  if (pathname === '/login') {
+     return <>{children}</>;
   }
 
   return (

@@ -20,7 +20,7 @@ const users = {
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const [email, setEmail] = useState('lead@ns.com');
   const [password, setPassword] = useState('GavinKilledFishes');
   const [isLoading, setIsLoading] = useState(false);
@@ -39,7 +39,7 @@ export default function LoginPage() {
           title: 'Login Successful',
           description: 'Welcome back!',
         });
-        router.push('/dashboard');
+        // The redirect is now handled by the layout effect
       } else {
         toast({
           title: 'Invalid Credentials',
@@ -57,6 +57,11 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   };
+  
+  if (isAuthenticated) {
+    // Prevent login page from flashing if user is already authenticated and redirecting
+    return <div className="flex h-screen items-center justify-center">Loading...</div>;
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
