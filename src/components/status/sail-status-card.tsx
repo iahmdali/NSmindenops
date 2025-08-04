@@ -3,7 +3,7 @@ import type { Report, WorkItem } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { CheckCircle, AlertTriangle, Layers, Clock, Shapes, Ruler, Wind, User, Calendar, CircleDot, Film, GanttChartSquare, XCircle, Hourglass, Factory } from "lucide-react";
+import { CheckCircle, AlertTriangle, Layers, Clock, Shapes, Ruler, Wind, User, Calendar, CircleDot, Film, GanttChartSquare, XCircle, Hourglass, Factory, Wrench, Image as ImageIcon } from "lucide-react";
 import { format } from "date-fns";
 import { Separator } from "../ui/separator";
 
@@ -20,6 +20,7 @@ interface GantryInfo {
     issues?: string;
     downtimeCaused?: boolean;
     date: string;
+    images?: any[];
 }
 
 interface EnrichedWorkItem extends WorkItem {
@@ -32,8 +33,8 @@ interface SailStatusCardProps {
   item: EnrichedWorkItem;
 }
 
-const DetailItem = ({ icon, label, value }: { icon: React.ReactNode, label: string, value: React.ReactNode }) => (
-    <div className="flex items-start gap-3">
+const DetailItem = ({ icon, label, value, className }: { icon: React.ReactNode, label: string, value: React.ReactNode, className?: string }) => (
+    <div className={cn("flex items-start gap-3", className)}>
         <div className="text-muted-foreground mt-0.5">{icon}</div>
         <div className="flex-1">
             <p className="text-xs text-muted-foreground">{label}</p>
@@ -88,15 +89,15 @@ function GantryStatusSection({ gantryHistory }: { gantryHistory: GantryInfo[] })
         )
     }
 
-    const latestEntry = gantryHistory[0]; // Assumes history is pre-sorted
+    const latestEntry = gantryHistory[0];
 
     const getStageBadge = (stage: string) => {
-        const completedStages = ["cured", "lamination", "lamination inspection"];
+        const completedStages = ["cured", "lamination", "lamination inspection", "move to cute"];
         const isCompleted = completedStages.some(s => stage.toLowerCase().includes(s));
         return (
              <Badge variant={isCompleted ? 'default' : 'outline'} className={isCompleted ? 'bg-green-600' : 'border-amber-500 text-amber-600'}>
                 {isCompleted ? <CheckCircle className="mr-1 h-3 w-3"/> : <Hourglass className="mr-1 h-3 w-3"/>}
-                {latestEntry.stage}
+                {stage}
             </Badge>
         )
     }
@@ -107,19 +108,33 @@ function GantryStatusSection({ gantryHistory }: { gantryHistory: GantryInfo[] })
                 <h4 className="font-semibold text-primary/90 flex items-center gap-2"><Factory size={16}/>Gantry Department</h4>
                 {getStageBadge(latestEntry.stage)}
             </div>
-             <div className="grid grid-cols-1 gap-y-2 text-sm pl-2">
-                <DetailItem icon={<Calendar size={14}/>} label="Last Entry Date" value={format(new Date(latestEntry.date), 'MMM d, yyyy')} />
-                <DetailItem icon={<GanttChartSquare size={14}/>} label="Gantry/Mold" value={latestEntry.moldNumber} />
-                <DetailItem icon={<CircleDot size={14}/>} label="Last Known Stage" value={latestEntry.stage} />
-                 {latestEntry.issues && latestEntry.issues !== "None" && (
-                    <div className="col-span-2">
-                         <DetailItem icon={<AlertTriangle size={14} className="text-destructive"/>} label="Issues Reported" value={latestEntry.issues} />
-                    </div>
-                 )}
-                 {latestEntry.downtimeCaused && (
-                     <Badge variant="destructive" className="mt-2"><AlertTriangle className="mr-1 h-3 w-3" /> Downtime Caused</Badge>
-                 )}
-            </div>
+            {gantryHistory.map((entry, index) => (
+              <div key={index} className="p-3 border rounded-md bg-background/50 mb-2">
+                <div className="grid grid-cols-1 gap-y-3 text-sm">
+                    <DetailItem icon={<Calendar size={14}/>} label="Date of Entry" value={format(new Date(entry.date), 'MMM d, yyyy')} />
+                    <DetailItem icon={<GanttChartSquare size={14}/>} label="Gantry/Mold" value={entry.moldNumber} />
+                    <DetailItem icon={<CircleDot size={14}/>} label="Stage" value={entry.stage} />
+                    
+                    {entry.issues && entry.issues !== "None" && (
+                        <DetailItem icon={<AlertTriangle size={14} className="text-destructive"/>} label="Issues Reported" value={entry.issues} />
+                    )}
+
+                    {entry.downtimeCaused && (
+                        <Badge variant="destructive" className="mt-1 w-fit">
+                            <AlertTriangle className="mr-1 h-3 w-3" /> Downtime Flagged
+                        </Badge>
+                    )}
+                    
+                    {entry.images && entry.images.length > 0 && (
+                       <DetailItem 
+                           icon={<ImageIcon size={14}/>} 
+                           label="Visual Log" 
+                           value={`${entry.images.length} image(s) uploaded`} 
+                       />
+                    )}
+                </div>
+              </div>
+            ))}
         </div>
     )
 }

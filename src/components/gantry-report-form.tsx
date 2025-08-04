@@ -160,7 +160,7 @@ const defaultValues: Partial<GantryReportFormValues> = {
   personnel: personnelDefaults["1"],
   personnel_exceptions: "",
   recognition: [],
-  molds: [{ mold_number: "", sails: [{ sail_number: "", stage_of_process: "", issue: "" }], downtime_caused: false }],
+  molds: [{ mold_number: "", sails: [{ sail_number: "", stage_of_process: "", issue: "" }], images: [], downtime_caused: false }],
   maintenance: [],
   truck_runs: 0,
 };
@@ -269,7 +269,7 @@ export function GantryReportForm() {
             {moldFields.map((moldField, moldIndex) => (
               <MoldField key={moldField.id} moldIndex={moldIndex} control={form.control} removeMold={removeMold} />
             ))}
-            <Button type="button" variant="outline" size="sm" onClick={() => appendMold({ mold_number: '', sails: [{ sail_number: '', stage_of_process: '', issue: '' }], downtime_caused: false })}><PlusCircle className="mr-2 h-4 w-4" />Add Mold</Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => appendMold({ mold_number: '', sails: [{ sail_number: '', stage_of_process: '', issue: '' }], images: [], downtime_caused: false })}><PlusCircle className="mr-2 h-4 w-4" />Add Mold</Button>
           </div>
         </Section>
 

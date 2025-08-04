@@ -32,6 +32,7 @@ interface GantryInfo {
     issues?: string;
     downtimeCaused?: boolean;
     date: string;
+    images?: any[];
 }
 
 interface EnrichedWorkItem extends WorkItem {
@@ -96,6 +97,7 @@ export default function TapeheadsStatusPage() {
                               issues: sail.issues,
                               downtimeCaused: mold.downtime_caused,
                               date: gantryReport.date,
+                              images: mold.images,
                           });
                       }
                   });

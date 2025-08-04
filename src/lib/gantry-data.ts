@@ -21,6 +21,7 @@ export interface GantryReport {
             stage_of_process?: string;
             issues?: string;
         }>;
+        images?: any[];
         downtime_caused?: boolean;
     }>;
     downtime?: Array<{
@@ -53,6 +54,7 @@ export const gantryReportsData: GantryReport[] = [
                     { sail_number: "OUS2345-141", stage_of_process: "Lamination", issues: "None" },
                 ],
                 downtime_caused: false,
+                images: [],
             },
         ],
         downtime: [],
