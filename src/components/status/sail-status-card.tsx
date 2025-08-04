@@ -3,7 +3,7 @@ import type { Report, WorkItem } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { CheckCircle, AlertTriangle, Layers, Clock, Scissors, Tapes, Ruler, Wind, User, Calendar, CircleDot } from "lucide-react";
+import { CheckCircle, AlertTriangle, Layers, Clock, Shapes, Ruler, Wind, User, Calendar, CircleDot } from "lucide-react";
 import { format } from "date-fns";
 import { Separator } from "../ui/separator";
 
@@ -60,7 +60,7 @@ export function SailStatusCard({ item }: SailStatusCardProps) {
         
         <div className="grid grid-cols-2 gap-4">
             <DetailItem icon={<Ruler size={16}/>} label="Meters Produced" value={`${workItem.total_meters}m`} />
-            <DetailItem icon={<Tapes size={16}/>} label="Tapes Used" value={workItem.total_tapes} />
+            <DetailItem icon={<Shapes size={16}/>} label="Tapes Used" value={workItem.total_tapes} />
             {!isCompleted && workItem.layer && (
                 <DetailItem icon={<Layers size={16}/>} label="Current Layer" value={workItem.layer} />
             )}
