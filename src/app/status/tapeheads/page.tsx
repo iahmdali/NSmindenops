@@ -14,10 +14,10 @@ import { tapeheadsSubmissions } from '@/lib/tapeheads-data';
 import type { Report, WorkItem } from '@/lib/types';
 import { SailStatusCard } from '@/components/status/sail-status-card';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { ListFilter } from 'lucide-react';
 import { filmsData, type FilmsReport } from '@/lib/films-data';
 import { gantryReportsData, type GantryReport } from '@/lib/gantry-data';
+import { inspectionsData, type InspectionSubmission } from '@/lib/qc-data';
 
 interface FilmsInfo {
     status: 'Prepped' | 'In Progress' | 'No Entry';
@@ -39,6 +39,7 @@ interface EnrichedWorkItem extends WorkItem {
   report: Report;
   filmsInfo: FilmsInfo;
   gantryHistory: GantryInfo[];
+  qcInspection?: InspectionSubmission;
 }
 
 export default function TapeheadsStatusPage() {
@@ -60,11 +61,10 @@ export default function TapeheadsStatusPage() {
       report.workItems?.forEach(item => {
         if (item.oeNumber === selectedOe) {
           const sailKey = `${item.oeNumber}-${item.section}`;
+          const sailNumber = sailKey;
           
           // --- Find Films Department Info ---
           let filmsInfo: FilmsInfo = { status: 'No Entry' };
-          const sailNumber = `${item.oeNumber}-${item.section}`;
-
           const finishedReport = filmsData.find(fr => fr.sails_finished.some(s => s.sail_number === sailNumber));
           const startedReport = filmsData.find(fr => fr.sails_started.some(s => s.sail_number === sailNumber));
 
@@ -106,11 +106,15 @@ export default function TapeheadsStatusPage() {
            // Sort history by most recent date
           gantryHistory.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
           // --- End of Gantry Logic ---
+
+          // --- Find QC Inspection Info ---
+          const qcInspection = inspectionsData.find(qc => qc.oeNumber === sailNumber);
+          // --- End of QC Logic ---
           
           if (!items[sailKey]) {
             items[sailKey] = [];
           }
-          items[sailKey].push({ ...item, report, filmsInfo, gantryHistory });
+          items[sailKey].push({ ...item, report, filmsInfo, gantryHistory, qcInspection });
         }
       });
     });

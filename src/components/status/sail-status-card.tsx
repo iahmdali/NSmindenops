@@ -3,9 +3,10 @@ import type { Report, WorkItem } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { CheckCircle, AlertTriangle, Layers, Clock, Shapes, Ruler, Wind, User, Calendar, CircleDot, Film, GanttChartSquare, XCircle, Hourglass, Factory, Wrench, Image as ImageIcon } from "lucide-react";
+import { CheckCircle, AlertTriangle, Layers, Clock, Shapes, Ruler, Wind, User, Calendar, CircleDot, Film, GanttChartSquare, XCircle, Hourglass, Factory, Wrench, Image as ImageIcon, ShieldCheck } from "lucide-react";
 import { format } from "date-fns";
 import { Separator } from "../ui/separator";
+import type { InspectionSubmission } from "@/lib/qc-data";
 
 interface FilmsInfo {
     status: 'Prepped' | 'In Progress' | 'No Entry';
@@ -27,6 +28,7 @@ interface EnrichedWorkItem extends WorkItem {
   report: Report;
   filmsInfo: FilmsInfo;
   gantryHistory: GantryInfo[];
+  qcInspection?: InspectionSubmission;
 }
 
 interface SailStatusCardProps {
@@ -139,9 +141,58 @@ function GantryStatusSection({ gantryHistory }: { gantryHistory: GantryInfo[] })
     )
 }
 
+function QcInspectionSection({ qcInspection }: { qcInspection?: InspectionSubmission }) {
+  if (!qcInspection) {
+    return (
+      <div>
+        <div className="flex justify-between items-center mb-2">
+          <h4 className="font-semibold text-primary/90 flex items-center gap-2"><ShieldCheck size={16}/>QC Inspection</h4>
+          <Badge variant="secondary"><XCircle className="mr-1 h-3 w-3" /> Not Inspected</Badge>
+        </div>
+      </div>
+    );
+  }
+
+  const getStatusBadge = () => {
+    switch (qcInspection.status) {
+      case 'Pass':
+        return <Badge className="bg-green-600 text-white"><CheckCircle className="mr-1 h-3 w-3" /> {qcInspection.status}</Badge>;
+      case 'Reinspection Required':
+        return <Badge variant="destructive" className="bg-yellow-500"><AlertTriangle className="mr-1 h-3 w-3" /> {qcInspection.status}</Badge>;
+      case 'Fail':
+        return <Badge variant="destructive"><XCircle className="mr-1 h-3 w-3" /> {qcInspection.status}</Badge>;
+      default:
+        return <Badge variant="secondary">{qcInspection.status}</Badge>;
+    }
+  };
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-2">
+        <h4 className="font-semibold text-primary/90 flex items-center gap-2"><ShieldCheck size={16}/>QC Inspection</h4>
+        {getStatusBadge()}
+      </div>
+       <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm pl-2">
+          <DetailItem icon={<Calendar size={14}/>} label="Inspection Date" value={format(new Date(qcInspection.inspectionDate), 'MMM d, yyyy')} />
+          <DetailItem icon={<User size={14}/>} label="Inspector" value={qcInspection.inspectorName} />
+          <DetailItem icon={<CircleDot size={14}/>} label="Final Score" value={<span className="font-bold text-lg">{qcInspection.totalScore}</span>} />
+      </div>
+      {qcInspection.reinspection && (
+         <div className="mt-2 p-2 bg-yellow-500/10 border-l-4 border-yellow-500 rounded">
+            <DetailItem 
+                icon={<AlertTriangle size={16} className="text-yellow-600"/>} 
+                label={`Reinspection Outcome: ${qcInspection.reinspection.finalOutcome}`}
+                value={qcInspection.reinspection.comments} 
+            />
+         </div>
+      )}
+    </div>
+  );
+}
+
 
 export function SailStatusCard({ item }: SailStatusCardProps) {
-  const { report, filmsInfo, gantryHistory, ...workItem } = item;
+  const { report, filmsInfo, gantryHistory, qcInspection, ...workItem } = item;
   const isCompleted = workItem.endOfShiftStatus === 'Completed';
 
   return (
@@ -196,6 +247,8 @@ export function SailStatusCard({ item }: SailStatusCardProps) {
         <FilmsStatusSection filmsInfo={filmsInfo} />
         <Separator />
         <GantryStatusSection gantryHistory={gantryHistory} />
+        <Separator />
+        <QcInspectionSection qcInspection={qcInspection} />
         
       </CardContent>
     </Card>

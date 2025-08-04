@@ -1,4 +1,42 @@
 
+
+export interface InspectionSubmission {
+    id: string;
+    inspectionDate: string;
+    oeNumber: string;
+    inspectorName: string;
+    totalScore: number;
+    status: 'Pass' | 'Reinspection Required' | 'Fail';
+    reinspection?: {
+        finalOutcome: string;
+        comments: string;
+    };
+}
+
+
+export const inspectionsData: InspectionSubmission[] = [
+    {
+        id: 'qc-1',
+        inspectionDate: '2023-10-29T12:00:00Z',
+        oeNumber: 'OUS2345-141',
+        inspectorName: 'Inspector Ali',
+        totalScore: 45,
+        status: 'Pass',
+    },
+    {
+        id: 'qc-2',
+        inspectionDate: '2023-11-01T12:00:00Z',
+        oeNumber: 'OIT76541-001',
+        inspectorName: 'Inspector Bob',
+        totalScore: 75,
+        status: 'Reinspection Required',
+        reinspection: {
+            finalOutcome: 'Recooked',
+            comments: 'Minor shrinkage waves were addressed after recooking process. Accepted.'
+        }
+    }
+];
+
 export const defectCategories = [
     {
       id: "lamination",
