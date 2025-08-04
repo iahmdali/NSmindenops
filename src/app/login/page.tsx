@@ -12,9 +12,9 @@ import { useAuth } from '@/hooks/use-auth';
 import { Logo } from '@/components/icons';
 
 const users = {
-  'lead@ns.com': 'password',
-  'operator@ns.com': 'password',
-  'head@ns.com': 'password',
+  'lead@ns.com': 'GavinKilledFishes',
+  'operator@ns.com': 'GavinKilledFishes',
+  'head@ns.com': 'GavinKilledFishes',
 };
 
 export default function LoginPage() {
@@ -22,7 +22,7 @@ export default function LoginPage() {
   const { toast } = useToast();
   const { login } = useAuth();
   const [email, setEmail] = useState('lead@ns.com');
-  const [password, setPassword] = useState('password');
+  const [password, setPassword] = useState('GavinKilledFishes');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
