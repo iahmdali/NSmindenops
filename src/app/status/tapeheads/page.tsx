@@ -13,11 +13,13 @@ import { PageHeader } from '@/components/page-header';
 import { tapeheadsSubmissions } from '@/lib/tapeheads-data';
 import type { Report, WorkItem } from '@/lib/types';
 import { SailStatusCard } from '@/components/status/sail-status-card';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { filmsData } from '@/lib/films-data';
 import { gantryReportsData } from '@/lib/gantry-data';
 import { inspectionsData, type InspectionSubmission } from '@/lib/qc-data';
+import { oeJobs } from '@/lib/oe-data';
+import { Layers } from 'lucide-react';
 
 interface FilmsInfo {
     status: 'Prepped' | 'In Progress' | 'No Entry';
@@ -58,6 +60,15 @@ export default function TapeheadsStatusPage() {
       }
     }
   }, []);
+
+  const totalPanelsForOe = useMemo(() => {
+    if (!selectedOe) return 0;
+    const job = oeJobs.find(j => j.oeBase === selectedOe);
+    if (!job) return 0;
+    return job.sections.reduce((total, section) => {
+        return total + (section.panelEnd - section.panelStart + 1);
+    }, 0);
+  }, [selectedOe]);
 
   const sailWorkItems = useMemo(() => {
     if (!selectedOe) return [];
@@ -184,19 +195,31 @@ export default function TapeheadsStatusPage() {
       </PageHeader>
 
       {selectedOe ? (
-         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {sailWorkItems.length > 0 ? (
-                sailWorkItems.map((item, index) => (
-                    <SailStatusCard key={`${item.oeNumber}-${item.section}-${index}`} item={item} />
-                ))
-            ) : (
-                <Card className="md:col-span-2 xl:col-span-3">
-                    <CardContent className="p-10 text-center">
-                        <p className="text-muted-foreground">No Tapeheads work recorded for OE# {selectedOe}.</p>
-                    </CardContent>
-                </Card>
-            )}
-         </div>
+        <div className="space-y-6">
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Panels for {selectedOe}</CardTitle>
+                    <Layers className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{totalPanelsForOe}</div>
+                    <p className="text-xs text-muted-foreground">Across all sails for this OE.</p>
+                </CardContent>
+            </Card>
+             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {sailWorkItems.length > 0 ? (
+                    sailWorkItems.map((item, index) => (
+                        <SailStatusCard key={`${item.oeNumber}-${item.section}-${index}`} item={item} />
+                    ))
+                ) : (
+                    <Card className="md:col-span-2 xl:col-span-3">
+                        <CardContent className="p-10 text-center">
+                            <p className="text-muted-foreground">No Tapeheads work recorded for OE# {selectedOe}.</p>
+                        </CardContent>
+                    </Card>
+                )}
+             </div>
+        </div>
       ) : (
         <Card>
             <CardContent className="p-10 text-center">
