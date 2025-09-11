@@ -17,18 +17,6 @@ function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const login = (newUser: string) => {
-    setIsAuthenticated(true);
-    setUser(newUser);
-    Cookies.set('auth_user', newUser, { expires: 7 }); 
-  };
-
-  const logout = () => {
-    setIsAuthenticated(false);
-    setUser(null);
-    Cookies.remove('auth_user');
-  };
-  
   useEffect(() => {
     const userCookie = Cookies.get('auth_user');
     if (userCookie) {
@@ -41,6 +29,18 @@ function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false);
   }, []);
 
+  const login = (newUser: string) => {
+    Cookies.set('auth_user', newUser, { expires: 7 });
+    setIsAuthenticated(true);
+    setUser(newUser);
+  };
+
+  const logout = () => {
+    Cookies.remove('auth_user');
+    setIsAuthenticated(false);
+    setUser(null);
+  };
+
   return (
     <AuthContext.Provider value={{ isAuthenticated, user, isLoading, login, logout }}>
       {children}
@@ -50,7 +50,7 @@ function AuthProvider({ children }: { children: ReactNode }) {
 
 
 function AppContent({ children }: { children: ReactNode }) {
-  const {isAuthenticated, isLoading, logout} = useAuth();
+  const {isAuthenticated, isLoading} = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   
@@ -64,16 +64,8 @@ function AppContent({ children }: { children: ReactNode }) {
     }
   }, [isAuthenticated, isLoading, pathname, router]);
   
-  if (isLoading) {
+  if (isLoading || (!isAuthenticated && pathname !== '/login') || (isAuthenticated && pathname === '/login')) {
     return <div className="flex h-screen items-center justify-center">Loading...</div>;
-  }
-  
-  if (!isAuthenticated && pathname !== '/login') {
-    return null; // Don't render anything while redirecting
-  }
-
-  if (isAuthenticated && pathname === '/login') {
-    return null; // Don't render anything while redirecting
   }
 
   if (pathname === '/login') {

@@ -22,6 +22,7 @@ export interface WorkItem {
     total_meters: number;
     total_tapes: number;
     had_spin_out: boolean;
+    spin_outs?: number;
     spin_out_duration_minutes?: number;
     issues?: { problem_reason: string; duration_minutes?: number }[];
     panelsWorkedOn: string[];

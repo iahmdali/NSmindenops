@@ -26,6 +26,7 @@ const reviewSchema = z.object({
   date: z.date(),
   shift: z.string(),
   shiftLeadName: z.string().min(1, "Shift lead name is required."),
+  attaBoyGirl: z.string().optional(),
   comments: z.string().optional(),
 });
 
@@ -77,7 +78,7 @@ function OperatorSubmissionCard({ report, onDelete, onEdit }: { report: Report, 
                       {item.total_meters}m on {item.materialType}
                    </div>
                    {item.had_spin_out && (
-                     <div className="text-xs text-destructive font-semibold mt-1">Spin-Out ({item.spin_out_duration_minutes || 0} min)</div>
+                     <div className="text-xs text-destructive font-semibold mt-1">Spin-Out ({item.spin_outs || 0} events, {item.spin_out_duration_minutes || 0} min)</div>
                    )}
                 </div>
               ))}
@@ -183,7 +184,7 @@ export function TapeheadsReviewSummary() {
     const totalTapes = allWorkItemsWithTh.reduce((sum, item) => sum + item.total_tapes, 0);
     const totalHours = submissions.reduce((sum, s) => sum + (s.hoursWorked || 0), 0);
     
-    const totalSpinOuts = allWorkItemsWithTh.filter(item => item.had_spin_out).length;
+    const totalSpinOuts = allWorkItemsWithTh.reduce((sum, item) => sum + (item.spin_outs || 0), 0);
     const spinOutDowntime = allWorkItemsWithTh.reduce((sum, item) => sum + (item.spin_out_duration_minutes || 0), 0);
     
     const problemDowntime = allWorkItemsWithTh.reduce((sum, item) => sum + (item.issues?.reduce((iSum, i) => iSum + (i.duration_minutes || 0), 0) || 0), 0);
@@ -303,6 +304,7 @@ export function TapeheadsReviewSummary() {
                     <CardHeader><CardTitle>Final Comments & Submission</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
                         <FormField control={form.control} name="shiftLeadName" render={({ field }) => (<FormItem><FormLabel>Final Shift Lead Name</FormLabel><FormControl><Input placeholder="Enter your name" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="attaBoyGirl" render={({ field }) => (<FormItem><FormLabel>Atta Boy / Girl (Recognition)</FormLabel><FormControl><Input placeholder="Recognize an operator for outstanding work" {...field} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="comments" render={({ field }) => (<FormItem><FormLabel>Shift-wide Comments</FormLabel><FormControl><Textarea placeholder="Add final comments for the shift..." {...field} /></FormControl></FormItem>)} />
                     </CardContent>
                     <CardFooter className="flex justify-end gap-4">

@@ -120,7 +120,7 @@ function MainSidebar() {
   
   React.useEffect(() => {
     const isReportPath = pathname.startsWith('/report');
-    const isLeadPath = pathname.startsWith('/analytics') || pathname.startsWith('/review') || pathname.startsWith('/filesystem') || pathname.startsWith('/qc') || pathname.startsWith('/status');
+    const isLeadPath = pathname.startsWith('/analytics') || pathname.startsWith('/review') || pathname.startsWith('/file-processing') || pathname.startsWith('/qc') || pathname.startsWith('/status');
     const isDeptAnalyticsPath = pathname.startsWith('/analytics');
     
     if (isReportPath) setReportsOpen(true);
@@ -188,7 +188,7 @@ function MainSidebar() {
            <SidebarMenuItem>
             <SidebarMenuButton
               onClick={() => setAnalyticsOpen(!isAnalyticsOpen)}
-              isActive={pathname.startsWith("/analytics") || pathname.startsWith('/review') || pathname.startsWith('/filesystem') || pathname.startsWith('/qc') || pathname.startsWith('/status')}
+              isActive={pathname.startsWith("/analytics") || pathname.startsWith('/review') || pathname.startsWith('/file-processing') || pathname.startsWith('/qc') || pathname.startsWith('/status')}
             >
               <AreaChart />
               <span>Lead Functions</span>
@@ -202,8 +202,8 @@ function MainSidebar() {
             {isAnalyticsOpen && (
               <SidebarMenuSub>
                 <SidebarMenuSubItem>
-                   <SidebarMenuSubButton asChild isActive={pathname === '/filesystem'}>
-                        <Link href="/filesystem"><FilePlus /><span>File System</span></Link>
+                   <SidebarMenuSubButton asChild isActive={pathname === '/file-processing'}>
+                        <Link href="/file-processing"><FilePlus /><span>File Processing</span></Link>
                    </SidebarMenuSubButton>
                 </SidebarMenuSubItem>
                  <SidebarMenuSubItem>

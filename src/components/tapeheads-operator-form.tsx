@@ -49,6 +49,7 @@ const workItemSchema = z.object({
   metersProduced: z.coerce.number().min(0, "Meters must be a positive number."),
   tapesUsed: z.coerce.number().min(0, "Tapes used must be a positive number."),
   hadSpinOut: z.boolean().default(false),
+  spinOuts: z.coerce.number().optional(),
   spinOutDuration: z.coerce.number().optional(),
   problems: z.array(problemSchema).optional(),
   panelWorkType: z.enum(["individual", "nested"]).default("individual"),
@@ -152,6 +153,7 @@ export function TapeheadsOperatorForm({ reportToEdit, onFormSubmit }: TapeheadsO
         metersProduced: item.total_meters,
         tapesUsed: item.total_tapes,
         hadSpinOut: item.had_spin_out,
+        spinOuts: item.spin_outs,
         spinOutDuration: item.spin_out_duration_minutes,
         problems: item.issues,
         panelWorkType: item.nestedPanels && item.nestedPanels.length > 0 ? 'nested' : 'individual',
@@ -202,6 +204,7 @@ export function TapeheadsOperatorForm({ reportToEdit, onFormSubmit }: TapeheadsO
                 metersProduced: workItemToContinue.total_meters,
                 tapesUsed: workItemToContinue.total_tapes,
                 hadSpinOut: workItemToContinue.had_spin_out,
+                spinOuts: workItemToContinue.spin_outs,
                 spinOutDuration: workItemToContinue.spin_out_duration_minutes,
                 problems: workItemToContinue.issues,
                 panelWorkType: workItemToContinue.nestedPanels && workItemToContinue.nestedPanels.length > 0 ? 'nested' : 'individual',
@@ -277,6 +280,7 @@ export function TapeheadsOperatorForm({ reportToEdit, onFormSubmit }: TapeheadsO
             total_meters: item.metersProduced,
             total_tapes: item.tapesUsed,
             had_spin_out: item.hadSpinOut,
+            spin_outs: item.spinOuts,
             spin_out_duration_minutes: item.spinOutDuration,
             issues: item.problems,
             panelsWorkedOn: item.panelsWorkedOn,
@@ -322,7 +326,13 @@ export function TapeheadsOperatorForm({ reportToEdit, onFormSubmit }: TapeheadsO
 
             <Section title="Operator Details">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField control={form.control} name="thNumber" render={({ field }) => (<FormItem><FormLabel>TH Number</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select TH..." /></SelectTrigger></FormControl><SelectContent>{[...Array(10)].map((_,i) => <SelectItem key={i} value={`TH-${i+1}`}>TH-{i+1}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                  <FormField control={form.control} name="thNumber" render={({ field }) => (<FormItem><FormLabel>TH Number</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select TH..." /></SelectTrigger></FormControl><SelectContent>
+                    <SelectItem value="TH-1">TH-1</SelectItem>
+                    <SelectItem value="TH-2">TH-2</SelectItem>
+                    <SelectItem value="TH-4">TH-4</SelectItem>
+                    <SelectItem value="TH-5">TH-5</SelectItem>
+                    <SelectItem value="TH-7">TH-7</SelectItem>
+                  </SelectContent></Select><FormMessage /></FormItem>)} />
                   <FormField control={form.control} name="operatorName" render={({ field }) => (<FormItem><FormLabel>Operator Name</FormLabel><FormControl><Input placeholder="Your name" {...field} /></FormControl><FormMessage /></FormItem>)} />
               </div>
             </Section>
@@ -483,7 +493,10 @@ function WorkItemCard({ index, remove, control, isEditMode }: { index: number, r
           <div className="space-y-4 pt-4 border-t">
               <FormField control={control} name={`workItems.${index}.hadSpinOut`} render={({ field }) => (<FormItem className="flex items-center gap-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>Had Spin Out?</FormLabel></FormItem>)} />
               {watchHadSpinout && (
-                  <FormField control={control} name={`workItems.${index}.spinOutDuration`} render={({ field }) => (<FormItem className="max-w-xs"><FormLabel>Spin Out Duration (minutes)</FormLabel><FormControl><Input type="number" value={field.value ?? ''} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>)} />
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField control={control} name={`workItems.${index}.spinOuts`} render={({ field }) => (<FormItem><FormLabel># of Spin-outs</FormLabel><FormControl><Input type="number" placeholder="1" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={control} name={`workItems.${index}.spinOutDuration`} render={({ field }) => (<FormItem><FormLabel>Spin Out Duration (minutes)</FormLabel><FormControl><Input type="number" value={field.value ?? ''} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>)} />
+                  </div>
               )}
               <h4 className="font-medium pt-2">Problems</h4>
               {problemFields.map((field: any, problemIndex: number) => (
