@@ -30,7 +30,8 @@ const sailEntrySchema = z.object({
 
 const personnelEntrySchema = z.object({
   name: z.string().min(1, "Name is required."),
-  time: z.string().min(1, "Time is required."),
+  start_time: z.string().min(1, "Start time is required."),
+  end_time: z.string().min(1, "End time is required."),
   task: z.string().optional(),
 });
 
@@ -73,11 +74,11 @@ const downtimeReasons = [
 ];
 
 const defaultPersonnel = [
-    { name: "Patricia", time: "2-7 / 9-12", task: "cutting files" },
-    { name: "Kathy", time: "6-12", task: "taping" },
-    { name: "Maribel", time: "6-12", task: "taping" },
-    { name: "Stephanie", time: "", task: "out" },
-    { name: "Leslie N.", time: "", task: "out" },
+    { name: "Patricia", start_time: "06:00", end_time: "14:00", task: "cutting files" },
+    { name: "Kathy", start_time: "06:00", end_time: "12:00", task: "taping" },
+    { name: "Maribel", start_time: "06:00", end_time: "12:00", task: "taping" },
+    { name: "Stephanie", start_time: "", end_time: "", task: "out" },
+    { name: "Leslie N.", start_time: "", end_time: "", task: "out" },
 ];
 
 const defaultValues: Partial<FilmsReportFormValues> = {
@@ -211,12 +212,13 @@ export function FilmsReportForm() {
                  {personnelFields.map((field, index) => (
                     <div key={field.id} className="flex items-end gap-4 p-4 border rounded-md">
                         <FormField control={form.control} name={`personnel.${index}.name`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name={`personnel.${index}.time`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Time Worked</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name={`personnel.${index}.start_time`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Start Time</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name={`personnel.${index}.end_time`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>End Time</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name={`personnel.${index}.task`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Task/Notes</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                         <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removePersonnel(index)}><Trash2 className="size-4" /></Button>
                     </div>
                  ))}
-                 <Button type="button" variant="outline" size="sm" onClick={() => appendPersonnel({ name: '', time: '', task: ''})}><PlusCircle className="mr-2 h-4 w-4"/>Add Person</Button>
+                 <Button type="button" variant="outline" size="sm" onClick={() => appendPersonnel({ name: '', start_time: '', end_time: '', task: ''})}><PlusCircle className="mr-2 h-4 w-4"/>Add Person</Button>
             </CardContent>
         </Card>
 
