@@ -427,7 +427,7 @@ function WorkItemCard({ index, remove, control, isEditMode }: { index: number, r
 
 
   const availableOes = useMemo(() => [...new Set(oeJobs.map(j => j.oeBase))], []);
-  const availableSails = useMemo(() => watchOeNumber ? oeJobs.filter(j => j.oeBase === watchOeNumber).map(j => j.sectionId) : [], [watchOeNumber]);
+  const availableSails = useMemo(() => watchOeNumber ? oeJobs.filter(j => j.oeBase === watchOeNumber).flatMap(j => j.sections?.map(s => s.sectionId) || []) : [], [watchOeNumber]);
   
   const panelOptions = useMemo(() => {
       if (!watchOeNumber || !watchSection) return [];
