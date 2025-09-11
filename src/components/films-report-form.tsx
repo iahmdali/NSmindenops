@@ -36,7 +36,7 @@ const personnelEntrySchema = z.object({
 
 const filmsReportSchema = z.object({
   report_date: z.date({ required_error: 'A date for the report is required.' }),
-  gantry_number: z.string().min(1, "Gantry selection is required."),
+  gantry_mold_number: z.string().min(1, "Gantry/Mold selection is required."),
   sails_started: z.array(sailEntrySchema).optional(),
   sails_finished: z.array(sailEntrySchema).optional(),
   had_downtime: z.boolean().default(false),
@@ -57,7 +57,14 @@ const filmsReportSchema = z.object({
 
 type FilmsReportFormValues = z.infer<typeof filmsReportSchema>;
 
-const gantryOptions = [ "4", "5", "6", "7", "8" ];
+const moldNumberOptions = [
+    "Gantry 4/MOLD 105",
+    "Gantry 6/MOLD 109",
+    "Gantry 6/MOLD 110",
+    "Gantry 7/MOLD 111",
+    "Gantry 8/MOLD 100",
+];
+
 const downtimeReasons = [
     "Machine Breakdown",
     "Startup/Shutdown",
@@ -75,7 +82,7 @@ const defaultPersonnel = [
 
 const defaultValues: Partial<FilmsReportFormValues> = {
   report_date: new Date(),
-  gantry_number: "",
+  gantry_mold_number: "",
   sails_started: [],
   sails_finished: [],
   had_downtime: false,
@@ -185,12 +192,12 @@ export function FilmsReportForm() {
             </CardHeader>
             <CardContent className="grid md:grid-cols-2 gap-6">
                  <FormField control={form.control} name="report_date" render={({ field }) => (<FormItem><FormLabel>Date</FormLabel><FormControl><DatePicker value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>)} />
-                 <FormField control={form.control} name="gantry_number" render={({ field }) => (
+                 <FormField control={form.control} name="gantry_mold_number" render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Gantry #</FormLabel>
+                        <FormLabel>Gantry / Mold</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl><SelectTrigger><SelectValue placeholder="Select a Gantry" /></SelectTrigger></FormControl>
-                            <SelectContent>{gantryOptions.map(opt => <SelectItem key={opt} value={opt}>Gantry {opt}</SelectItem>)}</SelectContent>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Select a Gantry/Mold combination" /></SelectTrigger></FormControl>
+                            <SelectContent>{moldNumberOptions.map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}</SelectContent>
                         </Select>
                         <FormMessage />
                     </FormItem>
