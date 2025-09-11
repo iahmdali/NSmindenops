@@ -159,7 +159,7 @@ export default function TapeheadsStatusPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Tapeheads Sail Status Viewer"
+        title="Sail Status Viewer"
         description="Enter an Order Entry number to see the status of all its associated sails."
       >
         <div className="flex items-center gap-4">
