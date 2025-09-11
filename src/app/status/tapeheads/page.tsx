@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Select,
   SelectContent,
@@ -14,9 +14,9 @@ import { tapeheadsSubmissions } from '@/lib/tapeheads-data';
 import type { Report, WorkItem } from '@/lib/types';
 import { SailStatusCard } from '@/components/status/sail-status-card';
 import { Card, CardContent } from '@/components/ui/card';
-import { ListFilter } from 'lucide-react';
-import { filmsData, type FilmsReport } from '@/lib/films-data';
-import { gantryReportsData, type GantryReport } from '@/lib/gantry-data';
+import { Input } from '@/components/ui/input';
+import { filmsData } from '@/lib/films-data';
+import { gantryReportsData } from '@/lib/gantry-data';
 import { inspectionsData, type InspectionSubmission } from '@/lib/qc-data';
 
 interface FilmsInfo {
@@ -44,12 +44,19 @@ interface EnrichedWorkItem extends WorkItem {
 
 export default function TapeheadsStatusPage() {
   const [selectedOe, setSelectedOe] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>('');
   const [sortBy, setSortBy] = useState<'date' | 'status'>('date');
 
-  const availableOes = useMemo(() => {
-    const allWorkItems = tapeheadsSubmissions.flatMap(r => r.workItems || []);
-    const oeNumbers = allWorkItems.map(item => item.oeNumber);
-    return [...new Set(oeNumbers)];
+  // Set the most recent OE as default on initial load
+  useEffect(() => {
+    if (tapeheadsSubmissions.length > 0) {
+      const mostRecentReport = [...tapeheadsSubmissions].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+      const defaultOe = mostRecentReport.workItems?.[0]?.oeNumber;
+      if (defaultOe) {
+        setSelectedOe(defaultOe);
+        setSearchTerm(defaultOe);
+      }
+    }
   }, []);
 
   const sailWorkItems = useMemo(() => {
@@ -143,28 +150,27 @@ export default function TapeheadsStatusPage() {
 
   }, [selectedOe, sortBy]);
   
-  // Set the first OE as default if none is selected
-  if (!selectedOe && availableOes.length > 0) {
-      setSelectedOe(availableOes[0]);
-  }
+  const handleSearch = (e: React.FormEvent) => {
+      e.preventDefault();
+      setSelectedOe(searchTerm);
+  };
+
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Tapeheads Sail Status Viewer"
-        description="Select an Order Entry number to see the status of all its associated sails."
+        description="Enter an Order Entry number to see the status of all its associated sails."
       >
         <div className="flex items-center gap-4">
-            <Select onValueChange={setSelectedOe} value={selectedOe || ''}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Select an OE..." />
-              </SelectTrigger>
-              <SelectContent>
-                {availableOes.map(oe => (
-                  <SelectItem key={oe} value={oe}>{oe}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <form onSubmit={handleSearch} className="flex gap-2">
+              <Input
+                placeholder="Search by OE..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-[200px]"
+              />
+            </form>
             <Select onValueChange={(value) => setSortBy(value as 'date' | 'status')} value={sortBy}>
                 <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="Sort by..." />
@@ -194,7 +200,7 @@ export default function TapeheadsStatusPage() {
       ) : (
         <Card>
             <CardContent className="p-10 text-center">
-                <p className="text-muted-foreground">Please select an OE number to view sail statuses.</p>
+                <p className="text-muted-foreground">Please enter an OE number and press Enter to view sail statuses.</p>
             </CardContent>
         </Card>
       )}
