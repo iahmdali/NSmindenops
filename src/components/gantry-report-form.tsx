@@ -338,6 +338,12 @@ function MoldField({ moldIndex, control, removeMold }: { moldIndex: number, cont
       control,
       name: `molds.${moldIndex}.mold_number`
   });
+  
+  const sailsReadyForGantry = React.useMemo(() => {
+    const finishedSails = filmsData.flatMap(report => report.sails_finished.map(sail => sail.sail_number));
+    return [...new Set(finishedSails)]; // Return unique sail numbers
+  }, []);
+
 
   const gantryMismatch = React.useMemo(() => {
     if (!watchMoldNumber || !watchSails) return null;
@@ -400,7 +406,24 @@ function MoldField({ moldIndex, control, removeMold }: { moldIndex: number, cont
            {sailFields.map((sailField, sailIndex) => (
                <div key={sailField.id} className="flex flex-col gap-2 p-2 border rounded-md relative bg-background">
                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <FormField control={control} name={`molds.${moldIndex}.sails.${sailIndex}.sail_number`} render={({ field }) => (<FormItem><FormLabel className="text-xs">Sail Number</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField 
+                        control={control} 
+                        name={`molds.${moldIndex}.sails.${sailIndex}.sail_number`} 
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-xs">Sail Number</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="Select a finished sail..."/></SelectTrigger></FormControl>
+                                    <SelectContent>
+                                        {sailsReadyForGantry.map(sailNumber => (
+                                            <SelectItem key={sailNumber} value={sailNumber}>{sailNumber}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )} 
+                    />
                     <FormField control={control} name={`molds.${moldIndex}.sails.${sailIndex}.stage_of_process`} render={({ field }) => (<FormItem><FormLabel className="text-xs">Stage of Process</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent>{stageOfProcessOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
                     <FormField control={control} name={`molds.${moldIndex}.sails.${sailIndex}.issue`} render={({ field }) => (<FormItem><FormLabel className="text-xs">Issues</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent>{issueOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
                    </div>
