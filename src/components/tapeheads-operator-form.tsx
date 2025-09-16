@@ -36,6 +36,18 @@ import { tapeheadsSubmissions } from "@/lib/tapeheads-data"
 import type { Report, WorkItem } from "@/lib/types"
 import { oeJobs, getOeSection, markPanelsAsCompleted } from "@/lib/oe-data"
 
+const tapeIds = [
+    "998108", "998108T", "998128", "998128T", "998147", "998147T", "998167", "998167T", "998185",
+    "996107", "996125", "996157", "996176", "996176Y", "996137Y", "996157Y", "996167Y", "996176Y",
+    "996187Y", "996188Y", "997130", "997160", "997108", "997148", "997148V", "997148Y", "997152",
+    "995100", "995127", "995142", "995148", "995169", "995169B", "995505", "995505L", "995505A",
+    "995505AL", "995101", "995101A", "995101L", "995103", "995103A", "995103L", "995103AL", "995033",
+    "995033A", "995033L", "995601", "995602", "995603", "995648", "995666", "995667", "995668",
+    "995669", "996617", "996618", "996618W", "996618Y", "996617V", "996617Y", "996617B", "998680",
+    "998682", "998683", "998684", "*998638*", "997P60", "997P61", "997P63", "995710L", "9957150d",
+    "997M10-1st", "997M10-2nd", "997M20-1st", "997M20-2nd", "997M30-1st", "997M30-2nd"
+];
+
 const problemSchema = z.object({
   problem_reason: z.string().min(1, "Problem reason is required."),
   duration_minutes: z.coerce.number().optional(),
@@ -479,7 +491,7 @@ function WorkItemCard({ index, remove, control, isEditMode }: { index: number, r
             </div>
         )}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
-            <FormField control={control} name={`workItems.${index}.materialType`} render={({ field }) => (<FormItem><FormLabel>Material Type</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select material..." /></SelectTrigger></FormControl><SelectContent><SelectItem value="Kevlar">Kevlar</SelectItem><SelectItem value="Polyester">Polyester</SelectItem><SelectItem value="Carbon">Carbon</SelectItem><SelectItem value="Aramid">Aramid</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+            <FormField control={control} name={`workItems.${index}.materialType`} render={({ field }) => (<FormItem><FormLabel>Material Type</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select material..." /></SelectTrigger></FormControl><SelectContent>{tapeIds.map(id => <SelectItem key={id} value={id}>{id}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
             <FormField control={control} name={`workItems.${index}.endOfShiftStatus`} render={({ field }) => (<FormItem><FormLabel>End of Shift Status</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="Completed">Completed</SelectItem><SelectItem value="In Progress">In Progress</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
         </div>
         {watchStatus === "In Progress" && (

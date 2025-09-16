@@ -1,3 +1,4 @@
+
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -29,6 +30,18 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+
+const tapeIds = [
+    "998108", "998108T", "998128", "998128T", "998147", "998147T", "998167", "998167T", "998185",
+    "996107", "996125", "996157", "996176", "996176Y", "996137Y", "996157Y", "996167Y", "996176Y",
+    "996187Y", "996188Y", "997130", "997160", "997108", "997148", "997148V", "997148Y", "997152",
+    "995100", "995127", "995142", "995148", "995169", "995169B", "995505", "995505L", "995505A",
+    "995505AL", "995101", "995101A", "995101L", "995103", "995103A", "995103L", "995103AL", "995033",
+    "995033A", "995033L", "995601", "995602", "995603", "995648", "995666", "995667", "995668",
+    "995669", "996617", "996618", "996618W", "996618Y", "996617V", "996617Y", "996617B", "998680",
+    "998682", "998683", "998684", "*998638*", "997P60", "997P61", "997P63", "995710L", "9957150d",
+    "997M10-1st", "997M10-2nd", "997M20-1st", "997M20-2nd", "997M30-1st", "997M30-2nd"
+];
 
 const preggerReportSchema = z.object({
   report_date: z.date({ required_error: 'A date for the report is required.' }),
@@ -161,9 +174,7 @@ export function PreggerReportForm() {
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl><SelectTrigger><SelectValue placeholder="Select Tape ID" /></SelectTrigger></FormControl>
                             <SelectContent>
-                              <SelectItem value="T-101">T-101</SelectItem>
-                              <SelectItem value="T-102">T-102</SelectItem>
-                              <SelectItem value="T-103">T-103</SelectItem>
+                              {tapeIds.map(id => <SelectItem key={id} value={id}>{id}</SelectItem>)}
                             </SelectContent>
                           </Select>
                           <FormMessage />
