@@ -527,7 +527,7 @@ function WorkItemCard({ index, remove, control, isEditMode }: { index: number, r
               {watchHadSpinout && (
                   <div className="grid grid-cols-2 gap-4">
                     <FormField control={control} name={`workItems.${index}.spinOuts`} render={({ field }) => (<FormItem><FormLabel># of Spin-outs</FormLabel><FormControl><Input type="number" placeholder="1" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
-                    <FormField control={control} name={`workItems.${index}.spinOutDuration`} render={({ field }) => (<FormItem><FormLabel>Spin Out Duration (minutes)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={control} name={`workItems.${index}.spinOutDuration`} render={({ field }) => (<FormItem><FormLabel>Spin Out Duration (minutes)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
                   </div>
               )}
               <h4 className="font-medium pt-2">Problems</h4>
