@@ -180,8 +180,8 @@ export function TapeheadsReviewSummary() {
         (s.workItems || []).map(item => ({...item, thNumber: s.thNumber}))
     );
     
-    const totalMeters = allWorkItemsWithTh.reduce((sum, item) => sum + item.total_meters, 0);
-    const totalTapes = allWorkItemsWithTh.reduce((sum, item) => sum + item.total_tapes, 0);
+    const totalMeters = allWorkItemsWithTh.reduce((sum, item) => sum + (item.total_meters || 0), 0);
+    const totalTapes = allWorkItemsWithTh.reduce((sum, item) => sum + (item.total_tapes || 0), 0);
     const totalHours = submissions.reduce((sum, s) => sum + (s.hoursWorked || 0), 0);
     
     const totalSpinOuts = allWorkItemsWithTh.reduce((sum, item) => sum + (item.spin_outs || 0), 0);
@@ -192,7 +192,7 @@ export function TapeheadsReviewSummary() {
 
     const allPanels = allWorkItemsWithTh.flatMap(item => item.panelsWorkedOn || []);
     const uniquePanelsWorked = new Set(allPanels).size;
-    const nestedPanelCount = allWorkItemsWithTh.reduce((sum, item) => sum + (item.nestedPanels?.length || 0), 0);
+    const nestedPanelCount = allWorkItemsWithTh.filter(item => (item.nestedPanels || []).length > 0).length;
     
     const averageMpmh = totalHours > 0 ? (totalMeters / totalHours) : 0;
     

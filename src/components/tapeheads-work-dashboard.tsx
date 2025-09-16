@@ -13,7 +13,7 @@ import { tapeheadsSubmissions } from '@/lib/tapeheads-data';
 import type { Report, WorkItem } from '@/lib/types';
 import { Progress } from './ui/progress';
 import { DatePicker } from './ui/date-picker';
-import { isSameDay } from 'date-fns';
+import { format, isSameDay } from 'date-fns';
 
 function SubmittedReportCard({ report, workItem, itemIndex }: { report: Report, workItem: WorkItem, itemIndex: number }) {
     const router = useRouter();
@@ -49,7 +49,7 @@ function SubmittedReportCard({ report, workItem, itemIndex }: { report: Report, 
             </CardHeader>
             <CardContent className="space-y-3 flex-grow">
                  <p className="text-sm text-muted-foreground">
-                    <span className="font-medium">{report.operatorName}</span> on {report.thNumber}
+                    Started: {format(new Date(report.date), 'MM/dd')}, Shift {report.shift} by <span className="font-medium">{report.operatorName}</span> on {report.thNumber}
                 </p>
                 <div>
                      <div className="flex justify-between items-center mb-1">
@@ -100,9 +100,21 @@ export function TapeheadsWorkDashboard() {
             (report.workItems || []).map((workItem, index) => ({ report, workItem, id: `${report.id}-${index}` }))
         );
         
-        if (!date) return allItems;
-
-        return allItems.filter(({ report }) => isSameDay(new Date(report.date), date));
+        return allItems.filter(({ report, workItem }) => {
+            // Always show items that are 'In Progress'
+            if (workItem.endOfShiftStatus === 'In Progress') {
+                return true;
+            }
+            // For completed items, only show if a date is selected and it matches
+            if (date && isSameDay(new Date(report.date), date)) {
+                return true;
+            }
+            // If no date is selected, show all completed items (or handle as needed)
+            if (!date) {
+                return true; // Or false if you want to force date selection for completed
+            }
+            return false;
+        });
 
     }, [date, reports]);
     
@@ -124,7 +136,7 @@ export function TapeheadsWorkDashboard() {
             </PageHeader>
             
             <h2 className="text-xl font-semibold tracking-tight">
-                Submissions for {date ? date.toLocaleDateString() : 'All Dates'}
+                Showing In-Progress & Completed for {date ? date.toLocaleDateString() : 'All Dates'}
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -135,7 +147,7 @@ export function TapeheadsWorkDashboard() {
                 ) : (
                     <Card className="col-span-full">
                         <CardContent className="p-6 text-center text-muted-foreground">
-                            No shift reports have been submitted for this date.
+                            No matching submissions found for the selected criteria.
                         </CardContent>
                     </Card>
                 )}
