@@ -38,7 +38,7 @@ import { oeJobs, getOeSection, markPanelsAsCompleted } from "@/lib/oe-data"
 
 const tapeIds = [
     "998108", "998108T", "998128", "998128T", "998147", "998147T", "998167", "998167T", "998185",
-    "996107", "996125", "996157", "996176", "996176Y", "996137Y", "996157Y", "996167Y", "996176Y",
+    "996107", "996125", "996157", "996176", "996137Y", "996157Y", "996167Y", "996176Y",
     "996187Y", "996188Y", "997130", "997160", "997108", "997148", "997148V", "997148Y", "997152",
     "995100", "995127", "995142", "995148", "995169", "995169B", "995505", "995505L", "995505A",
     "995505AL", "995101", "995101A", "995101L", "995103", "995103A", "995103L", "995103AL", "995033",
@@ -526,14 +526,14 @@ function WorkItemCard({ index, remove, control, isEditMode }: { index: number, r
               <FormField control={control} name={`workItems.${index}.hadSpinOut`} render={({ field }) => (<FormItem className="flex items-center gap-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>Had Spin Out?</FormLabel></FormItem>)} />
               {watchHadSpinout && (
                   <div className="grid grid-cols-2 gap-4">
-                    <FormField control={control} name={`workItems.${index}.spinOuts`} render={({ field }) => (<FormItem><FormLabel># of Spin-outs</FormLabel><FormControl><Input type="number" placeholder="1" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                    <FormField control={control} name={`workItems.${index}.spinOutDuration`} render={({ field }) => (<FormItem><FormLabel>Spin Out Duration (minutes)</FormLabel><FormControl><Input type="number" value={field.value ?? ''} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={control} name={`workItems.${index}.spinOuts`} render={({ field }) => (<FormItem><FormLabel># of Spin-outs</FormLabel><FormControl><Input type="number" placeholder="1" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={control} name={`workItems.${index}.spinOutDuration`} render={({ field }) => (<FormItem><FormLabel>Spin Out Duration (minutes)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>)} />
                   </div>
               )}
               <h4 className="font-medium pt-2">Problems</h4>
               {problemFields.map((field: any, problemIndex: number) => (
                   <div key={field.id} className="flex items-end gap-4 p-4 border rounded-md">
-                      <FormField control={control} name={`workItems.${index}.problems.${problemIndex}.problem_reason`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Problem Reason</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                      <FormField control={control} name={`workItems.${index}.problems.${problemIndex}.problem_reason`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Problem Reason</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
                       <FormField control={control} name={`workItems.${index}.problems.${problemIndex}.duration_minutes`} render={({ field }) => (<FormItem><FormLabel>Duration (min)</FormLabel><FormControl><Input type="number" value={field.value ?? ''} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>)} />
                       <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removeProblem(problemIndex)}><Trash2 className="size-4" /></Button>
                   </div>
