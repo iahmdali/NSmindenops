@@ -13,12 +13,18 @@ export interface DepartmentData {
   data: ShiftData[];
 }
 
+export interface TapeUsage {
+    tapeId: string;
+    metersProduced: number;
+    metersWasted: number;
+}
+
 export interface WorkItem {
     oeNumber: string;
     section: string;
-    materialType: string;
     endOfShiftStatus: 'Completed' | 'In Progress';
     layer?: string;
+    tapes: TapeUsage[];
     total_meters: number;
     total_tapes: number;
     had_spin_out: boolean;

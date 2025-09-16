@@ -18,10 +18,13 @@ export let tapeheadsSubmissions: Report[] = [
             {
                 oeNumber: "OUS2345",
                 section: "141",
-                materialType: "Carbon",
                 endOfShiftStatus: "Completed",
+                tapes: [
+                    { tapeId: "998108", metersProduced: 1500, metersWasted: 20 },
+                    { tapeId: "996107", metersProduced: 1000, metersWasted: 10 }
+                ],
                 total_meters: 2500,
-                total_tapes: 8,
+                total_tapes: 2,
                 had_spin_out: false,
                 panelsWorkedOn: ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9", "P10"],
             }
@@ -42,11 +45,11 @@ export let tapeheadsSubmissions: Report[] = [
             {
                 oeNumber: "OIT76541",
                 section: "001",
-                materialType: "Kevlar",
                 endOfShiftStatus: "In Progress",
                 layer: "7 of 15",
+                tapes: [{ tapeId: "995100", metersProduced: 1800, metersWasted: 50 }],
                 total_meters: 1800,
-                total_tapes: 6,
+                total_tapes: 1,
                 had_spin_out: true,
                 spin_out_duration_minutes: 25,
                 panelsWorkedOn: ["P1", "P2", "P3"],
@@ -54,10 +57,10 @@ export let tapeheadsSubmissions: Report[] = [
             {
                 oeNumber: "OIT76541",
                 section: "002",
-                materialType: "Kevlar",
                 endOfShiftStatus: "Completed",
+                tapes: [{ tapeId: "995127", metersProduced: 1300, metersWasted: 25 }],
                 total_meters: 1300,
-                total_tapes: 4,
+                total_tapes: 1,
                 had_spin_out: false,
                 panelsWorkedOn: ["P1", "P2"],
                 issues: [{ problem_reason: 'Machine Jam', duration_minutes: 15 }]
@@ -79,14 +82,13 @@ export let tapeheadsSubmissions: Report[] = [
             {
                 oeNumber: "OAUS32145",
                 section: "001",
-                materialType: "Polyester",
                 endOfShiftStatus: "Completed",
+                tapes: [{ tapeId: "997130", metersProduced: 4500, metersWasted: 100 }],
                 total_meters: 4500,
-                total_tapes: 12,
+                total_tapes: 1,
                 had_spin_out: false,
                 panelsWorkedOn: ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9", "P10", "P11", "P12"],
             }
         ]
     }
 ];
-

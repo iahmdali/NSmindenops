@@ -249,10 +249,9 @@ export function SailStatusCard({ item }: SailStatusCardProps) {
             <div className="grid grid-cols-2 gap-4 pl-2">
                 <DetailItem icon={<User size={14}/>} label="Operator" value={report.operatorName} />
                 <DetailItem icon={<Calendar size={14}/>} label="Date Worked" value={format(new Date(report.date), 'MMM d, yyyy')} />
-                <DetailItem icon={<CircleDot size={14}/>} label="Material" value={workItem.materialType} />
                 <DetailItem icon={<Clock size={14}/>} label="Shift" value={`${report.shift} (${report.shiftStartTime} - ${report.shiftEndTime})`} />
-                <DetailItem icon={<Ruler size={14}/>} label="Meters Produced" value={`${workItem.total_meters}m`} />
-                <DetailItem icon={<Shapes size={14}/>} label="Tapes Used" value={workItem.total_tapes} />
+                <DetailItem icon={<Ruler size={14}/>} label="Total Meters" value={`${workItem.total_meters}m`} />
+                <DetailItem icon={<Shapes size={14}/>} label="Total Tapes" value={workItem.total_tapes} />
                 {!isCompleted && workItem.layer && (
                     <DetailItem icon={<Layers size={14}/>} label="Current Layer" value={workItem.layer} />
                 )}

@@ -75,7 +75,7 @@ function OperatorSubmissionCard({ report, onDelete, onEdit }: { report: Report, 
                       {item.panelsWorkedOn.join(', ')}
                    </div>
                     <div className="text-xs mt-1">
-                      {item.total_meters}m on {item.materialType}
+                      {item.total_meters}m from {item.total_tapes} tapes
                    </div>
                    {item.had_spin_out && (
                      <div className="text-xs text-destructive font-semibold mt-1">Spin-Out ({item.spin_outs || 0} events, {item.spin_out_duration_minutes || 0} min)</div>

@@ -33,7 +33,7 @@ import { MultiSelect, MultiSelectOption } from "./ui/multi-select"
 import { useRouter } from "next/navigation"
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group"
 import { tapeheadsSubmissions } from "@/lib/tapeheads-data"
-import type { Report, WorkItem } from "@/lib/types"
+import type { Report, WorkItem, TapeUsage } from "@/lib/types"
 import { oeJobs, getOeSection, markPanelsAsCompleted } from "@/lib/oe-data"
 
 const tapeIds = [
@@ -53,14 +53,18 @@ const problemSchema = z.object({
   duration_minutes: z.coerce.number().optional(),
 });
 
+const tapeUsageSchema = z.object({
+  tapeId: z.string().min(1, "Tape ID is required."),
+  metersProduced: z.coerce.number().min(0, "Meters must be positive."),
+  metersWasted: z.coerce.number().min(0, "Meters must be positive."),
+});
+
 const workItemSchema = z.object({
   oeNumber: z.string().min(1, "OE Number is required."),
   section: z.string().min(1, "Sail # is required."),
-  materialType: z.string().min(1, "Material type is required."),
   endOfShiftStatus: z.string().min(1, "Status is required."),
   layer: z.string().optional(),
-  metersProduced: z.coerce.number().min(0, "Meters must be a positive number."),
-  tapesUsed: z.coerce.number().min(0, "Tapes used must be a positive number."),
+  tapes: z.array(tapeUsageSchema).min(1, "At least one tape must be logged."),
   hadSpinOut: z.boolean().default(false),
   spinOuts: z.coerce.number().optional(),
   spinOutDuration: z.coerce.number().optional(),
@@ -160,11 +164,9 @@ export function TapeheadsOperatorForm({ reportToEdit, onFormSubmit }: TapeheadsO
     const workItems = (reportToEdit.workItems || []).map(item => ({
         oeNumber: item.oeNumber,
         section: item.section,
-        materialType: item.materialType,
         endOfShiftStatus: item.endOfShiftStatus,
         layer: item.layer,
-        metersProduced: item.total_meters,
-        tapesUsed: item.total_tapes,
+        tapes: item.tapes || [],
         hadSpinOut: item.had_spin_out,
         spinOuts: item.spin_outs,
         spinOutDuration: item.spin_out_duration_minutes,
@@ -214,8 +216,6 @@ export function TapeheadsOperatorForm({ reportToEdit, onFormSubmit }: TapeheadsO
             shiftEndTime: "", // Clear for new operator
             workItems: [{
                 ...workItemToContinue,
-                metersProduced: workItemToContinue.total_meters,
-                tapesUsed: workItemToContinue.total_tapes,
                 hadSpinOut: workItemToContinue.had_spin_out,
                 spinOuts: workItemToContinue.spin_outs,
                 spinOutDuration: workItemToContinue.spin_out_duration_minutes,
@@ -243,7 +243,10 @@ export function TapeheadsOperatorForm({ reportToEdit, onFormSubmit }: TapeheadsO
   }, [reportToEdit, form, defaultValues]);
   
   const totalMetersProduced = useMemo(() => {
-    return (watchWorkItems || []).reduce((sum, item) => sum + (item.metersProduced || 0), 0);
+    return (watchWorkItems || []).reduce((sum, item) => {
+        const itemTotal = (item.tapes || []).reduce((tapeSum, tape) => tapeSum + (tape.metersProduced || 0), 0);
+        return sum + itemTotal;
+    }, 0);
   }, [watchWorkItems]);
 
   useEffect(() => {
@@ -284,25 +287,31 @@ export function TapeheadsOperatorForm({ reportToEdit, onFormSubmit }: TapeheadsO
         shiftEndTime: values.shiftEndTime,
         hoursWorked: values.hoursWorked,
         metersPerManHour: values.metersPerManHour,
-        workItems: values.workItems.map(item => ({
-            oeNumber: item.oeNumber,
-            section: item.section,
-            materialType: item.materialType,
-            endOfShiftStatus: item.endOfShiftStatus as 'Completed' | 'In Progress',
-            layer: item.layer,
-            total_meters: item.metersProduced,
-            total_tapes: item.tapesUsed,
-            had_spin_out: item.hadSpinOut,
-            spin_outs: item.spinOuts,
-            spin_out_duration_minutes: item.spinOutDuration,
-            issues: item.problems,
-            panelsWorkedOn: item.panelsWorkedOn,
-            nestedPanels: item.nestedPanels,
-        })),
+        workItems: values.workItems.map(item => {
+            const totalMeters = (item.tapes || []).reduce((sum, tape) => sum + tape.metersProduced, 0);
+            return {
+                oeNumber: item.oeNumber,
+                section: item.section,
+                endOfShiftStatus: item.endOfShiftStatus as 'Completed' | 'In Progress',
+                layer: item.layer,
+                tapes: item.tapes,
+                total_meters: totalMeters,
+                total_tapes: (item.tapes || []).length,
+                had_spin_out: item.hadSpinOut,
+                spin_outs: item.spinOuts,
+                spin_out_duration_minutes: item.spinOutDuration,
+                issues: item.problems,
+                panelsWorkedOn: item.panelsWorkedOn,
+                nestedPanels: item.nestedPanels,
+            }
+        }),
         checklist: values.checklist,
         status: 'Submitted',
         // This is now calculated from workItems, but kept for compatibility for now
-        total_meters: (values.workItems || []).reduce((sum, item) => sum + (item.metersProduced || 0), 0),
+        total_meters: (values.workItems || []).reduce((sum, item) => {
+            const itemTotal = (item.tapes || []).reduce((tapeSum, tape) => tapeSum + (tape.metersProduced || 0), 0);
+            return sum + itemTotal;
+        }, 0),
     };
     
     if (onFormSubmit) {
@@ -366,7 +375,7 @@ export function TapeheadsOperatorForm({ reportToEdit, onFormSubmit }: TapeheadsO
               <div>
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-semibold text-primary">Work Items</h3>
-                  <Button type="button" variant="outline" size="sm" onClick={() => appendWorkItem({ oeNumber: '', section: '', materialType: '', endOfShiftStatus: 'Completed', metersProduced: 0, tapesUsed: 0, panelsWorkedOn: [], panelWorkType: 'individual', nestedPanels: [], hadSpinOut: false, spinOutDuration: 0, problems: [] })}>
+                  <Button type="button" variant="outline" size="sm" onClick={() => appendWorkItem({ oeNumber: '', section: '', endOfShiftStatus: 'Completed', tapes: [], panelsWorkedOn: [], panelWorkType: 'individual', nestedPanels: [], hadSpinOut: false, spinOutDuration: 0, problems: [] })}>
                       <PlusCircle className="mr-2 h-4 w-4" /> Add Work Item
                   </Button>
                 </div>
@@ -409,6 +418,7 @@ function WorkItemCard({ index, remove, control, isEditMode }: { index: number, r
   const watchStatus = useWatch({ control, name: `workItems.${index}.endOfShiftStatus` });
   const watchHadSpinout = useWatch({ control, name: `workItems.${index}.hadSpinOut` });
   
+  const { fields: tapeFields, append: appendTape, remove: removeTape } = useFieldArray({ control: control, name: `workItems.${index}.tapes` });
   const { fields: problemFields, append: appendProblem, remove: removeProblem } = useFieldArray({ control: control, name: `workItems.${index}.problems` });
   const { fields: nestedPanelFields, append: appendNestedPanel, remove: removeNestedPanel } = useFieldArray({ control: control, name: `workItems.${index}.nestedPanels` });
 
@@ -491,18 +501,27 @@ function WorkItemCard({ index, remove, control, isEditMode }: { index: number, r
             </div>
         )}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
-            <FormField control={control} name={`workItems.${index}.materialType`} render={({ field }) => (<FormItem><FormLabel>Material Type</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select material..." /></SelectTrigger></FormControl><SelectContent>{tapeIds.map(id => <SelectItem key={id} value={id}>{id}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
             <FormField control={control} name={`workItems.${index}.endOfShiftStatus`} render={({ field }) => (<FormItem><FormLabel>End of Shift Status</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="Completed">Completed</SelectItem><SelectItem value="In Progress">In Progress</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+            {watchStatus === "In Progress" && (
+                 <FormField control={control} name={`workItems.${index}.layer`} render={({ field }) => (<FormItem><FormLabel>Layer</FormLabel><FormControl><Input placeholder="e.g., 5 of 12" {...field} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>)} />
+            )}
         </div>
-        {watchStatus === "In Progress" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
-                 <FormField control={control} name={`workItems.${index}.layer`} render={({ field }) => (<FormItem><FormLabel>Layer</FormLabel><FormControl><Input placeholder="e.g., 5 of 12" {...field} /></FormControl><FormMessage /></FormItem>)} />
+        
+        <div className="space-y-4 pt-4 border-t">
+            <div className="flex justify-between items-center">
+                <FormLabel>Tape Usage</FormLabel>
+                <Button type="button" variant="outline" size="sm" onClick={() => appendTape({ tapeId: '', metersProduced: 0, metersWasted: 0 })}><PlusCircle className="mr-2 h-4 w-4" /> Add Tape</Button>
             </div>
-        )}
-         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
-             <FormField control={control} name={`workItems.${index}.metersProduced`} render={({ field }) => (<FormItem><FormLabel>Meters Produced</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
-             <FormField control={control} name={`workItems.${index}.tapesUsed`} render={({ field }) => (<FormItem><FormLabel>Tapes Used</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
-         </div>
+            {tapeFields.map((field: any, tapeIndex: number) => (
+                <div key={field.id} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end p-2 border rounded-md">
+                    <FormField control={control} name={`workItems.${index}.tapes.${tapeIndex}.tapeId`} render={({ field }) => (<FormItem className="md:col-span-2"><FormLabel className="text-xs">Tape ID</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select Tape ID..."/></SelectTrigger></FormControl><SelectContent>{tapeIds.map(id => <SelectItem key={id} value={id}>{id}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)}/>
+                    <FormField control={control} name={`workItems.${index}.tapes.${tapeIndex}.metersProduced`} render={({ field }) => (<FormItem><FormLabel className="text-xs">Meters Produced</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)}/>
+                    <FormField control={control} name={`workItems.${index}.tapes.${tapeIndex}.metersWasted`} render={({ field }) => (<FormItem><FormLabel className="text-xs">Meters Wasted</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)}/>
+                    <Button type="button" variant="ghost" size="icon" className="text-destructive md:hidden" onClick={() => removeTape(tapeIndex)}><Trash2 className="size-4"/></Button>
+                </div>
+            ))}
+        </div>
+
           <div className="space-y-4 pt-4 border-t">
               <FormField control={control} name={`workItems.${index}.hadSpinOut`} render={({ field }) => (<FormItem className="flex items-center gap-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>Had Spin Out?</FormLabel></FormItem>)} />
               {watchHadSpinout && (
