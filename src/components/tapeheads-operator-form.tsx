@@ -37,7 +37,7 @@ import type { Report, WorkItem, TapeUsage } from "@/lib/types"
 
 const tapeIds = [
     "998108", "998108T", "998128", "998128T", "998147", "998147T", "998167", "998167T", "998185",
-    "996107", "996125", "996157", "996176", "996137Y", "996157Y", "996167Y", "996176Y",
+    "996107", "996125", "996157", "996176", "996137Y", "996157Y", "996167Y", "996176Y", 
     "996187Y", "996188Y", "997130", "997160", "997108", "997148", "997148V", "997148Y", "997152",
     "995100", "995127", "995142", "995148", "995169", "995169B", "995505", "995505L", "995505A",
     "995505AL", "995101", "995101A", "995101L", "995103", "995103A", "995103L", "995103AL", "995033",
@@ -200,38 +200,40 @@ export function TapeheadsOperatorForm({ reportToEdit, onFormSubmit }: TapeheadsO
 
   useEffect(() => {
     // Check for takeover state on component mount
-    const takeoverStateJSON = localStorage.getItem('tapeheadsTakeoverState');
-    if (takeoverStateJSON) {
-        const takeoverState = JSON.parse(takeoverStateJSON);
-        const { report, workItemToContinue } = takeoverState;
+    if (typeof window !== 'undefined') {
+        const takeoverStateJSON = localStorage.getItem('tapeheadsTakeoverState');
+        if (takeoverStateJSON) {
+            const takeoverState = JSON.parse(takeoverStateJSON);
+            const { report, workItemToContinue } = takeoverState;
 
-        // Populate the form with data from the takeover state
-        form.reset({
-            date: new Date(), // Set to current date for the new shift
-            shift: "1", // Or prompt for new shift
-            shiftLeadName: report.shiftLeadName, // Keep lead name or clear
-            thNumber: report.thNumber,
-            operatorName: "", // Clear for new operator
-            shiftStartTime: "", // Clear for new operator
-            shiftEndTime: "", // Clear for new operator
-            workItems: [{
-                ...workItemToContinue,
-                hadSpinOut: workItemToContinue.had_spin_out,
-                spinOuts: workItemToContinue.spin_outs,
-                spinOutDuration: workItemToContinue.spin_out_duration_minutes,
-                problems: workItemToContinue.issues,
-                panelWorkType: workItemToContinue.nestedPanels && workItemToContinue.nestedPanels.length > 0 ? 'nested' : 'individual',
-            }],
-            checklist: checklistItems.reduce((acc, item) => ({...acc, [item.id]: false}), {})
-        });
+            // Populate the form with data from the takeover state
+            form.reset({
+                date: new Date(), // Set to current date for the new shift
+                shift: "1", // Or prompt for new shift
+                shiftLeadName: report.shiftLeadName, // Keep lead name or clear
+                thNumber: report.thNumber,
+                operatorName: "", // Clear for new operator
+                shiftStartTime: "", // Clear for new operator
+                shiftEndTime: "", // Clear for new operator
+                workItems: [{
+                    ...workItemToContinue,
+                    hadSpinOut: workItemToContinue.had_spin_out,
+                    spinOuts: workItemToContinue.spin_outs,
+                    spinOutDuration: workItemToContinue.spin_out_duration_minutes,
+                    problems: workItemToContinue.issues,
+                    panelWorkType: workItemToContinue.nestedPanels && workItemToContinue.nestedPanels.length > 0 ? 'nested' : 'individual',
+                }],
+                checklist: checklistItems.reduce((acc, item) => ({...acc, [item.id]: false}), {})
+            });
 
-        // Clear the state from localStorage so it's not reused
-        localStorage.removeItem('tapeheadsTakeoverState');
+            // Clear the state from localStorage so it's not reused
+            localStorage.removeItem('tapeheadsTakeoverState');
 
-        toast({
-            title: "Taking Over Task",
-            description: `Continuing work on ${workItemToContinue.oeNumber}-${workItemToContinue.section}. Please enter your details.`,
-        });
+            toast({
+                title: "Taking Over Task",
+                description: `Continuing work on ${workItemToContinue.oeNumber}-${workItemToContinue.section}. Please enter your details.`,
+            });
+        }
     }
   }, [form, toast]);
 
@@ -314,9 +316,10 @@ export function TapeheadsOperatorForm({ reportToEdit, onFormSubmit }: TapeheadsO
     };
     
     if (onFormSubmit) {
+      dataStore.updateTapeheadsSubmission(reportData as Report);
       onFormSubmit(reportData as Report);
     } else {
-      dataStore.tapeheadsSubmissions.unshift(reportData as Report);
+      dataStore.addTapeheadsSubmission(reportData as Report);
       router.push('/report/tapeheads');
     }
 
@@ -449,6 +452,7 @@ function WorkItemCard({ index, remove, control, isEditMode }: { index: number, r
   }, [watchOeNumber, watchSection, watchPanelsWorkedOn, toast, isEditMode]);
 
   const handleOeDropdownOpen = () => {
+    // Refetch from the store every time the dropdown is opened
     setAvailableOes([...new Set(dataStore.oeJobs.map(j => j.oeBase))]);
   };
 

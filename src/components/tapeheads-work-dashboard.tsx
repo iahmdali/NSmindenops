@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import React, { useState, useEffect } from 'react';
@@ -83,20 +84,27 @@ function SubmittedReportCard({ report, workItem, itemIndex }: { report: Report, 
 
 export function TapeheadsWorkDashboard() {
     const [date, setDate] = useState<Date | undefined>(new Date());
-    const [reports, setReports] = useState<Report[]>(dataStore.tapeheadsSubmissions);
+    const [reports, setReports] = useState<Report[]>([]);
 
+    // This effect ensures the component re-renders when dataStore changes.
     useEffect(() => {
         const interval = setInterval(() => {
-            if (JSON.stringify(reports) !== JSON.stringify(dataStore.tapeheadsSubmissions)) {
-                 setReports([...dataStore.tapeheadsSubmissions]);
+            // A simple check to see if the data has changed.
+            if (reports.length !== dataStore.tapeheadsSubmissions.length) {
+                 setReports(dataStore.tapeheadsSubmissions);
             }
-        }, 500);
+        }, 1000); // Check every second
         
         return () => clearInterval(interval);
     }, [reports]);
 
+     // Load initial data
+    useEffect(() => {
+        setReports(dataStore.tapeheadsSubmissions);
+    }, []);
+
     const filteredWorkItems = React.useMemo(() => {
-        const allItems = dataStore.tapeheadsSubmissions.flatMap(report => 
+        const allItems = reports.flatMap(report => 
             (report.workItems || []).map((workItem, index) => ({ report, workItem, id: `${report.id}-${index}` }))
         );
         
@@ -109,9 +117,9 @@ export function TapeheadsWorkDashboard() {
             if (date && isSameDay(new Date(report.date), date)) {
                 return true;
             }
-            // If no date is selected, show all completed items (or handle as needed)
+            // If no date is selected, show all completed items for all time.
             if (!date) {
-                return true; // Or false if you want to force date selection for completed
+                return true;
             }
             return false;
         });
@@ -136,7 +144,7 @@ export function TapeheadsWorkDashboard() {
             </PageHeader>
             
             <h2 className="text-xl font-semibold tracking-tight">
-                Showing In-Progress & Completed for {date ? date.toLocaleDateString() : 'All Dates'}
+                Showing In-Progress Tasks & Completed for {date ? date.toLocaleDateString() : 'All Dates'}
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -155,5 +163,3 @@ export function TapeheadsWorkDashboard() {
         </div>
     )
 }
-
-    

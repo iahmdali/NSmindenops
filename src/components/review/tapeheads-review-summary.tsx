@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -124,14 +125,11 @@ export function TapeheadsReviewSummary() {
   };
 
   const handleDeleteReport = (id: string) => {
-    const reportIndex = dataStore.tapeheadsSubmissions.findIndex(report => report.id === id);
-    if(reportIndex !== -1) {
-        dataStore.tapeheadsSubmissions.splice(reportIndex, 1);
-        toast({
-            title: "Report Deleted",
-            description: "The operator submission has been removed.",
-        });
-    }
+    dataStore.deleteTapeheadsSubmission(id);
+    toast({
+        title: "Report Deleted",
+        description: "The operator submission has been removed.",
+    });
     handleLoadSubmissions();
   };
   
@@ -141,10 +139,6 @@ export function TapeheadsReviewSummary() {
   };
   
   const handleUpdateReport = (updatedReport: Report) => {
-    const reportIndex = dataStore.tapeheadsSubmissions.findIndex(r => r.id === updatedReport.id);
-    if (reportIndex !== -1) {
-        dataStore.tapeheadsSubmissions[reportIndex] = updatedReport;
-    }
     setEditDialogOpen(false);
     setReportToEdit(undefined);
     handleLoadSubmissions();
@@ -317,5 +311,3 @@ export function TapeheadsReviewSummary() {
     </div>
   );
 }
-
-    
