@@ -257,7 +257,7 @@ export function GantryReportForm() {
                     <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removeMaintenance(index)}><Trash2 className="size-4" /></Button>
                  </div>
                  <FormField
-                    control={form.control}
+                    control={control}
                     name={`maintenance.${index}.images`}
                     render={({ field }) => (
                       <FormItem>
@@ -375,9 +375,22 @@ function MoldField({ moldIndex, control, removeMold }: { moldIndex: number, cont
         {gantryMismatch && (
             <Alert variant="destructive" className="mb-4">
                 <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Gantry Mismatch</AlertTitle>
-                <AlertDescription>
-                    Sail <span className="font-bold">{gantryMismatch.sailNumber}</span> was assigned to Gantry <span className="font-bold">{gantryMismatch.expected}</span> by the Films Dept, but you selected Gantry <span className="font-bold">{gantryMismatch.actual}</span>. Please provide a reason for this override below.
+                <AlertTitle>Gantry Mismatch Detected</AlertTitle>
+                <AlertDescription className="space-y-3">
+                    <p>
+                        Sail <span className="font-bold">{gantryMismatch.sailNumber}</span> was assigned to Gantry <span className="font-bold">{gantryMismatch.expected}</span>, but you selected Gantry <span className="font-bold">{gantryMismatch.actual}</span>.
+                    </p>
+                    <FormField
+                        control={control}
+                        name={`molds.${moldIndex}.gantry_override_reason`}
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Gantry Override Reason</FormLabel>
+                                <FormControl><Textarea placeholder="Explain why the gantry is different from the one assigned by Films..." {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
                 </AlertDescription>
             </Alert>
         )}
@@ -448,19 +461,6 @@ function MoldField({ moldIndex, control, removeMold }: { moldIndex: number, cont
                       <FormField control={control} name={`molds.${moldIndex}.downtime_duration_minutes`} render={({ field }) => (<FormItem><FormLabel>Downtime Duration (minutes)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
                   </Card>
               )}
-             {gantryMismatch && (
-                 <FormField
-                    control={control}
-                    name={`molds.${moldIndex}.gantry_override_reason`}
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Gantry Override Reason</FormLabel>
-                            <FormControl><Textarea placeholder="Explain why the gantry is different from the one assigned by Films..." {...field} /></FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                 />
-             )}
         </div>
     </Card>
   )
