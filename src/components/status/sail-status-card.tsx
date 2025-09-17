@@ -5,7 +5,7 @@ import type { Report, WorkItem } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { CheckCircle, AlertTriangle, Layers, Clock, Shapes, Ruler, Wind, User, Calendar, CircleDot, Film, GanttChartSquare, XCircle, Hourglass, Factory, Wrench, Image as ImageIcon, ShieldCheck, FileDown } from "lucide-react";
+import { CheckCircle, AlertTriangle, Layers, Clock, Shapes, Ruler, Wind, User, Calendar, CircleDot, Film, GanttChartSquare, XCircle, Hourglass, Factory, Wrench, Image as ImageIcon, ShieldCheck, FileDown, ClipboardList } from "lucide-react";
 import { format } from "date-fns";
 import { Separator } from "../ui/separator";
 import type { InspectionSubmission } from "@/lib/qc-data";
@@ -34,6 +34,7 @@ export interface EnrichedWorkItem extends WorkItem {
   filmsInfo: FilmsInfo;
   gantryHistory: GantryInfo[];
   qcInspection?: InspectionSubmission;
+  totalPanelsForSection: number;
 }
 
 interface SailStatusCardProps {
@@ -197,7 +198,7 @@ function QcInspectionSection({ qcInspection }: { qcInspection?: InspectionSubmis
 
 
 export function SailStatusCard({ item }: SailStatusCardProps) {
-  const { report, filmsInfo, gantryHistory, qcInspection, ...workItem } = item;
+  const { report, filmsInfo, gantryHistory, qcInspection, totalPanelsForSection, ...workItem } = item;
   const isCompleted = workItem.endOfShiftStatus === 'Completed';
   const { toast } = useToast();
 
@@ -247,26 +248,9 @@ export function SailStatusCard({ item }: SailStatusCardProps) {
                 </Badge>
             </div>
             <div className="grid grid-cols-2 gap-4 pl-2">
-                <DetailItem icon={<User size={14}/>} label="Operator" value={report.operatorName} />
-                <DetailItem icon={<Calendar size={14}/>} label="Date Worked" value={format(new Date(report.date), 'MMM d, yyyy')} />
-                <DetailItem icon={<Clock size={14}/>} label="Shift" value={`${report.shift} (${report.shiftStartTime} - ${report.shiftEndTime})`} />
+                <DetailItem icon={<ClipboardList size={14}/>} label="Panels" value={`${workItem.panelsWorkedOn.length} of ${totalPanelsForSection}`} />
                 <DetailItem icon={<Ruler size={14}/>} label="Total Meters" value={`${workItem.total_meters}m`} />
-                <DetailItem icon={<Shapes size={14}/>} label="Total Tapes" value={workItem.total_tapes} />
-                {!isCompleted && workItem.layer && (
-                    <DetailItem icon={<Layers size={14}/>} label="Current Layer" value={workItem.layer} />
-                )}
             </div>
-             {workItem.had_spin_out && (
-                 <div className="mt-2 p-2 bg-destructive/10 border-l-4 border-destructive rounded">
-                    <DetailItem icon={<Wind size={16} className="text-destructive"/>} label="Spin-Out Recorded" value={`${workItem.spin_out_duration_minutes || 'N/A'} min duration`} />
-                 </div>
-            )}
-            
-            {workItem.issues && workItem.issues.length > 0 && (
-                 <div className="mt-2 p-2 bg-yellow-500/10 border-l-4 border-yellow-500 rounded">
-                    <DetailItem icon={<AlertTriangle size={16} className="text-yellow-600"/>} label="Problems" value={workItem.issues.map(i => i.problem_reason).join(', ')} />
-                 </div>
-            )}
         </div>
 
         <Separator />

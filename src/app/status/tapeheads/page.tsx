@@ -18,7 +18,7 @@ import { Input } from '@/components/ui/input';
 import { filmsData } from '@/lib/films-data';
 import { gantryReportsData } from '@/lib/gantry-data';
 import { inspectionsData, type InspectionSubmission } from '@/lib/qc-data';
-import { oeJobs } from '@/lib/oe-data';
+import { oeJobs, getOeSection } from '@/lib/oe-data';
 import { Layers } from 'lucide-react';
 
 interface FilmsInfo {
@@ -42,6 +42,7 @@ interface EnrichedWorkItem extends WorkItem {
   filmsInfo: FilmsInfo;
   gantryHistory: GantryInfo[];
   qcInspection?: InspectionSubmission;
+  totalPanelsForSection: number;
 }
 
 export default function TapeheadsStatusPage() {
@@ -128,11 +129,16 @@ export default function TapeheadsStatusPage() {
           // --- Find QC Inspection Info ---
           const qcInspection = inspectionsData.find(qc => qc.oeNumber === sailNumber);
           // --- End of QC Logic ---
+
+          // --- Get Total Panels for Section ---
+          const oeSection = getOeSection(item.oeNumber, item.section);
+          const totalPanelsForSection = oeSection ? (oeSection.panelEnd - oeSection.panelStart + 1) : 0;
+          // --- End of Total Panels Logic ---
           
           if (!items[sailKey]) {
             items[sailKey] = [];
           }
-          items[sailKey].push({ ...item, report, filmsInfo, gantryHistory, qcInspection });
+          items[sailKey].push({ ...item, report, filmsInfo, gantryHistory, qcInspection, totalPanelsForSection });
         }
       });
     });
