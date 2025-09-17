@@ -97,26 +97,19 @@ export function TapeheadsWorkDashboard() {
     }, []);
 
     const filteredWorkItems = React.useMemo(() => {
-        const allItems = reports.flatMap(report => 
+        return reports.flatMap(report => 
             (report.workItems || []).map((workItem, index) => ({ report, workItem, id: `${report.id}-${index}` }))
-        );
-        
-        return allItems.filter(({ report, workItem }) => {
-            // Always show items that are 'In Progress'
+        ).filter(({ report, workItem }) => {
+            // Rule 1: Always show items that are 'In Progress'
             if (workItem.endOfShiftStatus === 'In Progress') {
                 return true;
             }
-            // For completed items, only show if a date is selected and it matches
+            // Rule 2: For other statuses (like 'Completed'), only show if the date matches the filter
             if (date && isSameDay(new Date(report.date), date)) {
-                return true;
-            }
-            // If no date is selected, show all completed items for all time.
-            if (!date) {
                 return true;
             }
             return false;
         });
-
     }, [date, reports]);
     
     if (loading) {
