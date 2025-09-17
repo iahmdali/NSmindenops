@@ -6,25 +6,8 @@ import { DragDropContext, Droppable, Draggable, OnDragEndResponder } from '@hell
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import { GraphicsTaskCard } from './graphics-task-card';
-import { graphicsTasksData } from '@/lib/graphics-data';
-
-export interface Task {
-    id: string;
-    type: 'cutting' | 'inking';
-    status: 'todo' | 'inProgress' | 'done';
-    tagId: string;
-    content: string;
-    tagType?: 'Sail' | 'Decal';
-    sidedness?: 'Single-Sided' | 'Double-Sided';
-    sideOfWork?: 'Front' | 'Back';
-    workTypes?: string[];
-    durationMins?: number;
-    personnelCount?: number;
-    tapeUsed?: boolean;
-    isFinished?: boolean;
-    startedAt?: string;
-    completedAt?: string;
-}
+import { dataStore } from '@/lib/data-store';
+import type { GraphicsTask as Task } from '@/lib/data-store';
 
 interface KanbanBoardProps {
     tasks: Task[];
@@ -54,7 +37,7 @@ export function GraphicsKanbanBoard({ tasks, setTasks, type, onAddTask, onUpdate
             return;
         }
         
-        const allTasks = [...graphicsTasksData];
+        const allTasks = [...dataStore.graphicsTasksData];
         const task = allTasks.find(t => t.id === draggableId);
 
         if (task) {
@@ -113,3 +96,5 @@ export function GraphicsKanbanBoard({ tasks, setTasks, type, onAddTask, onUpdate
         </div>
     );
 }
+
+    

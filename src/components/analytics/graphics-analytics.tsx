@@ -8,22 +8,23 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, Clock, PackageCheck, Send } from "lucide-react";
 import { format, isSameDay } from 'date-fns';
-import { graphicsTasksData, type GraphicsTask } from '@/lib/graphics-data';
+import { dataStore } from '@/lib/data-store';
+import type { GraphicsTask } from '@/lib/data-store';
 import { Button } from '../ui/button';
 import { sendShippingNotification } from '@/ai/flows/send-notification-flow';
 import { useToast } from '@/hooks/use-toast';
 
 export function GraphicsAnalytics() {
     const [date, setDate] = useState<Date | undefined>(new Date());
-    const [tasks, setTasks] = useState<GraphicsTask[]>(graphicsTasksData);
+    const [tasks, setTasks] = useState<GraphicsTask[]>(dataStore.graphicsTasksData);
     const [notifiedTags, setNotifiedTags] = useState<Set<string>>(new Set());
     const { toast } = useToast();
 
     // This effect simulates real-time updates from the mock data source.
     useEffect(() => {
         const interval = setInterval(() => {
-            if (JSON.stringify(tasks) !== JSON.stringify(graphicsTasksData)) {
-                setTasks([...graphicsTasksData]);
+            if (JSON.stringify(tasks) !== JSON.stringify(dataStore.graphicsTasksData)) {
+                setTasks([...dataStore.graphicsTasksData]);
             }
         }, 500);
         return () => clearInterval(interval);
@@ -38,7 +39,7 @@ export function GraphicsAnalytics() {
             };
         }
 
-        const tasksToday = graphicsTasksData.filter(task => {
+        const tasksToday = dataStore.graphicsTasksData.filter(task => {
             const taskDate = task.completedAt || task.startedAt;
             return taskDate && isSameDay(new Date(taskDate), date);
         });
@@ -56,7 +57,7 @@ export function GraphicsAnalytics() {
         const finishedTagIds = new Set<string>();
         const tagTaskMap: Record<string, GraphicsTask[]> = {};
 
-        graphicsTasksData.forEach(task => {
+        dataStore.graphicsTasksData.forEach(task => {
             if (!task.tagId) return;
             if (!tagTaskMap[task.tagId]) {
                 tagTaskMap[task.tagId] = [];
@@ -214,3 +215,5 @@ export function GraphicsAnalytics() {
         </div>
     );
 }
+
+    

@@ -31,7 +31,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ImageUpload } from "./image-upload"
 import { Switch } from "./ui/switch"
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert"
-import { filmsData } from "@/lib/films-data"
+import { dataStore } from "@/lib/data-store"
 
 const stageOfProcessOptions = [
     "RF Smart Mold Adjust", "Grid Base Film Installation", "Panel Installation", 
@@ -103,7 +103,7 @@ const gantryReportSchema = z.object({
     for (const mold of data.molds) {
         const moldGantry = mold.mold_number.split('/')[0].trim().replace('Gantry ', '');
         const sailsWithMismatch = mold.sails.some(sail => {
-            const filmEntry = filmsData.find(f => f.sails_finished.some(s => s.sail_number === sail.sail_number));
+            const filmEntry = dataStore.filmsData.find(f => f.sails_finished.some(s => s.sail_number === sail.sail_number));
             return filmEntry && filmEntry.gantry_number !== moldGantry;
         });
 
@@ -340,7 +340,7 @@ function MoldField({ moldIndex, control, removeMold }: { moldIndex: number, cont
   });
   
   const sailsReadyForGantry = React.useMemo(() => {
-    const finishedSails = filmsData.flatMap(report => report.sails_finished.map(sail => sail.sail_number));
+    const finishedSails = dataStore.filmsData.flatMap(report => report.sails_finished.map(sail => sail.sail_number));
     return [...new Set(finishedSails)]; // Return unique sail numbers
   }, []);
 
@@ -353,7 +353,7 @@ function MoldField({ moldIndex, control, removeMold }: { moldIndex: number, cont
 
     for (const sail of watchSails) {
         if (!sail.sail_number) continue;
-        const filmEntry = filmsData.find(f => f.sails_finished.some(s => s.sail_number === sail.sail_number));
+        const filmEntry = dataStore.filmsData.find(f => f.sails_finished.some(s => s.sail_number === sail.sail_number));
         if (filmEntry && filmEntry.gantry_number !== moldGantryNumber) {
             return {
                 sailNumber: sail.sail_number,
@@ -485,3 +485,5 @@ function MoldField({ moldIndex, control, removeMold }: { moldIndex: number, cont
     </Card>
   )
 }
+
+    

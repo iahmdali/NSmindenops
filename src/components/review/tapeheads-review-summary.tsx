@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { tapeheadsSubmissions } from '@/lib/tapeheads-data';
+import { dataStore } from '@/lib/data-store';
 import type { Report, WorkItem } from '@/lib/types';
 import { isSameDay } from 'date-fns';
 import { Textarea } from '../ui/textarea';
@@ -116,7 +116,7 @@ export function TapeheadsReviewSummary() {
         return;
     }
 
-    const filtered = tapeheadsSubmissions.filter(s =>
+    const filtered = dataStore.tapeheadsSubmissions.filter(s =>
       isSameDay(new Date(s.date), selectedDate) && String(s.shift) === selectedShift
     );
     setSubmissions(filtered);
@@ -124,16 +124,14 @@ export function TapeheadsReviewSummary() {
   };
 
   const handleDeleteReport = (id: string) => {
-    // Find the index in the global data store
-    const reportIndex = tapeheadsSubmissions.findIndex(report => report.id === id);
+    const reportIndex = dataStore.tapeheadsSubmissions.findIndex(report => report.id === id);
     if(reportIndex !== -1) {
-        tapeheadsSubmissions.splice(reportIndex, 1);
+        dataStore.tapeheadsSubmissions.splice(reportIndex, 1);
         toast({
             title: "Report Deleted",
             description: "The operator submission has been removed.",
         });
     }
-    // Refresh the local state
     handleLoadSubmissions();
   };
   
@@ -143,13 +141,13 @@ export function TapeheadsReviewSummary() {
   };
   
   const handleUpdateReport = (updatedReport: Report) => {
-    const reportIndex = tapeheadsSubmissions.findIndex(r => r.id === updatedReport.id);
+    const reportIndex = dataStore.tapeheadsSubmissions.findIndex(r => r.id === updatedReport.id);
     if (reportIndex !== -1) {
-        tapeheadsSubmissions[reportIndex] = updatedReport;
+        dataStore.tapeheadsSubmissions[reportIndex] = updatedReport;
     }
     setEditDialogOpen(false);
     setReportToEdit(undefined);
-    handleLoadSubmissions(); // Refresh the list
+    handleLoadSubmissions();
   }
   
   useEffect(() => {
@@ -192,8 +190,8 @@ export function TapeheadsReviewSummary() {
 
     const allPanels = allWorkItemsWithTh.flatMap(item => item.panelsWorkedOn || []);
     const uniquePanelsWorked = new Set(allPanels).size;
-    const nestedPanelCount = allWorkItemsWithTh.filter(item => (item.nestedPanels || []).length > 0).length;
-    
+    const nestedPanelCount = allWorkItemsWithTh.reduce((count, item) => count + (item.nestedPanels?.length || 0), 0);
+
     const averageMpmh = totalHours > 0 ? (totalMeters / totalHours) : 0;
     
     const workOrdersProcessed = allWorkItemsWithTh.reduce((acc, item) => {
@@ -319,3 +317,5 @@ export function TapeheadsReviewSummary() {
     </div>
   );
 }
+
+    

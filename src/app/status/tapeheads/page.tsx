@@ -10,15 +10,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { PageHeader } from '@/components/page-header';
-import { tapeheadsSubmissions } from '@/lib/tapeheads-data';
+import { dataStore } from '@/lib/data-store';
 import type { Report, WorkItem } from '@/lib/types';
 import { SailStatusCard } from '@/components/status/sail-status-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { filmsData } from '@/lib/films-data';
-import { gantryReportsData } from '@/lib/gantry-data';
-import { inspectionsData, type InspectionSubmission } from '@/lib/qc-data';
-import { oeJobs, getOeSection } from '@/lib/oe-data';
+import type { InspectionSubmission } from '@/lib/data-store';
 import { Layers } from 'lucide-react';
 
 interface FilmsInfo {
@@ -52,8 +49,8 @@ export default function TapeheadsStatusPage() {
 
   // Set the most recent OE as default on initial load
   useEffect(() => {
-    if (tapeheadsSubmissions.length > 0) {
-      const mostRecentReport = [...tapeheadsSubmissions].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+    if (dataStore.tapeheadsSubmissions.length > 0) {
+      const mostRecentReport = [...dataStore.tapeheadsSubmissions].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
       const defaultOe = mostRecentReport.workItems?.[0]?.oeNumber;
       if (defaultOe) {
         setSelectedOe(defaultOe);
@@ -64,7 +61,7 @@ export default function TapeheadsStatusPage() {
 
   const totalPanelsForOe = useMemo(() => {
     if (!selectedOe) return 0;
-    const job = oeJobs.find(j => j.oeBase === selectedOe);
+    const job = dataStore.oeJobs.find(j => j.oeBase === selectedOe);
     if (!job) return 0;
     return job.sections.reduce((total, section) => {
         return total + (section.panelEnd - section.panelStart + 1);
@@ -76,7 +73,7 @@ export default function TapeheadsStatusPage() {
 
     const items: { [sailKey: string]: EnrichedWorkItem[] } = {};
 
-    tapeheadsSubmissions.forEach(report => {
+    dataStore.tapeheadsSubmissions.forEach(report => {
       report.workItems?.forEach(item => {
         if (item.oeNumber === selectedOe) {
           const sailKey = `${item.oeNumber}-${item.section}`;
@@ -84,8 +81,8 @@ export default function TapeheadsStatusPage() {
           
           // --- Find Films Department Info ---
           let filmsInfo: FilmsInfo = { status: 'No Entry' };
-          const finishedReport = filmsData.find(fr => fr.sails_finished.some(s => s.sail_number === sailNumber));
-          const startedReport = filmsData.find(fr => fr.sails_started.some(s => s.sail_number === sailNumber));
+          const finishedReport = dataStore.filmsData.find(fr => fr.sails_finished.some(s => s.sail_number === sailNumber));
+          const startedReport = dataStore.filmsData.find(fr => fr.sails_started.some(s => s.sail_number === sailNumber));
 
           if (finishedReport) {
               const finishedSail = finishedReport.sails_finished.find(s => s.sail_number === sailNumber);
@@ -106,7 +103,7 @@ export default function TapeheadsStatusPage() {
 
           // --- Find Gantry Department Info ---
           const gantryHistory: GantryInfo[] = [];
-          gantryReportsData.forEach(gantryReport => {
+          dataStore.gantryReportsData.forEach(gantryReport => {
               gantryReport.molds?.forEach(mold => {
                   mold.sails?.forEach(sail => {
                       if (sail.sail_number === sailNumber) {
@@ -127,11 +124,11 @@ export default function TapeheadsStatusPage() {
           // --- End of Gantry Logic ---
 
           // --- Find QC Inspection Info ---
-          const qcInspection = inspectionsData.find(qc => qc.oeNumber === sailNumber);
+          const qcInspection = dataStore.inspectionsData.find(qc => qc.oeNumber === sailNumber);
           // --- End of QC Logic ---
 
           // --- Get Total Panels for Section ---
-          const oeSection = getOeSection(item.oeNumber, item.section);
+          const oeSection = dataStore.getOeSection(item.oeNumber, item.section);
           const totalPanelsForSection = oeSection ? (oeSection.panelEnd - oeSection.panelStart + 1) : 0;
           // --- End of Total Panels Logic ---
           
@@ -236,3 +233,5 @@ export default function TapeheadsStatusPage() {
     </div>
   );
 }
+
+    

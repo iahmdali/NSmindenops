@@ -14,7 +14,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Factory, TrendingUp, CheckCircle, AlertTriangle, Users } from "lucide-react"
-import { gantryReportsData, GantryReport } from "@/lib/gantry-data"
+import { dataStore } from "@/lib/data-store"
+import type { GantryReport } from "@/lib/data-store"
 
 const classifySailType = (sailNumber?: string): 'Sail' | 'Panel' | 'Scarf' => {
   if (!sailNumber || sailNumber.length < 3) return 'Scarf';
@@ -45,7 +46,7 @@ const issueTypesConfig: ChartConfig = {
 }
 
 export function GantryAnalytics() {
-  const [reports, setReports] = React.useState<GantryReport[]>(gantryReportsData);
+  const [reports, setReports] = React.useState<GantryReport[]>(dataStore.gantryReportsData);
   const [filters, setFilters] = React.useState({
     shift: "all",
     dateRange: "30",
@@ -370,3 +371,5 @@ export function GantryAnalytics() {
     </div>
   )
 }
+
+    

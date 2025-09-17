@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Target, Gauge, Clock, Zap, AlertTriangle } from "lucide-react"
 import type { Report } from "@/lib/types"
-import { tapeheadsSubmissions } from "@/lib/tapeheads-data"
+import { dataStore } from "@/lib/data-store"
 import { Badge } from "../ui/badge"
 
 const downtimeReasonsConfig = {
@@ -49,7 +49,7 @@ const calculateHours = (startTimeStr?: string, endTimeStr?: string): number => {
 }
 
 export function TapeheadsAnalytics() {
-  const [data, setData] = React.useState<Report[]>(tapeheadsSubmissions);
+  const [data, setData] = React.useState<Report[]>(dataStore.tapeheadsSubmissions);
   const [filters, setFilters] = React.useState({
     shift: 'all',
     operatorName: '',
@@ -60,7 +60,7 @@ export function TapeheadsAnalytics() {
   };
   
   React.useEffect(() => {
-    const filteredData = tapeheadsSubmissions.filter(report => {
+    const filteredData = dataStore.tapeheadsSubmissions.filter(report => {
         if (filters.shift !== 'all' && String(report.shift) !== filters.shift) return false;
         if (filters.operatorName && !report.operatorName.toLowerCase().includes(filters.operatorName.toLowerCase())) return false;
         return true;
@@ -292,3 +292,5 @@ export function TapeheadsAnalytics() {
     </div>
   )
 }
+
+    

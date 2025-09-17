@@ -32,9 +32,8 @@ import React, { useEffect, useMemo } from "react"
 import { MultiSelect, MultiSelectOption } from "./ui/multi-select"
 import { useRouter } from "next/navigation"
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group"
-import { tapeheadsSubmissions } from "@/lib/tapeheads-data"
+import { dataStore } from "@/lib/data-store"
 import type { Report, WorkItem, TapeUsage } from "@/lib/types"
-import { oeJobs, getOeSection, markPanelsAsCompleted } from "@/lib/oe-data"
 
 const tapeIds = [
     "998108", "998108T", "998128", "998128T", "998147", "998147T", "998167", "998167T", "998185",
@@ -273,7 +272,7 @@ export function TapeheadsOperatorForm({ reportToEdit, onFormSubmit }: TapeheadsO
     // Logic to update panel statuses
     values.workItems.forEach(item => {
         if (item.endOfShiftStatus === 'Completed') {
-            markPanelsAsCompleted(item.oeNumber, item.section, item.panelsWorkedOn);
+            dataStore.markPanelsAsCompleted(item.oeNumber, item.section, item.panelsWorkedOn);
         }
     });
 
@@ -308,7 +307,6 @@ export function TapeheadsOperatorForm({ reportToEdit, onFormSubmit }: TapeheadsO
         }),
         checklist: values.checklist,
         status: 'Submitted',
-        // This is now calculated from workItems, but kept for compatibility for now
         total_meters: (values.workItems || []).reduce((sum, item) => {
             const itemTotal = (item.tapes || []).reduce((tapeSum, tape) => tapeSum + (tape.metersProduced || 0), 0);
             return sum + itemTotal;
@@ -318,7 +316,7 @@ export function TapeheadsOperatorForm({ reportToEdit, onFormSubmit }: TapeheadsO
     if (onFormSubmit) {
       onFormSubmit(reportData as Report);
     } else {
-      tapeheadsSubmissions.unshift(reportData as Report);
+      dataStore.tapeheadsSubmissions.unshift(reportData as Report);
       router.push('/report/tapeheads');
     }
 
@@ -428,7 +426,7 @@ function WorkItemCard({ index, remove, control, isEditMode }: { index: number, r
       return;
     }
 
-    const isPanelInProgress = tapeheadsSubmissions.some(report =>
+    const isPanelInProgress = dataStore.tapeheadsSubmissions.some(report =>
       report.workItems?.some(item => {
         if (item.oeNumber !== watchOeNumber || item.section !== watchSection || item.endOfShiftStatus !== 'In Progress') {
           return false;
@@ -450,12 +448,12 @@ function WorkItemCard({ index, remove, control, isEditMode }: { index: number, r
   }, [watchOeNumber, watchSection, watchPanelsWorkedOn, toast, isEditMode]);
 
 
-  const availableOes = useMemo(() => [...new Set(oeJobs.map(j => j.oeBase))], []);
-  const availableSails = useMemo(() => watchOeNumber ? oeJobs.filter(j => j.oeBase === watchOeNumber).flatMap(j => j.sections?.map(s => s.sectionId) || []) : [], [watchOeNumber]);
+  const availableOes = useMemo(() => [...new Set(dataStore.oeJobs.map(j => j.oeBase))], []);
+  const availableSails = useMemo(() => watchOeNumber ? dataStore.oeJobs.filter(j => j.oeBase === watchOeNumber).flatMap(j => j.sections?.map(s => s.sectionId) || []) : [], [watchOeNumber]);
   
   const panelOptions = useMemo(() => {
       if (!watchOeNumber || !watchSection) return [];
-      const sail = getOeSection(watchOeNumber, watchSection);
+      const sail = dataStore.getOeSection(watchOeNumber, watchSection);
       if (!sail) return [];
       
       const options: MultiSelectOption[] = [];
@@ -545,3 +543,5 @@ function WorkItemCard({ index, remove, control, isEditMode }: { index: number, r
     </Card>
   );
 }
+
+    

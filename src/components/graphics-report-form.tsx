@@ -21,10 +21,11 @@ import { useToast } from "@/hooks/use-toast"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Checkbox } from "./ui/checkbox"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"
-import { GraphicsKanbanBoard, type Task } from "./graphics/graphics-kanban-board"
+import { GraphicsKanbanBoard } from "./graphics/graphics-kanban-board"
+import type { GraphicsTask as Task } from "@/lib/data-store"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "./ui/dialog"
 import { sendShippingNotification } from "@/ai/flows/send-notification-flow"
-import { graphicsTasksData } from "@/lib/graphics-data"
+import { dataStore } from "@/lib/data-store"
 import { PageHeader } from "@/components/page-header"
 
 
@@ -76,7 +77,7 @@ function Section({ title, description, children, actions }: { title: string, des
 
 export function GraphicsReportForm() {
     const { toast } = useToast();
-    const [tasks, setTasks] = useState<Task[]>(graphicsTasksData);
+    const [tasks, setTasks] = useState<Task[]>(dataStore.graphicsTasksData);
     const [notifiedTags, setNotifiedTags] = useState<Set<string>>(new Set());
 
     const form = useForm<GraphicsReportFormValues>({
@@ -101,7 +102,7 @@ export function GraphicsReportForm() {
             const tagTaskMap: Record<string, Task[]> = {};
 
             // Group tasks by tagId
-            graphicsTasksData.forEach(task => {
+            dataStore.graphicsTasksData.forEach(task => {
                 if (!task.tagId) return;
                 if (!tagTaskMap[task.tagId]) {
                     tagTaskMap[task.tagId] = [];
@@ -157,14 +158,14 @@ export function GraphicsReportForm() {
     const { fields: maintenanceFields, append: appendMaintenance, remove: removeMaintenance } = useFieldArray({ control: form.control, name: "maintenance_tasks" });
     
     const updateTasks = (newTasks: Task[]) => {
-      graphicsTasksData.length = 0;
-      graphicsTasksData.push(...newTasks);
+      dataStore.graphicsTasksData.length = 0;
+      dataStore.graphicsTasksData.push(...newTasks);
       setTasks([...newTasks]);
     };
 
     const addNewTask = (type: 'cutting' | 'inking') => {
         const timestamp = Date.now();
-        const newTasks = [...graphicsTasksData];
+        const newTasks = [...dataStore.graphicsTasksData];
 
         const cuttingTask: Task = {
             id: `cut-${timestamp}`, type: 'cutting', tagId: '', status: 'todo',
@@ -190,7 +191,7 @@ export function GraphicsReportForm() {
     }
     
     const updateTask = (updatedTask: Task) => {
-        let newTasks = graphicsTasksData.map(task => task.id === updatedTask.id ? updatedTask : task);
+        let newTasks = dataStore.graphicsTasksData.map(task => task.id === updatedTask.id ? updatedTask : task);
         
         // If a cutting task is updated, sync its details to the corresponding inking task
         if (updatedTask.type === 'cutting') {
@@ -212,7 +213,7 @@ export function GraphicsReportForm() {
     }
     
     const deleteTask = (taskId: string) => {
-        const newTasks = graphicsTasksData.filter(task => task.id !== taskId);
+        const newTasks = dataStore.graphicsTasksData.filter(task => task.id !== taskId);
         updateTasks(newTasks);
     }
 
@@ -293,3 +294,5 @@ export function GraphicsReportForm() {
         </Form>
     )
 }
+
+    

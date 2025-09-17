@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { addOeJob } from '@/lib/oe-data';
+import { dataStore } from '@/lib/data-store';
 import { PlusCircle, Trash2 } from 'lucide-react';
 import {
   AlertDialog,
@@ -86,7 +86,7 @@ export function FileProcessingTracker() {
   const onFinalSubmit = () => {
     if (!reviewData) return;
     
-    addOeJob({
+    dataStore.addOeJob({
       oeBase: reviewData.oeBase,
       sections: reviewData.sections.map(s => ({
         sectionId: s.sectionId,
@@ -264,3 +264,5 @@ export function FileProcessingTracker() {
     </>
   );
 }
+
+    

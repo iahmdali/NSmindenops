@@ -9,7 +9,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Badge } from './ui/badge';
 import { CheckCircle, Edit, ChevronsRight } from 'lucide-react';
-import { tapeheadsSubmissions } from '@/lib/tapeheads-data';
+import { dataStore } from '@/lib/data-store';
 import type { Report, WorkItem } from '@/lib/types';
 import { Progress } from './ui/progress';
 import { DatePicker } from './ui/date-picker';
@@ -83,12 +83,12 @@ function SubmittedReportCard({ report, workItem, itemIndex }: { report: Report, 
 
 export function TapeheadsWorkDashboard() {
     const [date, setDate] = useState<Date | undefined>(new Date());
-    const [reports, setReports] = useState<Report[]>([]);
+    const [reports, setReports] = useState<Report[]>(dataStore.tapeheadsSubmissions);
 
     useEffect(() => {
         const interval = setInterval(() => {
-            if (JSON.stringify(reports) !== JSON.stringify(tapeheadsSubmissions)) {
-                 setReports([...tapeheadsSubmissions]);
+            if (JSON.stringify(reports) !== JSON.stringify(dataStore.tapeheadsSubmissions)) {
+                 setReports([...dataStore.tapeheadsSubmissions]);
             }
         }, 500);
         
@@ -96,7 +96,7 @@ export function TapeheadsWorkDashboard() {
     }, [reports]);
 
     const filteredWorkItems = React.useMemo(() => {
-        const allItems = tapeheadsSubmissions.flatMap(report => 
+        const allItems = dataStore.tapeheadsSubmissions.flatMap(report => 
             (report.workItems || []).map((workItem, index) => ({ report, workItem, id: `${report.id}-${index}` }))
         );
         
@@ -155,3 +155,5 @@ export function TapeheadsWorkDashboard() {
         </div>
     )
 }
+
+    

@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -17,7 +18,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Factory, TrendingUp, Clock, Zap } from "lucide-react"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion"
 import { Badge } from "../ui/badge"
-import { preggerReportsData, PreggerReport } from "@/lib/pregger-data"
+import { dataStore } from "@/lib/data-store"
+import type { PreggerReport } from "@/lib/data-store"
 
 const productionChartConfig = {
   shift1: { label: "Shift 1", color: "hsl(var(--chart-1))" },
@@ -37,7 +39,7 @@ const CustomLegend = () => {
 };
 
 export function PreggerAnalytics() {
-  const [data, setData] = React.useState<PreggerReport[]>(preggerReportsData);
+  const [data, setData] = React.useState<PreggerReport[]>(dataStore.preggerReportsData);
   const [filters, setFilters] = React.useState({
     dateFrom: '2023-10-25',
     dateTo: '2023-10-27',
@@ -50,7 +52,7 @@ export function PreggerAnalytics() {
   
   React.useEffect(() => {
     // In a real app, you'd fetch data here based on filters
-    const filteredData = preggerReportsData.filter(report => {
+    const filteredData = dataStore.preggerReportsData.filter(report => {
         const reportDate = new Date(report.report_date);
         const fromDate = filters.dateFrom ? new Date(filters.dateFrom) : null;
         const toDate = filters.dateTo ? new Date(filters.dateTo) : null;
@@ -252,3 +254,5 @@ export function PreggerAnalytics() {
     </div>
   )
 }
+
+    
