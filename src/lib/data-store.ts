@@ -30,6 +30,7 @@ export interface OeJob {
 }
 
 export interface FilmsReport {
+    id: string;
     report_date: string;
     gantry_number: string;
     sails_started: Array<{ sail_number: string; comments?: string }>;
@@ -158,6 +159,16 @@ export async function addOeJob(job: { oeBase: string, sections: Array<{ sectionI
     };
     oeJobs.unshift(newJob);
     await writeData('oeJobs', oeJobs);
+}
+
+export async function addFilmsReport(report: Omit<FilmsReport, 'id'>): Promise<void> {
+    const reports = await getFilmsData();
+    const newReport: FilmsReport = {
+        id: `film_rpt_${Date.now()}`,
+        ...report,
+    };
+    reports.unshift(newReport);
+    await writeData('filmsData', reports);
 }
 
 export async function getOeSection(oeBase?: string, sectionId?: string): Promise<(OeSection & { jobStatus: OeJob['status']}) | undefined> {

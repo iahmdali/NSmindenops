@@ -22,6 +22,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
 import { Checkbox } from "./ui/checkbox"
 import { Separator } from "./ui/separator"
+import { addFilmsReport } from "@/lib/data-store"
+import { formatISO } from "date-fns"
 
 const sailEntrySchema = z.object({
   sail_number: z.string().min(1, "Sail# is required."),
@@ -178,8 +180,17 @@ export function FilmsReportForm() {
   
   const hadDowntime = useWatch({ control: form.control, name: "had_downtime" });
 
-  function onSubmit(values: FilmsReportFormValues) {
-    console.log(values);
+  async function onSubmit(values: FilmsReportFormValues) {
+    const reportData = {
+      report_date: formatISO(values.report_date),
+      gantry_number: values.gantry_mold_number.split('/')[0].replace('Gantry ', '').trim(),
+      sails_started: values.sails_started || [],
+      sails_finished: values.sails_finished || [],
+      // Storing personnel and downtime can be added here if needed in the future
+    };
+
+    await addFilmsReport(reportData);
+
     toast({
       title: "Films Report Submitted!",
       description: "Your report has been successfully submitted.",
