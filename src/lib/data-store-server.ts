@@ -59,9 +59,9 @@ export async function writeData(filePath: string, data: any): Promise<void> {
 
 
 // Specific read functions
-export const readOeJobs = () => readData<any[]>(OE_JOBS_PATH);
-export const readGraphicsTasks = () => readData<any[]>(GRAPHICS_TASKS_PATH);
-export const readTapeheadsSubmissions = () => readData<any[]>(TAPEHEADS_SUBMISSIONS_PATH);
+export const readOeJobs = async () => await readData<any[]>(OE_JOBS_PATH);
+export const readGraphicsTasks = async () => await readData<any[]>(GRAPHICS_TASKS_PATH);
+export const readTapeheadsSubmissions = async () => await readData<any[]>(TAPEHEADS_SUBMISSIONS_PATH);
 
 // Specific write functions
 export const writeOeJobs = async (data: any) => await writeData(OE_JOBS_PATH, data);
