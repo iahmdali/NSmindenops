@@ -6,13 +6,17 @@ import path from 'path';
 
 // Define paths to the JSON data files
 const dataDir = path.join(process.cwd(), 'src', 'lib', 'data');
-export const OE_JOBS_PATH = path.join(dataDir, 'oe-jobs.json');
-export const FILMS_DATA_PATH = path.join(dataDir, 'films-data.json');
-export const GANTRY_REPORTS_PATH = path.join(dataDir, 'gantry-reports.json');
-export const GRAPHICS_TASKS_PATH = path.join(dataDir, 'graphics-tasks.json');
-export const PREGGER_REPORTS_PATH = path.join(dataDir, 'pregger-reports.json');
-export const INSPECTIONS_PATH = path.join(dataDir, 'inspections.json');
-export const TAPEHEADS_SUBMISSIONS_PATH = path.join(dataDir, 'tapeheads-submissions.json');
+const filePaths = {
+    oeJobs: path.join(dataDir, 'oe-jobs.json'),
+    filmsData: path.join(dataDir, 'films-data.json'),
+    gantryReports: path.join(dataDir, 'gantry-reports.json'),
+    graphicsTasks: path.join(dataDir, 'graphics-tasks.json'),
+    preggerReports: path.join(dataDir, 'pregger-reports.json'),
+    inspections: path.join(dataDir, 'inspections.json'),
+    tapeheadsSubmissions: path.join(dataDir, 'tapeheads-submissions.json'),
+};
+
+type DataType = keyof typeof filePaths;
 
 // Helper to check if a file exists
 async function fileExists(filePath: string): Promise<boolean> {
@@ -25,7 +29,8 @@ async function fileExists(filePath: string): Promise<boolean> {
 }
 
 // Generic function to read data from a JSON file
-export async function readData<T>(filePath: string): Promise<T> {
+export async function readData<T>(dataType: DataType): Promise<T> {
+    const filePath = filePaths[dataType];
     try {
         if (!(await fileExists(filePath))) {
             // If the file doesn't exist, create it with an empty array
@@ -47,7 +52,8 @@ export async function readData<T>(filePath: string): Promise<T> {
 
 
 // Generic function to write data to a JSON file
-export async function writeData(filePath: string, data: any): Promise<void> {
+export async function writeData(dataType: DataType, data: any): Promise<void> {
+    const filePath = filePaths[dataType];
     try {
         await fs.mkdir(dataDir, { recursive: true });
         const jsonString = JSON.stringify(data, null, 2);
@@ -56,14 +62,3 @@ export async function writeData(filePath: string, data: any): Promise<void> {
         console.error(`Error writing data to ${filePath}:`, error);
     }
 }
-
-
-// Specific read functions
-export const readOeJobs = async () => await readData<any[]>(OE_JOBS_PATH);
-export const readGraphicsTasks = async () => await readData<any[]>(GRAPHICS_TASKS_PATH);
-export const readTapeheadsSubmissions = async () => await readData<any[]>(TAPEHEADS_SUBMISSIONS_PATH);
-
-// Specific write functions
-export const writeOeJobs = async (data: any) => await writeData(OE_JOBS_PATH, data);
-export const writeGraphicsTasks = async (data: any) => await writeData(GRAPHICS_TASKS_PATH, data);
-export const writeTapeheadsSubmissions = async (data: any) => await writeData(TAPEHEADS_SUBMISSIONS_PATH, data);

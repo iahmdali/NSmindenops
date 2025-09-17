@@ -6,12 +6,8 @@
  */
 import type { Report, WorkItem } from './types';
 import { 
-    readOeJobs, 
-    writeOeJobs, 
-    readGraphicsTasks, 
-    writeGraphicsTasks, 
-    readTapeheadsSubmissions, 
-    writeTapeheadsSubmissions
+    readData,
+    writeData
 } from './data-store-server';
 
 //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
@@ -137,20 +133,20 @@ export interface InspectionSubmission {
 }
 
 const dataStore = {
-    get oeJobs(): Promise<OeJob[]> { return readData<OeJob[]>(OE_JOBS_PATH); },
-    get filmsData(): Promise<FilmsReport[]> { return readData<FilmsReport[]>(FILMS_DATA_PATH); },
-    get gantryReportsData(): Promise<GantryReport[]> { return readData<GantryReport[]>(GANTRY_REPORTS_PATH); },
-    get graphicsTasksData(): Promise<GraphicsTask[]> { return readData<GraphicsTask[]>(GRAPHICS_TASKS_PATH); },
-    get preggerReportsData(): Promise<PreggerReport[]> { return readData<PreggerReport[]>(PREGGER_REPORTS_PATH); },
-    get inspectionsData(): Promise<InspectionSubmission[]> { return readData<InspectionSubmission[]>(INSPECTIONS_PATH); },
-    get tapeheadsSubmissions(): Promise<Report[]> { return readData<Report[]>(TAPEHEADS_SUBMISSIONS_PATH); },
+    get oeJobs(): Promise<OeJob[]> { return readData<OeJob[]>('oeJobs'); },
+    get filmsData(): Promise<FilmsReport[]> { return readData<FilmsReport[]>('filmsData'); },
+    get gantryReportsData(): Promise<GantryReport[]> { return readData<GantryReport[]>('gantryReports'); },
+    get graphicsTasksData(): Promise<GraphicsTask[]> { return readData<GraphicsTask[]>('graphicsTasks'); },
+    get preggerReportsData(): Promise<PreggerReport[]> { return readData<PreggerReport[]>('preggerReports'); },
+    get inspectionsData(): Promise<InspectionSubmission[]> { return readData<InspectionSubmission[]>('inspections'); },
+    get tapeheadsSubmissions(): Promise<Report[]> { return readData<Report[]>('tapeheadsSubmissions'); },
     
     async setGraphicsTasks(tasks: GraphicsTask[]) {
-        await writeGraphicsTasks(tasks);
+        await writeData('graphicsTasks', tasks);
     },
     
     async setTapeheadsSubmissions(reports: Report[]) {
-        await writeTapeheadsSubmissions(reports);
+        await writeData('tapeheadsSubmissions', reports);
     },
     
     async addOeJob(job: { oeBase: string, sections: Array<{ sectionId: string, panelStart: number, panelEnd: number }> }): Promise<void> {
@@ -162,7 +158,7 @@ const dataStore = {
             sections: job.sections.map(s => ({ ...s, completedPanels: [] })),
         };
         oeJobs.unshift(newJob);
-        await writeOeJobs(oeJobs);
+        await writeData('oeJobs', oeJobs);
     },
 
     async getOeSection(oeBase?: string, sectionId?: string): Promise<(OeSection & { jobStatus: OeJob['status']}) | undefined> {
@@ -201,13 +197,13 @@ const dataStore = {
         } else if (job.sections.some(s => (s.completedPanels?.length || 0) > 0)) {
             job.status = 'in-progress';
         }
-        await writeOeJobs(oeJobs);
+        await writeData('oeJobs', oeJobs);
     },
     
     async addTapeheadsSubmission(report: Report): Promise<void> {
         const submissions = await this.tapeheadsSubmissions;
         submissions.unshift(report);
-        await writeTapeheadsSubmissions(submissions);
+        await writeData('tapeheadsSubmissions', submissions);
     },
     
     async updateTapeheadsSubmission(updatedReport: Report): Promise<void> {
@@ -215,29 +211,15 @@ const dataStore = {
         const index = submissions.findIndex(r => r.id === updatedReport.id);
         if (index !== -1) {
             submissions[index] = updatedReport;
-            await writeTapeheadsSubmissions(submissions);
+            await writeData('tapeheadsSubmissions', submissions);
         }
     },
     
      async deleteTapeheadsSubmission(id: string): Promise<void> {
         let submissions = await this.tapeheadsSubmissions;
         submissions = submissions.filter(report => report.id !== id);
-        await writeTapeheadsSubmissions(submissions);
+        await writeData('tapeheadsSubmissions', submissions);
     }
 };
-
-// Re-export server functions but keep the dataStore object for reading for now.
-// This is a transitional step. Ideally all components would use server actions.
-import { 
-    readData,
-    writeData,
-    OE_JOBS_PATH,
-    FILMS_DATA_PATH,
-    GANTRY_REPORTS_PATH,
-    GRAPHICS_TASKS_PATH,
-    PREGGER_REPORTS_PATH,
-    INSPECTIONS_PATH,
-    TAPEHEADS_SUBMISSIONS_PATH
-} from './data-store-server';
 
 export { dataStore };
