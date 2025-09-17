@@ -87,6 +87,10 @@ const defaultValues: Partial<FilmsReportFormValues> = {
   sails_started: [],
   sails_finished: [],
   had_downtime: false,
+  downtime: {
+    reason: "",
+    duration: 0,
+  },
   personnel: defaultPersonnel,
 };
 
@@ -241,7 +245,7 @@ export function FilmsReportForm() {
                 {hadDowntime && (
                     <div className="p-4 border rounded-md grid md:grid-cols-2 gap-4">
                          <FormField control={form.control} name="downtime.reason" render={({ field }) => (
-                            <FormItem><FormLabel>Reason</FormLabel><Select onValueChange={field.onChange}><FormControl><SelectTrigger><SelectValue placeholder="Select a reason" /></SelectTrigger></FormControl><SelectContent>{downtimeReasons.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                            <FormItem><FormLabel>Reason</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select a reason" /></SelectTrigger></FormControl><SelectContent>{downtimeReasons.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
                         )} />
                         <FormField control={form.control} name="downtime.duration" render={({ field }) => (
                             <FormItem><FormLabel>Duration (minutes)</FormLabel><FormControl><Input type="number" placeholder="0" {...field} /></FormControl><FormMessage /></FormItem>
@@ -258,3 +262,5 @@ export function FilmsReportForm() {
     </Form>
   )
 }
+
+    
