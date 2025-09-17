@@ -328,17 +328,23 @@ function MoldField({ moldIndex, control, removeMold }: { moldIndex: number, cont
   const gantryMismatch = React.useMemo(() => {
     if (!watchMoldNumber || !watchSails) return null;
 
-    const moldGantryNumber = watchMoldNumber.split('/')[0].trim().replace('Gantry ', '');
-    if (!moldGantryNumber) return null;
+    const getGantryNumberFromString = (str: string) => {
+        const match = str.match(/Gantry\s*(\d+)/i);
+        return match ? match[1] : null;
+    };
+
+    const selectedGantryNumber = getGantryNumberFromString(watchMoldNumber);
+    if (!selectedGantryNumber) return null;
 
     for (const sail of watchSails) {
         if (!sail.sail_number) continue;
         const filmEntry = filmsData.find(f => f.sails_finished.some(s => s.sail_number === sail.sail_number));
-        if (filmEntry && filmEntry.gantry_number !== moldGantryNumber) {
+        
+        if (filmEntry && filmEntry.gantry_number && filmEntry.gantry_number !== selectedGantryNumber) {
             return {
                 sailNumber: sail.sail_number,
                 expected: filmEntry.gantry_number,
-                actual: moldGantryNumber
+                actual: selectedGantryNumber
             };
         }
     }
@@ -378,7 +384,7 @@ function MoldField({ moldIndex, control, removeMold }: { moldIndex: number, cont
                 <AlertTitle>Gantry Mismatch Detected</AlertTitle>
                 <AlertDescription className="space-y-3">
                     <p>
-                        Sail <span className="font-bold">{gantryMismatch.sailNumber}</span> was assigned to Gantry <span className="font-bold">{gantryMismatch.expected}</span>, but you selected Gantry <span className="font-bold">{gantryMismatch.actual}</span>.
+                        Sail <span className="font-bold">{gantryMismatch.sailNumber}</span> was assigned to Gantry <span className="font-bold">{gantryMismatch.expected}</span>, but you selected a mold on Gantry <span className="font-bold">{gantryMismatch.actual}</span>. Please provide a reason for this override below.
                     </p>
                     <FormField
                         control={control}
@@ -465,3 +471,5 @@ function MoldField({ moldIndex, control, removeMold }: { moldIndex: number, cont
     </Card>
   )
 }
+
+    
