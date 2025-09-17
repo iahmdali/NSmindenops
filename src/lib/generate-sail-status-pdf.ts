@@ -4,7 +4,7 @@ import 'jspdf-autotable';
 import type { RowInput } from 'jspdf-autotable';
 import { format } from 'date-fns';
 import type { EnrichedWorkItem } from '@/components/status/sail-status-card';
-import { defectCategories } from './qc-data';
+import { defectCategories } from '@/lib/qc-data';
 
 interface jsPDFWithAutoTable extends jsPDF {
   autoTable: (options: any) => jsPDFWithAutoTable;

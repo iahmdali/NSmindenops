@@ -4,7 +4,7 @@ import 'jspdf-autotable';
 import type { RowInput } from 'jspdf-autotable';
 import { format } from 'date-fns';
 import type { InspectionFormValues } from '@/components/qc/3di-inspection-form';
-import { defectCategories } from './qc-data';
+import { defectCategories } from '@/lib/qc-data';
 
 interface ReportInfo {
     totalScore: number;

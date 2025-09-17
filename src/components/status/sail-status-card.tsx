@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { CheckCircle, AlertTriangle, Layers, Clock, Shapes, Ruler, Wind, User, Calendar, CircleDot, Film, GanttChartSquare, XCircle, Hourglass, Factory, Wrench, Image as ImageIcon, ShieldCheck, FileDown, ClipboardList } from "lucide-react";
 import { format } from "date-fns";
 import { Separator } from "../ui/separator";
-import type { InspectionSubmission } from "@/lib/qc-data";
+import type { InspectionSubmission } from "@/lib/data-store";
 import { Button } from "../ui/button";
 import { generateSailStatusPdf } from "@/lib/generate-sail-status-pdf";
 import { useToast } from "@/hooks/use-toast";

@@ -83,10 +83,10 @@ export function FileProcessingTracker() {
     setIsReviewing(true);
   };
   
-  const onFinalSubmit = () => {
+  const onFinalSubmit = async () => {
     if (!reviewData) return;
     
-    dataStore.addOeJob({
+    await dataStore.addOeJob({
       oeBase: reviewData.oeBase,
       sections: reviewData.sections.map(s => ({
         sectionId: s.sectionId,
@@ -264,5 +264,3 @@ export function FileProcessingTracker() {
     </>
   );
 }
-
-    
