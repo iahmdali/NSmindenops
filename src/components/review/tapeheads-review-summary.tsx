@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -11,8 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { dataStore } from '@/lib/data-store';
-import type { Report, WorkItem } from '@/lib/types';
+import { getTapeheadsSubmissions, deleteTapeheadsSubmission, type Report } from '@/lib/data-store';
 import { isSameDay } from 'date-fns';
 import { Textarea } from '../ui/textarea';
 import { useToast } from '@/hooks/use-toast';
@@ -91,7 +89,7 @@ function OperatorSubmissionCard({ report, onDelete, onEdit }: { report: Report, 
 
 export function TapeheadsReviewSummary() {
   const { toast } = useToast();
-  const [submissions, setSubmissions] = useState<Report[]>([]);
+  const [allSubmissions, setAllSubmissions] = useState<Report[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [aiSummary, setAiSummary] = useState('');
   const [isEditDialogOpen, setEditDialogOpen] = useState(false);
@@ -108,29 +106,36 @@ export function TapeheadsReviewSummary() {
 
   const { date, shift } = form.watch();
 
+  useEffect(() => {
+    getTapeheadsSubmissions().then(setAllSubmissions);
+  }, []);
+
   const handleLoadSubmissions = () => {
+    // This is now handled by the submissions useMemo
+    setAiSummary(''); 
+  };
+  
+  const submissions = useMemo(() => {
     const selectedDate = form.getValues('date');
     const selectedShift = form.getValues('shift');
 
     if (!selectedDate || !selectedShift) {
-        toast({ title: "Please select date and shift", variant: "destructive" });
-        return;
+        return [];
     }
-
-    const filtered = dataStore.tapeheadsSubmissions.filter(s =>
+    return allSubmissions.filter(s =>
       isSameDay(new Date(s.date), selectedDate) && String(s.shift) === selectedShift
     );
-    setSubmissions(filtered);
-    setAiSummary(''); 
-  };
+  }, [date, shift, allSubmissions]);
 
-  const handleDeleteReport = (id: string) => {
-    dataStore.deleteTapeheadsSubmission(id);
+
+  const handleDeleteReport = async (id: string) => {
+    await deleteTapeheadsSubmission(id);
+    const updatedSubmissions = await getTapeheadsSubmissions();
+    setAllSubmissions(updatedSubmissions);
     toast({
         title: "Report Deleted",
         description: "The operator submission has been removed.",
     });
-    handleLoadSubmissions();
   };
   
   const handleEditReport = (report: Report) => {
@@ -138,15 +143,12 @@ export function TapeheadsReviewSummary() {
     setEditDialogOpen(true);
   };
   
-  const handleUpdateReport = (updatedReport: Report) => {
+  const handleUpdateReport = async (updatedReport: Report) => {
     setEditDialogOpen(false);
     setReportToEdit(undefined);
-    handleLoadSubmissions();
+    const updatedSubmissions = await getTapeheadsSubmissions();
+    setAllSubmissions(updatedSubmissions);
   }
-  
-  useEffect(() => {
-    handleLoadSubmissions();
-  }, [date, shift]);
   
   const handleGenerateSummary = async () => {
     if (submissions.length === 0) {

@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Target, Gauge, Clock, Zap, AlertTriangle } from "lucide-react"
 import type { Report } from "@/lib/types"
-import { dataStore } from "@/lib/data-store"
+import { getTapeheadsSubmissions } from "@/lib/data-store"
 import { Badge } from "../ui/badge"
 
 const downtimeReasonsConfig = {
@@ -49,24 +49,31 @@ const calculateHours = (startTimeStr?: string, endTimeStr?: string): number => {
 }
 
 export function TapeheadsAnalytics() {
-  const [data, setData] = React.useState<Report[]>(dataStore.tapeheadsSubmissions);
+  const [allData, setAllData] = React.useState<Report[]>([]);
+  const [loading, setLoading] = React.useState(true);
   const [filters, setFilters] = React.useState({
     shift: 'all',
     operatorName: '',
   });
 
+  React.useEffect(() => {
+    getTapeheadsSubmissions().then(data => {
+        setAllData(data);
+        setLoading(false);
+    });
+  }, []);
+
   const handleFilterChange = (key: keyof typeof filters, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
   
-  React.useEffect(() => {
-    const filteredData = dataStore.tapeheadsSubmissions.filter(report => {
+  const data = React.useMemo(() => {
+    return allData.filter(report => {
         if (filters.shift !== 'all' && String(report.shift) !== filters.shift) return false;
         if (filters.operatorName && !report.operatorName.toLowerCase().includes(filters.operatorName.toLowerCase())) return false;
         return true;
     });
-    setData(filteredData);
-  }, [filters]);
+  }, [allData, filters]);
   
   const kpiData = React.useMemo(() => {
     const totalMeters = data.reduce((acc, report) => acc + (report.total_meters || 0), 0);
@@ -158,6 +165,9 @@ export function TapeheadsAnalytics() {
         return data.flatMap(report => (report.workItems || []).flatMap(item => (item.issues || []).map(issue => ({...issue, report, item}))));
     }, [data]);
 
+  if (loading) {
+    return <p>Loading analytics...</p>;
+  }
 
   return (
     <div className="space-y-6">
@@ -292,5 +302,3 @@ export function TapeheadsAnalytics() {
     </div>
   )
 }
-
-    

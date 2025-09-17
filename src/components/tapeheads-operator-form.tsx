@@ -1,5 +1,4 @@
 
-
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -32,8 +31,8 @@ import React, { useEffect, useMemo, useState } from "react"
 import { MultiSelect, MultiSelectOption } from "./ui/multi-select"
 import { useRouter } from "next/navigation"
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group"
-import { dataStore } from "@/lib/data-store"
-import type { Report, WorkItem, TapeUsage } from "@/lib/types"
+import { getOeJobs, getOeSection, getTapeheadsSubmissions, addTapeheadsSubmission, updateTapeheadsSubmission, markPanelsAsCompleted } from "@/lib/data-store"
+import type { Report, WorkItem, OeJob, OeSection } from "@/lib/data-store"
 
 const tapeIds = [
     "998108", "998108T", "998128", "998128T", "998147", "998147T", "998167", "998167T", "998185",
@@ -270,13 +269,13 @@ export function TapeheadsOperatorForm({ reportToEdit, onFormSubmit }: TapeheadsO
     }
   }, [watchStartTime, watchEndTime, totalMetersProduced, form]);
   
-  function onSubmit(values: OperatorFormValues) {
+  async function onSubmit(values: OperatorFormValues) {
     // Logic to update panel statuses
-    values.workItems.forEach(item => {
+    for (const item of values.workItems) {
         if (item.endOfShiftStatus === 'Completed') {
-            dataStore.markPanelsAsCompleted(item.oeNumber, item.section, item.panelsWorkedOn);
+            await markPanelsAsCompleted(item.oeNumber, item.section, item.panelsWorkedOn);
         }
-    });
+    }
 
     const reportData: Partial<Report> = {
         id: reportToEdit?.id || `rpt_${Date.now()}`,
@@ -316,10 +315,10 @@ export function TapeheadsOperatorForm({ reportToEdit, onFormSubmit }: TapeheadsO
     };
     
     if (onFormSubmit) {
-      dataStore.updateTapeheadsSubmission(reportData as Report);
+      await updateTapeheadsSubmission(reportData as Report);
       onFormSubmit(reportData as Report);
     } else {
-      dataStore.addTapeheadsSubmission(reportData as Report);
+      await addTapeheadsSubmission(reportData as Report);
       router.push('/report/tapeheads');
     }
 
@@ -414,6 +413,9 @@ export function TapeheadsOperatorForm({ reportToEdit, onFormSubmit }: TapeheadsO
 function WorkItemCard({ index, remove, control, isEditMode }: { index: number, remove: (index: number) => void, control: any, isEditMode: boolean }) {
   const { toast } = useToast();
   const [availableOes, setAvailableOes] = useState<string[]>([]);
+  const [oeJobs, setOeJobs] = useState<OeJob[]>([]);
+  const [allSubmissions, setAllSubmissions] = useState<Report[]>([]);
+
   const watchOeNumber = useWatch({ control, name: `workItems.${index}.oeNumber` });
   const watchSection = useWatch({ control, name: `workItems.${index}.section` });
   const watchPanelsWorkedOn = useWatch({ control, name: `workItems.${index}.panelsWorkedOn` });
@@ -426,11 +428,15 @@ function WorkItemCard({ index, remove, control, isEditMode }: { index: number, r
   const { fields: nestedPanelFields, append: appendNestedPanel, remove: removeNestedPanel } = useFieldArray({ control: control, name: `workItems.${index}.nestedPanels` });
 
   useEffect(() => {
+    getTapeheadsSubmissions().then(setAllSubmissions);
+  }, []);
+
+  useEffect(() => {
     if (!watchOeNumber || !watchSection || !watchPanelsWorkedOn || watchPanelsWorkedOn.length === 0 || isEditMode) {
       return;
     }
 
-    const isPanelInProgress = dataStore.tapeheadsSubmissions.some(report =>
+    const isPanelInProgress = allSubmissions.some(report =>
       report.workItems?.some(item => {
         if (item.oeNumber !== watchOeNumber || item.section !== watchSection || item.endOfShiftStatus !== 'In Progress') {
           return false;
@@ -449,18 +455,20 @@ function WorkItemCard({ index, remove, control, isEditMode }: { index: number, r
         variant: "destructive",
       });
     }
-  }, [watchOeNumber, watchSection, watchPanelsWorkedOn, toast, isEditMode]);
+  }, [watchOeNumber, watchSection, watchPanelsWorkedOn, toast, isEditMode, allSubmissions]);
 
-  const handleOeDropdownOpen = () => {
-    // Refetch from the store every time the dropdown is opened
-    setAvailableOes([...new Set(dataStore.oeJobs.map(j => j.oeBase))]);
+  const handleOeDropdownOpen = async () => {
+    const jobs = await getOeJobs();
+    setOeJobs(jobs);
+    setAvailableOes([...new Set(jobs.map(j => j.oeBase))]);
   };
 
-  const availableSails = useMemo(() => watchOeNumber ? dataStore.oeJobs.filter(j => j.oeBase === watchOeNumber).flatMap(j => j.sections?.map(s => s.sectionId) || []) : [], [watchOeNumber]);
+  const availableSails = useMemo(() => watchOeNumber ? oeJobs.filter(j => j.oeBase === watchOeNumber).flatMap(j => j.sections?.map(s => s.sectionId) || []) : [], [watchOeNumber, oeJobs]);
   
   const panelOptions = useMemo(() => {
       if (!watchOeNumber || !watchSection) return [];
-      const sail = dataStore.getOeSection(watchOeNumber, watchSection);
+      const job = oeJobs.find(j => j.oeBase === watchOeNumber);
+      const sail = job?.sections.find(s => s.sectionId === watchSection);
       if (!sail) return [];
       
       const options: MultiSelectOption[] = [];
@@ -473,7 +481,7 @@ function WorkItemCard({ index, remove, control, isEditMode }: { index: number, r
           }
       }
       return options;
-  }, [watchOeNumber, watchSection]);
+  }, [watchOeNumber, watchSection, oeJobs]);
 
   return (
     <Card className="bg-muted/30 p-4 relative">

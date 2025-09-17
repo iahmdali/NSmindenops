@@ -1,5 +1,4 @@
 
-
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -26,7 +25,7 @@ import { GraphicsKanbanBoard } from "./graphics/graphics-kanban-board"
 import type { GraphicsTask as Task } from "@/lib/data-store"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "./ui/dialog"
 import { sendShippingNotification } from "@/ai/flows/send-notification-flow"
-import { dataStore } from "@/lib/data-store"
+import { getGraphicsTasks, setGraphicsTasks } from "@/lib/data-store"
 import { PageHeader } from "@/components/page-header"
 
 
@@ -78,8 +77,9 @@ function Section({ title, description, children, actions }: { title: string, des
 
 export function GraphicsReportForm() {
     const { toast } = useToast();
-    const [tasks, setTasks] = useState<Task[]>(dataStore.graphicsTasksData);
+    const [tasks, setTasks] = useState<Task[]>([]);
     const [notifiedTags, setNotifiedTags] = useState<Set<string>>(new Set());
+    const [loading, setLoading] = useState(true);
 
     const form = useForm<GraphicsReportFormValues>({
         resolver: zodResolver(graphicsReportSchema),
@@ -96,6 +96,13 @@ export function GraphicsReportForm() {
         },
         mode: "onBlur"
     });
+
+    useEffect(() => {
+        getGraphicsTasks().then(tasks => {
+            setTasks(tasks);
+            setLoading(false);
+        });
+    }, []);
     
      useEffect(() => {
         const checkFinishedTags = async () => {
@@ -103,7 +110,7 @@ export function GraphicsReportForm() {
             const tagTaskMap: Record<string, Task[]> = {};
 
             // Group tasks by tagId
-            dataStore.graphicsTasksData.forEach(task => {
+            tasks.forEach(task => {
                 if (!task.tagId) return;
                 if (!tagTaskMap[task.tagId]) {
                     tagTaskMap[task.tagId] = [];
@@ -152,20 +159,22 @@ export function GraphicsReportForm() {
             }
         };
 
-        checkFinishedTags();
+        if (tasks.length > 0) {
+            checkFinishedTags();
+        }
     }, [tasks, notifiedTags, toast]);
 
     const { fields: personnelFields, append: appendPersonnel, remove: removePersonnel } = useFieldArray({ control: form.control, name: "personnel" });
     const { fields: maintenanceFields, append: appendMaintenance, remove: removeMaintenance } = useFieldArray({ control: form.control, name: "maintenance_tasks" });
     
-    const updateTasks = (newTasks: Task[]) => {
-      dataStore.graphicsTasksData = newTasks;
+    const updateTasks = async (newTasks: Task[]) => {
       setTasks(newTasks);
+      await setGraphicsTasks(newTasks);
     };
 
     const addNewTask = (type: 'cutting' | 'inking') => {
         const timestamp = Date.now();
-        const currentTasks = dataStore.graphicsTasksData;
+        const currentTasks = tasks;
 
         const cuttingTask: Task = {
             id: `cut-${timestamp}`, type: 'cutting', tagId: '', status: 'todo',
@@ -192,7 +201,7 @@ export function GraphicsReportForm() {
     }
     
     const updateTask = (updatedTask: Task) => {
-        let newTasks = dataStore.graphicsTasksData.map(task => task.id === updatedTask.id ? updatedTask : task);
+        let newTasks = tasks.map(task => task.id === updatedTask.id ? updatedTask : task);
         
         // If a cutting task is updated, sync its details to the corresponding inking task
         if (updatedTask.type === 'cutting') {
@@ -214,12 +223,16 @@ export function GraphicsReportForm() {
     }
     
     const deleteTask = (taskId: string) => {
-        const newTasks = dataStore.graphicsTasksData.filter(task => task.id !== taskId);
+        const newTasks = tasks.filter(task => task.id !== taskId);
         updateTasks(newTasks);
     }
 
     const cuttingTasks = tasks.filter(t => t.type === 'cutting');
     const inkingTasks = tasks.filter(t => t.type === 'inking');
+
+    if (loading) {
+        return <div>Loading tasks...</div>
+    }
 
     return (
         <Form {...form}>

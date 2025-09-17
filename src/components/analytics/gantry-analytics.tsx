@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Factory, TrendingUp, CheckCircle, AlertTriangle, Users } from "lucide-react"
-import { dataStore } from "@/lib/data-store"
+import { getGantryReportsData } from "@/lib/data-store"
 import type { GantryReport } from "@/lib/data-store"
 
 const classifySailType = (sailNumber?: string): 'Sail' | 'Panel' | 'Scarf' => {
@@ -46,20 +46,28 @@ const issueTypesConfig: ChartConfig = {
 }
 
 export function GantryAnalytics() {
-  const [reports, setReports] = React.useState<GantryReport[]>(dataStore.gantryReportsData);
+  const [allReports, setAllReports] = React.useState<GantryReport[]>([]);
+  const [loading, setLoading] = React.useState(true);
   const [filters, setFilters] = React.useState({
     shift: "all",
     dateRange: "30",
     zone: "all",
   });
 
+  React.useEffect(() => {
+    getGantryReportsData().then(data => {
+        setAllReports(data);
+        setLoading(false);
+    });
+  }, []);
+
   const handleFilterChange = (key: keyof typeof filters, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
 
   const filteredReports = useMemo(() => {
-    if (!reports || reports.length === 0) return [];
-    return reports.filter(report => {
+    if (!allReports || allReports.length === 0) return [];
+    return allReports.filter(report => {
       const matchesShift = filters.shift === "all" || report.shift === filters.shift;
       
       const reportDate = new Date(report.date);
@@ -70,7 +78,7 @@ export function GantryAnalytics() {
       
       return matchesShift && matchesDate;
     });
-  }, [reports, filters]);
+  }, [allReports, filters]);
 
   const allSails = React.useMemo(() => {
     if (!filteredReports) return [];
@@ -209,6 +217,9 @@ export function GantryAnalytics() {
         return Object.entries(stageCounts).map(([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value);
     }, [allSails]);
 
+  if (loading) {
+    return <p>Loading analytics...</p>;
+  }
 
   return (
     <div className="space-y-6">
@@ -371,5 +382,3 @@ export function GantryAnalytics() {
     </div>
   )
 }
-
-    

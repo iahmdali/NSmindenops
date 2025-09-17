@@ -1,5 +1,4 @@
 
-
 "use client"
 
 import React, { useState, useEffect } from 'react';
@@ -10,8 +9,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Badge } from './ui/badge';
 import { CheckCircle, Edit, ChevronsRight } from 'lucide-react';
-import { dataStore } from '@/lib/data-store';
-import type { Report, WorkItem } from '@/lib/types';
+import { getTapeheadsSubmissions } from '@/lib/data-store';
+import type { Report, WorkItem } from '@/lib/data-store';
 import { Progress } from './ui/progress';
 import { DatePicker } from './ui/date-picker';
 import { format, isSameDay } from 'date-fns';
@@ -85,22 +84,16 @@ function SubmittedReportCard({ report, workItem, itemIndex }: { report: Report, 
 export function TapeheadsWorkDashboard() {
     const [date, setDate] = useState<Date | undefined>(new Date());
     const [reports, setReports] = useState<Report[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    // This effect ensures the component re-renders when dataStore changes.
     useEffect(() => {
-        const interval = setInterval(() => {
-            // A simple check to see if the data has changed.
-            if (reports.length !== dataStore.tapeheadsSubmissions.length) {
-                 setReports(dataStore.tapeheadsSubmissions);
-            }
-        }, 1000); // Check every second
-        
-        return () => clearInterval(interval);
-    }, [reports]);
-
-     // Load initial data
-    useEffect(() => {
-        setReports(dataStore.tapeheadsSubmissions);
+        const loadReports = async () => {
+            setLoading(true);
+            const submissions = await getTapeheadsSubmissions();
+            setReports(submissions);
+            setLoading(false);
+        };
+        loadReports();
     }, []);
 
     const filteredWorkItems = React.useMemo(() => {
@@ -126,6 +119,9 @@ export function TapeheadsWorkDashboard() {
 
     }, [date, reports]);
     
+    if (loading) {
+        return <div>Loading dashboard...</div>;
+    }
 
     return (
         <div className="space-y-6">

@@ -31,7 +31,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ImageUpload } from "./image-upload"
 import { Switch } from "./ui/switch"
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert"
-import { dataStore } from "@/lib/data-store"
+import { getFilmsData, type FilmsReport } from "@/lib/data-store"
 
 const stageOfProcessOptions = [
     "RF Smart Mold Adjust", "Grid Base Film Installation", "Panel Installation", 
@@ -89,32 +89,6 @@ const gantryReportSchema = z.object({
     images: z.any().optional(),
   })).optional(),
   truck_runs: z.coerce.number().min(0, "Truck runs must be a positive number.").optional(),
-}).refine(data => {
-    for (const mold of data.molds) {
-        if (mold.downtime_caused) {
-            return !!mold.downtime_cause_description && (mold.downtime_duration_minutes ?? -1) >= 0;
-        }
-    }
-    return true;
-}, {
-    message: "Downtime description and duration are required when downtime is caused.",
-    path: ["molds"]
-}).refine(data => {
-    for (const mold of data.molds) {
-        const moldGantry = mold.mold_number.split('/')[0].trim().replace('Gantry ', '');
-        const sailsWithMismatch = mold.sails.some(sail => {
-            const filmEntry = dataStore.filmsData.find(f => f.sails_finished.some(s => s.sail_number === sail.sail_number));
-            return filmEntry && filmEntry.gantry_number !== moldGantry;
-        });
-
-        if (sailsWithMismatch && !mold.gantry_override_reason) {
-            return false;
-        }
-    }
-    return true;
-}, {
-    message: "An override reason is required when the Gantry number does not match the one assigned in the Films department.",
-    path: ["molds"]
 });
 
 type GantryReportFormValues = z.infer<typeof gantryReportSchema>;
@@ -339,10 +313,16 @@ function MoldField({ moldIndex, control, removeMold }: { moldIndex: number, cont
       name: `molds.${moldIndex}.mold_number`
   });
   
-  const sailsReadyForGantry = React.useMemo(() => {
-    const finishedSails = dataStore.filmsData.flatMap(report => report.sails_finished.map(sail => sail.sail_number));
-    return [...new Set(finishedSails)]; // Return unique sail numbers
+  const [filmsData, setFilmsData] = React.useState<FilmsReport[]>([]);
+  
+  React.useEffect(() => {
+    getFilmsData().then(setFilmsData);
   }, []);
+
+  const sailsReadyForGantry = React.useMemo(() => {
+    const finishedSails = filmsData.flatMap(report => report.sails_finished.map(sail => sail.sail_number));
+    return [...new Set(finishedSails)]; // Return unique sail numbers
+  }, [filmsData]);
 
 
   const gantryMismatch = React.useMemo(() => {
@@ -353,7 +333,7 @@ function MoldField({ moldIndex, control, removeMold }: { moldIndex: number, cont
 
     for (const sail of watchSails) {
         if (!sail.sail_number) continue;
-        const filmEntry = dataStore.filmsData.find(f => f.sails_finished.some(s => s.sail_number === sail.sail_number));
+        const filmEntry = filmsData.find(f => f.sails_finished.some(s => s.sail_number === sail.sail_number));
         if (filmEntry && filmEntry.gantry_number !== moldGantryNumber) {
             return {
                 sailNumber: sail.sail_number,
@@ -363,7 +343,7 @@ function MoldField({ moldIndex, control, removeMold }: { moldIndex: number, cont
         }
     }
     return null;
-  }, [watchSails, watchMoldNumber]);
+  }, [watchSails, watchMoldNumber, filmsData]);
   
   return (
     <Card className="p-4 bg-muted/30" key={`mold-${moldIndex}`}>
@@ -485,5 +465,3 @@ function MoldField({ moldIndex, control, removeMold }: { moldIndex: number, cont
     </Card>
   )
 }
-
-    

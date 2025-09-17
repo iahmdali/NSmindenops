@@ -132,94 +132,90 @@ export interface InspectionSubmission {
     };
 }
 
-const dataStore = {
-    get oeJobs(): Promise<OeJob[]> { return readData<OeJob[]>('oeJobs'); },
-    get filmsData(): Promise<FilmsReport[]> { return readData<FilmsReport[]>('filmsData'); },
-    get gantryReportsData(): Promise<GantryReport[]> { return readData<GantryReport[]>('gantryReports'); },
-    get graphicsTasksData(): Promise<GraphicsTask[]> { return readData<GraphicsTask[]>('graphicsTasks'); },
-    get preggerReportsData(): Promise<PreggerReport[]> { return readData<PreggerReport[]>('preggerReports'); },
-    get inspectionsData(): Promise<InspectionSubmission[]> { return readData<InspectionSubmission[]>('inspections'); },
-    get tapeheadsSubmissions(): Promise<Report[]> { return readData<Report[]>('tapeheadsSubmissions'); },
+export async function getOeJobs(): Promise<OeJob[]> { return readData<OeJob[]>('oeJobs'); }
+export async function getFilmsData(): Promise<FilmsReport[]> { return readData<FilmsReport[]>('filmsData'); }
+export async function getGantryReportsData(): Promise<GantryReport[]> { return readData<GantryReport[]>('gantryReports'); }
+export async function getGraphicsTasks(): Promise<GraphicsTask[]> { return readData<GraphicsTask[]>('graphicsTasks'); }
+export async function getPreggerReportsData(): Promise<PreggerReport[]> { return readData<PreggerReport[]>('preggerReports'); }
+export async function getInspectionsData(): Promise<InspectionSubmission[]> { return readData<InspectionSubmission[]>('inspections'); }
+export async function getTapeheadsSubmissions(): Promise<Report[]> { return readData<Report[]>('tapeheadsSubmissions'); }
+
+export async function setGraphicsTasks(tasks: GraphicsTask[]) {
+    await writeData('graphicsTasks', tasks);
+}
+
+export async function setTapeheadsSubmissions(reports: Report[]) {
+    await writeData('tapeheadsSubmissions', reports);
+}
+
+export async function addOeJob(job: { oeBase: string, sections: Array<{ sectionId: string, panelStart: number, panelEnd: number }> }): Promise<void> {
+    const oeJobs = await getOeJobs();
+    const newJob: OeJob = {
+        id: `job-${Date.now()}`,
+        oeBase: job.oeBase,
+        status: 'pending',
+        sections: job.sections.map(s => ({ ...s, completedPanels: [] })),
+    };
+    oeJobs.unshift(newJob);
+    await writeData('oeJobs', oeJobs);
+}
+
+export async function getOeSection(oeBase?: string, sectionId?: string): Promise<(OeSection & { jobStatus: OeJob['status']}) | undefined> {
+    if (!oeBase || !sectionId) return undefined;
+    const jobs = await getOeJobs();
+    const job = jobs.find(j => j.oeBase === oeBase);
+    if (!job) return undefined;
     
-    async setGraphicsTasks(tasks: GraphicsTask[]) {
-        await writeData('graphicsTasks', tasks);
-    },
-    
-    async setTapeheadsSubmissions(reports: Report[]) {
-        await writeData('tapeheadsSubmissions', reports);
-    },
-    
-    async addOeJob(job: { oeBase: string, sections: Array<{ sectionId: string, panelStart: number, panelEnd: number }> }): Promise<void> {
-        const oeJobs = await this.oeJobs;
-        const newJob: OeJob = {
-            id: `job-${Date.now()}`,
-            oeBase: job.oeBase,
-            status: 'pending',
-            sections: job.sections.map(s => ({ ...s, completedPanels: [] })),
-        };
-        oeJobs.unshift(newJob);
-        await writeData('oeJobs', oeJobs);
-    },
+    const section = job.sections.find(s => s.sectionId === sectionId);
+    if (!section) return undefined;
 
-    async getOeSection(oeBase?: string, sectionId?: string): Promise<(OeSection & { jobStatus: OeJob['status']}) | undefined> {
-        if (!oeBase || !sectionId) return undefined;
-        const jobs = await this.oeJobs;
-        const job = jobs.find(j => j.oeBase === oeBase);
-        if (!job) return undefined;
-        
-        const section = job.sections.find(s => s.sectionId === sectionId);
-        if (!section) return undefined;
+    return { ...section, jobStatus: job.status };
+}
 
-        return { ...section, jobStatus: job.status };
-    },
+export async function markPanelsAsCompleted(oeBase: string, sectionId: string, panels: string[]): Promise<void> {
+    const oeJobs = await getOeJobs();
+    const job = oeJobs.find(j => j.oeBase === oeBase);
+    if (!job) return;
 
-    async markPanelsAsCompleted(oeBase: string, sectionId: string, panels: string[]): Promise<void> {
-        const oeJobs = await this.oeJobs;
-        const job = oeJobs.find(j => j.oeBase === oeBase);
-        if (!job) return;
+    const section = job.sections.find(s => s.sectionId === sectionId);
+    if (!section) return;
 
-        const section = job.sections.find(s => s.sectionId === sectionId);
-        if (!section) return;
+    if (!section.completedPanels) {
+        section.completedPanels = [];
+    }
+    const newPanels = panels.filter(p => !section.completedPanels!.includes(p));
+    section.completedPanels.push(...newPanels);
 
-        if (!section.completedPanels) {
-            section.completedPanels = [];
-        }
-        const newPanels = panels.filter(p => !section.completedPanels!.includes(p));
-        section.completedPanels.push(...newPanels);
+    const allSectionsComplete = job.sections.every(s => {
+        const totalPanels = s.panelEnd - s.panelStart + 1;
+        return (s.completedPanels?.length || 0) >= totalPanels;
+    });
 
-        const allSectionsComplete = job.sections.every(s => {
-            const totalPanels = s.panelEnd - s.panelStart + 1;
-            return (s.completedPanels?.length || 0) >= totalPanels;
-        });
+    if (allSectionsComplete) {
+        job.status = 'completed';
+    } else if (job.sections.some(s => (s.completedPanels?.length || 0) > 0)) {
+        job.status = 'in-progress';
+    }
+    await writeData('oeJobs', oeJobs);
+}
 
-        if (allSectionsComplete) {
-            job.status = 'completed';
-        } else if (job.sections.some(s => (s.completedPanels?.length || 0) > 0)) {
-            job.status = 'in-progress';
-        }
-        await writeData('oeJobs', oeJobs);
-    },
-    
-    async addTapeheadsSubmission(report: Report): Promise<void> {
-        const submissions = await this.tapeheadsSubmissions;
-        submissions.unshift(report);
-        await writeData('tapeheadsSubmissions', submissions);
-    },
-    
-    async updateTapeheadsSubmission(updatedReport: Report): Promise<void> {
-        const submissions = await this.tapeheadsSubmissions;
-        const index = submissions.findIndex(r => r.id === updatedReport.id);
-        if (index !== -1) {
-            submissions[index] = updatedReport;
-            await writeData('tapeheadsSubmissions', submissions);
-        }
-    },
-    
-     async deleteTapeheadsSubmission(id: string): Promise<void> {
-        let submissions = await this.tapeheadsSubmissions;
-        submissions = submissions.filter(report => report.id !== id);
+export async function addTapeheadsSubmission(report: Report): Promise<void> {
+    const submissions = await getTapeheadsSubmissions();
+    submissions.unshift(report);
+    await writeData('tapeheadsSubmissions', submissions);
+}
+
+export async function updateTapeheadsSubmission(updatedReport: Report): Promise<void> {
+    const submissions = await getTapeheadsSubmissions();
+    const index = submissions.findIndex(r => r.id === updatedReport.id);
+    if (index !== -1) {
+        submissions[index] = updatedReport;
         await writeData('tapeheadsSubmissions', submissions);
     }
-};
+}
 
-export { dataStore };
+ export async function deleteTapeheadsSubmission(id: string): Promise<void> {
+    let submissions = await getTapeheadsSubmissions();
+    submissions = submissions.filter(report => report.id !== id);
+    await writeData('tapeheadsSubmissions', submissions);
+}

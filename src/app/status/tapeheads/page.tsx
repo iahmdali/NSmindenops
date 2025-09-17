@@ -10,12 +10,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { PageHeader } from '@/components/page-header';
-import { dataStore } from '@/lib/data-store';
+import { getTapeheadsSubmissions, getFilmsData, getGantryReportsData, getInspectionsData, getOeSection, getOeJobs, type InspectionSubmission, type OeJob, type FilmsReport, type GantryReport } from '@/lib/data-store';
 import type { Report, WorkItem } from '@/lib/types';
 import { SailStatusCard } from '@/components/status/sail-status-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import type { InspectionSubmission } from '@/lib/data-store';
 import { Layers } from 'lucide-react';
 
 interface FilmsInfo {
@@ -46,34 +45,64 @@ export default function TapeheadsStatusPage() {
   const [selectedOe, setSelectedOe] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [sortBy, setSortBy] = useState<'date' | 'status'>('date');
+  const [tapeheadsSubmissions, setTapeheadsSubmissions] = useState<Report[]>([]);
+  const [filmsData, setFilmsData] = useState<FilmsReport[]>([]);
+  const [gantryReportsData, setGantryReportsData] = useState<GantryReport[]>([]);
+  const [inspectionsData, setInspectionsData] = useState<InspectionSubmission[]>([]);
+  const [oeJobs, setOeJobs] = useState<OeJob[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Set the most recent OE as default on initial load
+  // Initial data load
   useEffect(() => {
-    if (dataStore.tapeheadsSubmissions.length > 0) {
-      const mostRecentReport = [...dataStore.tapeheadsSubmissions].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
-      const defaultOe = mostRecentReport.workItems?.[0]?.oeNumber;
-      if (defaultOe) {
-        setSelectedOe(defaultOe);
-        setSearchTerm(defaultOe);
-      }
-    }
+    const loadAllData = async () => {
+        setLoading(true);
+        try {
+            const [tapeheads, films, gantry, inspections, jobs] = await Promise.all([
+                getTapeheadsSubmissions(),
+                getFilmsData(),
+                getGantryReportsData(),
+                getInspectionsData(),
+                getOeJobs()
+            ]);
+            setTapeheadsSubmissions(tapeheads);
+            setFilmsData(films);
+            setGantryReportsData(gantry);
+            setInspectionsData(inspections);
+            setOeJobs(jobs);
+
+            // Set default OE after data is loaded
+            if (tapeheads.length > 0) {
+                const mostRecentReport = [...tapeheads].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+                const defaultOe = mostRecentReport.workItems?.[0]?.oeNumber;
+                if (defaultOe) {
+                    setSelectedOe(defaultOe);
+                    setSearchTerm(defaultOe);
+                }
+            }
+        } catch (error) {
+            console.error("Failed to load status page data:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+    loadAllData();
   }, []);
 
   const totalPanelsForOe = useMemo(() => {
     if (!selectedOe) return 0;
-    const job = dataStore.oeJobs.find(j => j.oeBase === selectedOe);
+    const job = oeJobs.find(j => j.oeBase === selectedOe);
     if (!job) return 0;
     return job.sections.reduce((total, section) => {
         return total + (section.panelEnd - section.panelStart + 1);
     }, 0);
-  }, [selectedOe]);
+  }, [selectedOe, oeJobs]);
 
   const sailWorkItems = useMemo(() => {
     if (!selectedOe) return [];
 
     const items: { [sailKey: string]: EnrichedWorkItem[] } = {};
 
-    dataStore.tapeheadsSubmissions.forEach(report => {
+    tapeheadsSubmissions.forEach(report => {
       report.workItems?.forEach(item => {
         if (item.oeNumber === selectedOe) {
           const sailKey = `${item.oeNumber}-${item.section}`;
@@ -81,8 +110,8 @@ export default function TapeheadsStatusPage() {
           
           // --- Find Films Department Info ---
           let filmsInfo: FilmsInfo = { status: 'No Entry' };
-          const finishedReport = dataStore.filmsData.find(fr => fr.sails_finished.some(s => s.sail_number === sailNumber));
-          const startedReport = dataStore.filmsData.find(fr => fr.sails_started.some(s => s.sail_number === sailNumber));
+          const finishedReport = filmsData.find(fr => fr.sails_finished.some(s => s.sail_number === sailNumber));
+          const startedReport = filmsData.find(fr => fr.sails_started.some(s => s.sail_number === sailNumber));
 
           if (finishedReport) {
               const finishedSail = finishedReport.sails_finished.find(s => s.sail_number === sailNumber);
@@ -103,7 +132,7 @@ export default function TapeheadsStatusPage() {
 
           // --- Find Gantry Department Info ---
           const gantryHistory: GantryInfo[] = [];
-          dataStore.gantryReportsData.forEach(gantryReport => {
+          gantryReportsData.forEach(gantryReport => {
               gantryReport.molds?.forEach(mold => {
                   mold.sails?.forEach(sail => {
                       if (sail.sail_number === sailNumber) {
@@ -124,11 +153,12 @@ export default function TapeheadsStatusPage() {
           // --- End of Gantry Logic ---
 
           // --- Find QC Inspection Info ---
-          const qcInspection = dataStore.inspectionsData.find(qc => qc.oeNumber === sailNumber);
+          const qcInspection = inspectionsData.find(qc => qc.oeNumber === sailNumber);
           // --- End of QC Logic ---
 
           // --- Get Total Panels for Section ---
-          const oeSection = dataStore.getOeSection(item.oeNumber, item.section);
+          const oeJob = oeJobs.find(job => job.oeBase === item.oeNumber);
+          const oeSection = oeJob?.sections.find(sec => sec.sectionId === item.section);
           const totalPanelsForSection = oeSection ? (oeSection.panelEnd - oeSection.panelStart + 1) : 0;
           // --- End of Total Panels Logic ---
           
@@ -162,13 +192,16 @@ export default function TapeheadsStatusPage() {
 
     return latestWorkItems;
 
-  }, [selectedOe, sortBy]);
+  }, [selectedOe, sortBy, tapeheadsSubmissions, filmsData, gantryReportsData, inspectionsData, oeJobs]);
   
   const handleSearch = (e: React.FormEvent) => {
       e.preventDefault();
       setSelectedOe(searchTerm);
   };
 
+  if (loading) {
+      return <div>Loading...</div>
+  }
 
   return (
     <div className="space-y-6">
@@ -233,5 +266,3 @@ export default function TapeheadsStatusPage() {
     </div>
   );
 }
-
-    

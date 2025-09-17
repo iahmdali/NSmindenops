@@ -18,7 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Factory, TrendingUp, Clock, Zap } from "lucide-react"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion"
 import { Badge } from "../ui/badge"
-import { dataStore } from "@/lib/data-store"
+import { getPreggerReportsData } from "@/lib/data-store"
 import type { PreggerReport } from "@/lib/data-store"
 
 const productionChartConfig = {
@@ -39,20 +39,27 @@ const CustomLegend = () => {
 };
 
 export function PreggerAnalytics() {
-  const [data, setData] = React.useState<PreggerReport[]>(dataStore.preggerReportsData);
+  const [allData, setAllData] = React.useState<PreggerReport[]>([]);
+  const [loading, setLoading] = React.useState(true);
   const [filters, setFilters] = React.useState({
     dateFrom: '2023-10-25',
     dateTo: '2023-10-27',
     shift: 'all',
   });
 
+  React.useEffect(() => {
+    getPreggerReportsData().then(data => {
+        setAllData(data);
+        setLoading(false);
+    });
+  }, []);
+
   const handleFilterChange = (key: keyof typeof filters, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
   
-  React.useEffect(() => {
-    // In a real app, you'd fetch data here based on filters
-    const filteredData = dataStore.preggerReportsData.filter(report => {
+  const data = React.useMemo(() => {
+    return allData.filter(report => {
         const reportDate = new Date(report.report_date);
         const fromDate = filters.dateFrom ? new Date(filters.dateFrom) : null;
         const toDate = filters.dateTo ? new Date(filters.dateTo) : null;
@@ -63,8 +70,7 @@ export function PreggerAnalytics() {
         
         return true;
     });
-    setData(filteredData);
-  }, [filters]);
+  }, [allData, filters]);
   
   const kpiData = React.useMemo(() => {
     const totalMeters = data.reduce((acc, report) => acc + report.workCompleted.reduce((sum, work) => sum + work.meters, 0), 0);
@@ -106,6 +112,9 @@ export function PreggerAnalytics() {
     return Object.entries(reasonData).map(([name, value]) => ({ name, value }));
   }, [data]);
 
+  if (loading) {
+    return <p>Loading analytics...</p>;
+  }
 
   return (
     <div className="space-y-6">
@@ -254,5 +263,3 @@ export function PreggerAnalytics() {
     </div>
   )
 }
-
-    

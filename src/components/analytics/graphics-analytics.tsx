@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, Clock, PackageCheck, Send } from "lucide-react";
 import { format, isSameDay } from 'date-fns';
-import { dataStore } from '@/lib/data-store';
+import { getGraphicsTasks } from '@/lib/data-store';
 import type { GraphicsTask } from '@/lib/data-store';
 import { Button } from '../ui/button';
 import { sendShippingNotification } from '@/ai/flows/send-notification-flow';
@@ -16,20 +16,17 @@ import { useToast } from '@/hooks/use-toast';
 
 export function GraphicsAnalytics() {
     const [date, setDate] = useState<Date | undefined>(new Date());
-    const [tasks, setTasks] = useState<GraphicsTask[]>(dataStore.graphicsTasksData);
+    const [allTasks, setAllTasks] = useState<GraphicsTask[]>([]);
+    const [loading, setLoading] = useState(true);
     const [notifiedTags, setNotifiedTags] = useState<Set<string>>(new Set());
     const { toast } = useToast();
 
-    // This effect simulates real-time updates from the mock data source.
     useEffect(() => {
-        const interval = setInterval(() => {
-            if (JSON.stringify(tasks) !== JSON.stringify(dataStore.graphicsTasksData)) {
-                setTasks([...dataStore.graphicsTasksData]);
-            }
-        }, 500);
-        return () => clearInterval(interval);
-    }, [tasks]);
-
+        getGraphicsTasks().then(data => {
+            setAllTasks(data);
+            setLoading(false);
+        });
+    }, []);
 
     const dailyData = useMemo(() => {
         if (!date) {
@@ -39,7 +36,7 @@ export function GraphicsAnalytics() {
             };
         }
 
-        const tasksToday = dataStore.graphicsTasksData.filter(task => {
+        const tasksToday = allTasks.filter(task => {
             const taskDate = task.completedAt || task.startedAt;
             return taskDate && isSameDay(new Date(taskDate), date);
         });
@@ -51,13 +48,13 @@ export function GraphicsAnalytics() {
             startedTasks,
             completedTasks,
         };
-    }, [date, tasks]);
+    }, [date, allTasks]);
     
     const readyForShippingTags = useMemo(() => {
         const finishedTagIds = new Set<string>();
         const tagTaskMap: Record<string, GraphicsTask[]> = {};
 
-        dataStore.graphicsTasksData.forEach(task => {
+        allTasks.forEach(task => {
             if (!task.tagId) return;
             if (!tagTaskMap[task.tagId]) {
                 tagTaskMap[task.tagId] = [];
@@ -75,7 +72,7 @@ export function GraphicsAnalytics() {
             }
         }
         return Array.from(finishedTagIds);
-    }, [tasks]);
+    }, [allTasks]);
 
     const summaryStats = useMemo(() => {
         const totalCompleted = dailyData.completedTasks.length;
@@ -112,6 +109,11 @@ export function GraphicsAnalytics() {
             toast({ title: "Error", description: "An error occurred while sending the shipping notification.", variant: "destructive" });
         }
     };
+    
+    if (loading) {
+        return <p>Loading analytics...</p>;
+    }
+
 
     return (
         <div className="space-y-6">
@@ -215,5 +217,3 @@ export function GraphicsAnalytics() {
         </div>
     );
 }
-
-    
