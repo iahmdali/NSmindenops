@@ -1,4 +1,5 @@
 
+
 /**
  * @fileoverview This file serves as the single, centralized in-memory data store for the application.
  * All mock data arrays and data modification functions are consolidated here. This ensures that all parts
@@ -625,12 +626,12 @@ function addOeJob(job: { oeBase: string, sections: Array<{ sectionId: string, pa
     status: 'pending',
     sections: job.sections.map(s => ({ ...s, completedPanels: [] })),
   };
-  oeJobs.unshift(newJob);
+  globalDataStore.oeJobs.unshift(newJob);
 }
 
 function getOeSection(oeBase?: string, sectionId?: string): (OeSection & { jobStatus: OeJob['status']}) | undefined {
   if (!oeBase || !sectionId) return undefined;
-  const job = oeJobs.find(j => j.oeBase === oeBase);
+  const job = globalDataStore.oeJobs.find(j => j.oeBase === oeBase);
   if (!job) return undefined;
   
   const section = job.sections.find(s => s.sectionId === sectionId);
@@ -640,7 +641,7 @@ function getOeSection(oeBase?: string, sectionId?: string): (OeSection & { jobSt
 }
 
 function markPanelsAsCompleted(oeBase: string, sectionId: string, panels: string[]) {
-    const job = oeJobs.find(j => j.oeBase === oeBase);
+    const job = globalDataStore.oeJobs.find(j => j.oeBase === oeBase);
     if (!job) return;
 
     const section = job.sections.find(s => s.sectionId === sectionId);
@@ -664,7 +665,8 @@ function markPanelsAsCompleted(oeBase: string, sectionId: string, panels: string
     }
 }
 
-export const dataStore = {
+
+const initialDataStore = {
     oeJobs,
     filmsData,
     gantryReportsData,
@@ -677,4 +679,13 @@ export const dataStore = {
     markPanelsAsCompleted,
 };
 
-    
+// This is the singleton pattern for ensuring a single data store instance in a Node.js environment.
+// It checks if the data store already exists on the global object. If not, it creates it.
+// This prevents the data from being reset on every hot-reload in development.
+declare const global: {
+  __dataStore__: typeof initialDataStore;
+};
+
+const globalDataStore = global.__dataStore__ || (global.__dataStore__ = initialDataStore);
+
+export { globalDataStore as dataStore };
