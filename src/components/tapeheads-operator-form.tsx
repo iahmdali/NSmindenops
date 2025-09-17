@@ -28,7 +28,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { PlusCircle, Trash2 } from "lucide-react"
 import { Checkbox } from "./ui/checkbox"
 import { Separator } from "./ui/separator"
-import React, { useEffect, useMemo } from "react"
+import React, { useEffect, useMemo, useState } from "react"
 import { MultiSelect, MultiSelectOption } from "./ui/multi-select"
 import { useRouter } from "next/navigation"
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group"
@@ -410,6 +410,7 @@ export function TapeheadsOperatorForm({ reportToEdit, onFormSubmit }: TapeheadsO
 
 function WorkItemCard({ index, remove, control, isEditMode }: { index: number, remove: (index: number) => void, control: any, isEditMode: boolean }) {
   const { toast } = useToast();
+  const [availableOes, setAvailableOes] = useState<string[]>([]);
   const watchOeNumber = useWatch({ control, name: `workItems.${index}.oeNumber` });
   const watchSection = useWatch({ control, name: `workItems.${index}.section` });
   const watchPanelsWorkedOn = useWatch({ control, name: `workItems.${index}.panelsWorkedOn` });
@@ -447,8 +448,10 @@ function WorkItemCard({ index, remove, control, isEditMode }: { index: number, r
     }
   }, [watchOeNumber, watchSection, watchPanelsWorkedOn, toast, isEditMode]);
 
+  const handleOeDropdownOpen = () => {
+    setAvailableOes([...new Set(dataStore.oeJobs.map(j => j.oeBase))]);
+  };
 
-  const availableOes = useMemo(() => [...new Set(dataStore.oeJobs.map(j => j.oeBase))], []);
   const availableSails = useMemo(() => watchOeNumber ? dataStore.oeJobs.filter(j => j.oeBase === watchOeNumber).flatMap(j => j.sections?.map(s => s.sectionId) || []) : [], [watchOeNumber]);
   
   const panelOptions = useMemo(() => {
@@ -473,7 +476,7 @@ function WorkItemCard({ index, remove, control, isEditMode }: { index: number, r
        <Button type="button" variant="ghost" size="icon" className="text-destructive absolute top-2 right-2" onClick={() => remove(index)}><Trash2 className="size-4" /></Button>
       <div className="space-y-4">
          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-             <FormField control={control} name={`workItems.${index}.oeNumber`} render={({ field }) => (<FormItem><FormLabel>OE Number</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select an OE..." /></SelectTrigger></FormControl><SelectContent>{availableOes.map(oe => <SelectItem key={oe} value={oe}>{oe}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+             <FormField control={control} name={`workItems.${index}.oeNumber`} render={({ field }) => (<FormItem><FormLabel>OE Number</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value} onOpenChange={(open) => open && handleOeDropdownOpen()}><FormControl><SelectTrigger><SelectValue placeholder="Select an OE..." /></SelectTrigger></FormControl><SelectContent>{availableOes.map(oe => <SelectItem key={oe} value={oe}>{oe}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
              <FormField control={control} name={`workItems.${index}.section`} render={({ field }) => (<FormItem><FormLabel>Sail #</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value} disabled={!watchOeNumber}><FormControl><SelectTrigger><SelectValue placeholder="Select a Sail #" /></SelectTrigger></FormControl><SelectContent>{availableSails.map(sailId => <SelectItem key={sailId} value={sailId}>{sailId}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t">
@@ -543,5 +546,3 @@ function WorkItemCard({ index, remove, control, isEditMode }: { index: number, r
     </Card>
   );
 }
-
-    
