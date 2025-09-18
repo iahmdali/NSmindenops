@@ -1,5 +1,55 @@
-
 [
+  {
+    "id": "rpt_1758140288642",
+    "date": "2025-09-17T20:06:50.672Z",
+    "shift": 1,
+    "shiftLeadName": "SUNSHINE",
+    "thNumber": "TH-2",
+    "operatorName": "WILSON",
+    "shiftStartTime": "06:05",
+    "shiftEndTime": "09:55",
+    "hoursWorked": 3.8,
+    "metersPerManHour": 2631.6,
+    "workItems": [
+      {
+        "oeNumber": "OUS091101",
+        "section": "001",
+        "endOfShiftStatus": "Completed",
+        "tapes": [
+          {
+            "tapeId": "997108",
+            "metersProduced": 10000,
+            "metersWasted": 10
+          }
+        ],
+        "total_meters": 10000,
+        "total_tapes": 1,
+        "had_spin_out": true,
+        "spin_out_duration_minutes": 2.5,
+        "issues": [],
+        "panelsWorkedOn": [
+          "P1"
+        ],
+        "nestedPanels": []
+      }
+    ],
+    "checklist": {
+      "smoothFuseFull": true,
+      "bladesGlasses": true,
+      "paperworkUpToDate": true,
+      "debriefNewOperator": true,
+      "electricScissor": true,
+      "tubesAtEndOfTable": true,
+      "sprayTracksOnBridge": true,
+      "sharpiePens": true,
+      "broom": true,
+      "cleanedWorkStation": true,
+      "meterStickTwoIrons": true,
+      "thIsleTrashEmpty": true
+    },
+    "status": "Submitted",
+    "total_meters": 10000
+  },
   {
     "id": "rpt_1_new",
     "date": "2023-10-27T12:00:00.000Z",

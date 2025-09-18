@@ -1,5 +1,19 @@
-
 [
+  {
+    "id": "job-1758139498242",
+    "oeBase": "OUS091101",
+    "status": "in-progress",
+    "sections": [
+      {
+        "sectionId": "001",
+        "panelStart": 1,
+        "panelEnd": 3,
+        "completedPanels": [
+          "P1"
+        ]
+      }
+    ]
+  },
   {
     "id": "job-1",
     "oeBase": "OUS2345",
