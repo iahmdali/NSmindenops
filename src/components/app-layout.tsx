@@ -63,22 +63,23 @@ import { Logo } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { useAppTitle } from "./app-title-context";
 import { useAuth } from "@/hooks/use-auth";
+import { hasPermission } from "@/lib/roles";
 
 const departments = [
-  { name: 'Pregger', href: '/report/pregger', icon: Building2 },
-  { name: 'Tapeheads', href: '/report/tapeheads', icon: Users },
-  { name: 'Gantry', href: '/report/gantry', icon: GanttChartSquare },
-  { name: 'Films', href: '/report/films', icon: Film },
-  { name: 'Graphics', href: '/report/graphics', icon: Paintbrush },
-];
+  { name: 'Pregger', href: '/report/pregger', icon: Building2, permission: 'nav:report:pregger' },
+  { name: 'Tapeheads', href: '/report/tapeheads', icon: Users, permission: 'nav:report:tapeheads' },
+  { name: 'Gantry', href: '/report/gantry', icon: GanttChartSquare, permission: 'nav:report:gantry' },
+  { name: 'Films', href: '/report/films', icon: Film, permission: 'nav:report:films' },
+  { name: 'Graphics', href: '/report/graphics', icon: Paintbrush, permission: 'nav:report:graphics' },
+] as const;
 
 const analyticsDepartments = [
-  { name: 'Pregger', href: '/analytics/pregger', icon: Building2 },
-  { name: 'Tapeheads', href: '/analytics/tapeheads', icon: Users },
-  { name: 'Gantry', href: '/analytics/gantry', icon: GanttChartSquare },
-  { name: 'Films', href: '/analytics/films', icon: Film },
-  { name: 'Graphics', href: '/analytics/graphics', icon: Paintbrush },
-];
+  { name: 'Pregger', href: '/analytics/pregger', icon: Building2, permission: 'nav:analytics:pregger' },
+  { name: 'Tapeheads', href: '/analytics/tapeheads', icon: Users, permission: 'nav:analytics:tapeheads' },
+  { name: 'Gantry', href: '/analytics/gantry', icon: GanttChartSquare, permission: 'nav:analytics:gantry' },
+  { name: 'Films', href: '/analytics/films', icon: Film, permission: 'nav:analytics:films' },
+  { name: 'Graphics', href: '/analytics/graphics', icon: Paintbrush, permission: 'nav:analytics:graphics' },
+] as const;
 
 
 function useTheme() {
@@ -121,9 +122,9 @@ function UserNav() {
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">Shift Lead</p>
+            <p className="text-sm font-medium leading-none">{user.role || 'User'}</p>
             <p className="text-xs leading-none text-muted-foreground">
-              {user}
+              {user.email}
             </p>
           </div>
         </DropdownMenuLabel>
@@ -161,22 +162,23 @@ function UserNav() {
 function MainSidebar() {
   const pathname = usePathname();
   const { title } = useAppTitle();
-  const { open, setOpen, state } = useSidebar();
-  const { user, logout } = useAuth();
-  const [isReportsOpen, setReportsOpen] = React.useState(false);
-  const [isAnalyticsOpen, setAnalyticsOpen] = React.useState(false);
-  const [isDeptAnalyticsOpen, setDeptAnalyticsOpen] = React.useState(false);
-  
-  React.useEffect(() => {
-    const isReportPath = pathname.startsWith('/report');
-    const isLeadPath = pathname.startsWith('/analytics') || pathname.startsWith('/review') || pathname.startsWith('/file-processing') || pathname.startsWith('/qc') || pathname.startsWith('/status');
-    const isDeptAnalyticsPath = pathname.startsWith('/analytics');
-    
-    if (isReportPath) setReportsOpen(true);
-    if (isLeadPath) setAnalyticsOpen(true);
-    if (isDeptAnalyticsPath) setDeptAnalyticsOpen(true);
+  const { user } = useAuth();
+  const { role } = user;
 
-  }, [pathname]);
+  const [isReportsOpen, setReportsOpen] = React.useState(pathname.startsWith('/report'));
+  const [isLeadFuncsOpen, setLeadFuncsOpen] = React.useState(
+      pathname.startsWith("/analytics") || pathname.startsWith('/review') || pathname.startsWith('/file-processing') || pathname.startsWith('/qc') || pathname.startsWith('/status')
+  );
+  const [isDeptAnalyticsOpen, setDeptAnalyticsOpen] = React.useState(pathname.startsWith('/analytics'));
+
+  const can = (permission: Permission) => hasPermission(role, permission);
+  
+  const visibleReportDepts = departments.filter(dept => can(dept.permission));
+  const visibleAnalyticsDepts = analyticsDepartments.filter(dept => can(dept.permission));
+
+  const canSeeAnyReports = visibleReportDepts.length > 0;
+  const canSeeLeadFunctions = can('nav:file-processing') || can('nav:status') || can('nav:review:tapeheads') || can('nav:qc') || visibleAnalyticsDepts.length > 0;
+  const canSeeAnyAnalytics = visibleAnalyticsDepts.length > 0;
 
   return (
     <Sidebar>
@@ -190,112 +192,70 @@ function MainSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              isActive={pathname === "/dashboard"}
-              tooltip="Dashboard"
-            >
-              <Link href="/dashboard">
-                <Home />
-                <span>Dashboard</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              onClick={() => setReportsOpen(!isReportsOpen)}
-              isActive={pathname.startsWith("/report")}
-            >
-              <FileText />
-              <span>Report Entry</span>
-              <ChevronDown
-                className={cn(
-                  "ml-auto h-4 w-4 transition-transform duration-200",
-                  isReportsOpen && "rotate-180"
+          {can('nav:dashboard') && (
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname === "/dashboard"} tooltip="Dashboard">
+                <Link href="/dashboard"><Home /><span>Dashboard</span></Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
+
+          {canSeeAnyReports && (
+             <SidebarMenuItem>
+                <SidebarMenuButton onClick={() => setReportsOpen(!isReportsOpen)} isActive={pathname.startsWith("/report")}>
+                  <FileText />
+                  <span>Report Entry</span>
+                  <ChevronDown className={cn("ml-auto h-4 w-4 transition-transform duration-200", isReportsOpen && "rotate-180")} />
+                </SidebarMenuButton>
+                {isReportsOpen && (
+                  <SidebarMenuSub>
+                    {visibleReportDepts.map((dept) => (
+                      <SidebarMenuSubItem key={dept.name}>
+                        <SidebarMenuSubButton asChild isActive={pathname === dept.href}>
+                          <Link href={dept.href}><dept.icon /><span>{dept.name}</span></Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    ))}
+                  </SidebarMenuSub>
                 )}
-              />
-            </SidebarMenuButton>
-            {isReportsOpen && (
-              <SidebarMenuSub>
-                {departments.map((dept) => (
-                  <SidebarMenuSubItem key={dept.name}>
-                    <SidebarMenuSubButton
-                      asChild
-                      isActive={pathname === dept.href}
-                    >
-                      <Link href={dept.href}>
-                        <dept.icon />
-                        <span>{dept.name}</span>
-                      </Link>
-                    </SidebarMenuSubButton>
-                  </SidebarMenuSubItem>
-                ))}
-              </SidebarMenuSub>
-            )}
-          </SidebarMenuItem>
-           <SidebarMenuItem>
-            <SidebarMenuButton
-              onClick={() => setAnalyticsOpen(!isAnalyticsOpen)}
-              isActive={pathname.startsWith("/analytics") || pathname.startsWith('/review') || pathname.startsWith('/file-processing') || pathname.startsWith('/qc') || pathname.startsWith('/status')}
-            >
-              <AreaChart />
-              <span>Lead Functions</span>
-              <ChevronDown
-                className={cn(
-                  "ml-auto h-4 w-4 transition-transform duration-200",
-                  isAnalyticsOpen && "rotate-180"
-                )}
-              />
-            </SidebarMenuButton>
-            {isAnalyticsOpen && (
-              <SidebarMenuSub>
-                <SidebarMenuSubItem>
-                   <SidebarMenuSubButton asChild isActive={pathname === '/file-processing'}>
-                        <Link href="/file-processing"><FilePlus /><span>File Processing</span></Link>
-                   </SidebarMenuSubButton>
-                </SidebarMenuSubItem>
-                 <SidebarMenuSubItem>
-                   <SidebarMenuSubButton asChild isActive={pathname.startsWith('/status')}>
-                        <Link href="/status/tapeheads"><ClipboardCheck/><span>Sail Status</span></Link>
-                   </SidebarMenuSubButton>
-                </SidebarMenuSubItem>
-                <SidebarMenuSubItem>
-                   <SidebarMenuSubButton asChild isActive={pathname === '/review/tapeheads'}>
-                        <Link href="/review/tapeheads"><Users /><span>Tapeheads Review</span></Link>
-                   </SidebarMenuSubButton>
-                </SidebarMenuSubItem>
-                 <SidebarMenuSubItem>
-                   <SidebarMenuSubButton asChild isActive={pathname === '/qc/inspection'}>
-                        <Link href="/qc/inspection"><ShieldCheck /><span>QC Inspection</span></Link>
-                   </SidebarMenuSubButton>
-                </SidebarMenuSubItem>
-                
-                {/* Department Analytics Sub-Menu */}
-                <SidebarMenuSubItem>
-                    <SidebarMenuSubButton onClick={() => setDeptAnalyticsOpen(!isDeptAnalyticsOpen)} isActive={pathname.startsWith('/analytics')}>
-                        <AreaChart/>
-                        <span>Department Analytics</span>
-                        <ChevronDown className={cn("ml-auto h-4 w-4 transition-transform duration-200", isDeptAnalyticsOpen && "rotate-180" )} />
-                    </SidebarMenuSubButton>
-                    {isDeptAnalyticsOpen && (
-                        <SidebarMenuSub>
-                            {analyticsDepartments.map((dept) => (
-                                <SidebarMenuSubItem key={dept.name}>
-                                    <SidebarMenuSubButton asChild isActive={pathname === dept.href}>
-                                        <Link href={dept.href}>
-                                            <dept.icon />
-                                            <span>{dept.name}</span>
-                                        </Link>
-                                    </SidebarMenuSubButton>
-                                </SidebarMenuSubItem>
-                            ))}
-                        </SidebarMenuSub>
+              </SidebarMenuItem>
+          )}
+
+           {canSeeLeadFunctions && (
+              <SidebarMenuItem>
+                <SidebarMenuButton onClick={() => setLeadFuncsOpen(!isLeadFuncsOpen)} isActive={isLeadFuncsOpen}>
+                  <AreaChart />
+                  <span>Lead Functions</span>
+                  <ChevronDown className={cn("ml-auto h-4 w-4 transition-transform duration-200", isLeadFuncsOpen && "rotate-180")}/>
+                </SidebarMenuButton>
+                {isLeadFuncsOpen && (
+                  <SidebarMenuSub>
+                    {can('nav:file-processing') && (<SidebarMenuSubItem><SidebarMenuSubButton asChild isActive={pathname === '/file-processing'}><Link href="/file-processing"><FilePlus /><span>File Processing</span></Link></SidebarMenuSubButton></SidebarMenuSubItem>)}
+                    {can('nav:status') && (<SidebarMenuSubItem><SidebarMenuSubButton asChild isActive={pathname.startsWith('/status')}><Link href="/status/tapeheads"><ClipboardCheck/><span>Sail Status</span></Link></SidebarMenuSubButton></SidebarMenuSubItem>)}
+                    {can('nav:review:tapeheads') && (<SidebarMenuSubItem><SidebarMenuSubButton asChild isActive={pathname === '/review/tapeheads'}><Link href="/review/tapeheads"><Users /><span>Tapeheads Review</span></Link></SidebarMenuSubButton></SidebarMenuSubItem>)}
+                    {can('nav:qc') && (<SidebarMenuSubItem><SidebarMenuSubButton asChild isActive={pathname === '/qc/inspection'}><Link href="/qc/inspection"><ShieldCheck /><span>QC Inspection</span></Link></SidebarMenuSubButton></SidebarMenuSubItem>)}
+                    
+                    {canSeeAnyAnalytics && (
+                        <SidebarMenuSubItem>
+                            <SidebarMenuSubButton onClick={() => setDeptAnalyticsOpen(!isDeptAnalyticsOpen)} isActive={pathname.startsWith('/analytics')}>
+                                <AreaChart/><span>Department Analytics</span>
+                                <ChevronDown className={cn("ml-auto h-4 w-4 transition-transform duration-200", isDeptAnalyticsOpen && "rotate-180" )}/>
+                            </SidebarMenuSubButton>
+                            {isDeptAnalyticsOpen && (
+                                <SidebarMenuSub>
+                                    {visibleAnalyticsDepts.map((dept) => (
+                                        <SidebarMenuSubItem key={dept.name}>
+                                            <SidebarMenuSubButton asChild isActive={pathname === dept.href}><Link href={dept.href}><dept.icon /><span>{dept.name}</span></Link></SidebarMenuSubButton>
+                                        </SidebarMenuSubItem>
+                                    ))}
+                                </SidebarMenuSub>
+                            )}
+                        </SidebarMenuSubItem>
                     )}
-                </SidebarMenuSubItem>
-              </SidebarMenuSub>
-            )}
-          </SidebarMenuItem>
+                  </SidebarMenuSub>
+                )}
+              </SidebarMenuItem>
+           )}
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="group-data-[collapsible=icon]:hidden">
@@ -305,8 +265,8 @@ function MainSidebar() {
             <AvatarFallback>SL</AvatarFallback>
           </Avatar>
           <div className="flex flex-col">
-            <span className="text-sm font-medium text-sidebar-foreground">Shift Lead</span>
-            <span className="text-xs text-muted-foreground">{user}</span>
+            <span className="text-sm font-medium text-sidebar-foreground">{user.role || 'User'}</span>
+            <span className="text-xs text-muted-foreground">{user.email}</span>
           </div>
         </div>
       </SidebarFooter>

@@ -10,8 +10,21 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { Logo } from '@/components/icons';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const users = {
+  'superuser@ns.com': 'password',
+  'b2_supervisor@ns.com': 'password',
+  'b1_supervisor@ns.com': 'password',
+  'quality_manager@ns.com': 'password',
+  'management@ns.com': 'password',
+  'pregger_lead@ns.com': 'password',
+  'tapehead_operator@ns.com': 'password',
+  'tapehead_lead@ns.com': 'password',
+  'gantry_lead@ns.com': 'password',
+  'films_lead@ns.com': 'password',
+  'graphics_lead@ns.com': 'password',
+  // Old users for compatibility
   'lead@ns.com': 'GavinKilledFishes',
   'operator@ns.com': 'GavinKilledFishes',
   'head@ns.com': 'GavinKilledFishes',
@@ -21,8 +34,8 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { login, isAuthenticated } = useAuth();
-  const [email, setEmail] = useState('lead@ns.com');
-  const [password, setPassword] = useState('GavinKilledFishes');
+  const [email, setEmail] = useState('b2_supervisor@ns.com');
+  const [password, setPassword] = useState('password');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -63,6 +76,14 @@ export default function LoginPage() {
     return <div className="flex h-screen items-center justify-center">Loading...</div>;
   }
 
+  const handleUserSelection = (selectedEmail: string) => {
+      setEmail(selectedEmail);
+      const newPassword = users[selectedEmail as keyof typeof users];
+      if (newPassword) {
+          setPassword(newPassword);
+      }
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-sm">
@@ -76,6 +97,21 @@ export default function LoginPage() {
         <form onSubmit={handleLogin}>
             <CardContent className="space-y-4">
             <div className="space-y-2">
+              <Label>Select a user to sign in as:</Label>
+              <Select value={email} onValueChange={handleUserSelection}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a user role" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.keys(users).map((userEmail) => (
+                    <SelectItem key={userEmail} value={userEmail}>
+                      {userEmail}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
                 id="email"
@@ -84,6 +120,7 @@ export default function LoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                readOnly
                 />
             </div>
             <div className="space-y-2">

@@ -3,12 +3,13 @@
 
 import { createContext, useContext } from 'react';
 import type { ReactNode } from 'react';
+import type { UserRole } from '@/lib/roles';
 
 interface AuthContextType {
   isAuthenticated: boolean;
-  user: string | null;
+  user: { email: string | null; role: UserRole | null };
   isLoading: boolean;
-  login: (user: string) => void;
+  login: (email: string) => void;
   logout: () => void;
 }
 

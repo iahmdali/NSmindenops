@@ -9,36 +9,40 @@ import { usePathname, useRouter } from 'next/navigation';
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import Cookies from 'js-cookie';
 import { AuthContext, useAuth } from '@/hooks/use-auth';
+import type { UserRole } from '@/lib/roles';
+import { getRoleFromEmail } from '@/lib/roles';
 
 const APP_TITLE = 'SRD: Minden Operations';
 
 function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState<string | null>(null);
+  const [user, setUser] = useState<{ email: string | null; role: UserRole | null }>({ email: null, role: null });
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const userCookie = Cookies.get('auth_user');
     if (userCookie) {
+      const role = getRoleFromEmail(userCookie);
       setIsAuthenticated(true);
-      setUser(userCookie);
+      setUser({ email: userCookie, role });
     } else {
       setIsAuthenticated(false);
-      setUser(null);
+      setUser({ email: null, role: null });
     }
     setIsLoading(false);
   }, []);
 
-  const login = (newUser: string) => {
-    Cookies.set('auth_user', newUser, { expires: 7 });
+  const login = (email: string) => {
+    const role = getRoleFromEmail(email);
+    Cookies.set('auth_user', email, { expires: 7 });
     setIsAuthenticated(true);
-    setUser(newUser);
+    setUser({ email, role });
   };
 
   const logout = () => {
     Cookies.remove('auth_user');
     setIsAuthenticated(false);
-    setUser(null);
+    setUser({ email: null, role: null });
   };
 
   return (
