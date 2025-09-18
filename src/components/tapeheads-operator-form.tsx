@@ -34,7 +34,7 @@ import { RadioGroup, RadioGroupItem } from "./ui/radio-group"
 import { getOeJobs, getOeSection, getTapeheadsSubmissions, addTapeheadsSubmission, updateTapeheadsSubmission, markPanelsAsCompleted } from "@/lib/data-store"
 import type { Report, WorkItem, OeJob, OeSection } from "@/lib/data-store"
 
-const tapeIds = [
+const tapeIdsList = [
     "928108", "938108", "938108T", "928128", "938128", "938128T", "*938138*", 
     "938148", "928107", "938107", "928127", "938127", "938147", "938167", 
     "926107", "936107", "926117", "936117", "936137", "936157", "936176", 
@@ -48,6 +48,7 @@ const tapeIds = [
     "GPFL50D-40H", "GPFL50D-50H", "GPFL50D-70H", "GPFL50D-95H", "GPFL50D-125H", 
     "0", "937630", "937130"
 ];
+const tapeIds = [...new Set(tapeIdsList)];
 
 
 const problemSchema = z.object({
@@ -561,5 +562,7 @@ function WorkItemCard({ index, remove, control, isEditMode }: { index: number, r
     </Card>
   );
 }
+
+    
 
     

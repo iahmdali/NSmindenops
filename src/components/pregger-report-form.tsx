@@ -31,7 +31,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 
-const tapeIds = [
+const tapeIdsList = [
     "928108", "938108", "938108T", "928128", "938128", "938128T", "*938138*", 
     "938148", "928107", "938107", "928127", "938127", "938147", "938167", 
     "926107", "936107", "926117", "936117", "936137", "936157", "936176", 
@@ -45,6 +45,7 @@ const tapeIds = [
     "GPFL50D-40H", "GPFL50D-50H", "GPFL50D-70H", "GPFL50D-95H", "GPFL50D-125H", 
     "0", "937630", "937130"
 ];
+const tapeIds = [...new Set(tapeIdsList)];
 
 
 const preggerReportSchema = z.object({
@@ -308,5 +309,7 @@ export function PreggerReportForm() {
     </Card>
   )
 }
+
+    
 
     
