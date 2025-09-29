@@ -1,4 +1,3 @@
-
 [
   {
     "id": "cut-1",
@@ -33,18 +32,21 @@
     "id": "cut-2",
     "type": "cutting",
     "tagId": "OIT76541-001",
-    "status": "todo",
+    "status": "done",
     "content": "Jib sail initial cut",
     "tagType": "Sail",
-    "sidedness": "Single-Sided",
-    "startedAt": "2024-08-01T18:23:45.000Z"
+    "sidedness": "Double-Sided",
+    "startedAt": "2024-08-01T18:23:45.000Z",
+    "sideOfWork": "Port",
+    "completedAt": "2025-09-19T16:10:52.815Z",
+    "isFinished": true
   },
   {
     "id": "ink-2",
     "type": "inking",
     "tagId": "OIT76541-001",
-    "status": "todo",
-    "content": "Inking Port side insignia",
+    "status": "inProgress",
+    "content": "Jib sail initial cut",
     "tagType": "Sail",
     "sidedness": "Double-Sided",
     "sideOfWork": "Port",
